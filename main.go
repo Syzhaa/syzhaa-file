@@ -497,6 +497,9 @@ func main() {
 	if err := initDB(); err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}
+	if err := initUserSchema(); err != nil {
+		log.Fatal("Failed to initialize user schema:", err)
+	}
 	defer db.Close()
 
 	// Initialize Google OAuth
@@ -524,6 +527,11 @@ func main() {
 	r.HandleFunc("/auth/google/login", handleGoogleLogin).Methods("GET")
 	r.HandleFunc("/auth/google/callback", handleGoogleCallback).Methods("GET")
 	r.HandleFunc("/auth/logout", handleAdminLogout).Methods("POST", "OPTIONS")
+	
+	// User OAuth routes
+	r.HandleFunc("/auth/user/login", handleGoogleLogin).Methods("GET")
+	r.HandleFunc("/auth/user/callback", handleUserGoogleCallback).Methods("GET")
+	r.HandleFunc("/auth/user/logout", handleUserLogout).Methods("POST", "OPTIONS")
 
 	// Admin routes (require session)
 	adminRouter := r.PathPrefix("/admin").Subrouter()
@@ -534,6 +542,20 @@ func main() {
 	adminRouter.HandleFunc("/api-keys", handleCreateAPIKey).Methods("POST")
 	adminRouter.HandleFunc("/api-keys/{id}", handleDeleteAPIKey).Methods("DELETE")
 	adminRouter.HandleFunc("/api-keys/{id}/toggle", handleToggleAPIKey).Methods("POST")
+	
+	// Admin user management routes
+	adminRouter.HandleFunc("/users", handleAdminListUsers).Methods("GET")
+	adminRouter.HandleFunc("/users/{id}/approve", handleAdminApproveUser).Methods("POST")
+	adminRouter.HandleFunc("/users/{id}/reject", handleAdminRejectUser).Methods("POST")
+	adminRouter.HandleFunc("/users/{id}/suspend", handleAdminSuspendUser).Methods("POST")
+	adminRouter.HandleFunc("/users/{id}/quotas", handleAdminUpdateUserQuotas).Methods("PUT")
+	adminRouter.HandleFunc("/users/{id}/stats", handleAdminGetUserStats).Methods("GET")
+	adminRouter.HandleFunc("/settings", handleAdminSystemSettings).Methods("GET", "POST")
+
+	// User routes (require user session)
+	userRouter := r.PathPrefix("/user").Subrouter()
+	userRouter.Use(requireUserSession)
+	userRouter.HandleFunc("/me", handleUserMe).Methods("GET")
 
 	// API v1 routes (require API key)
 	apiRouter := r.PathPrefix("/api/v1").Subrouter()
