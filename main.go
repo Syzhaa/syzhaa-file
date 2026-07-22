@@ -74,9 +74,49 @@ func initDB() error {
 		downloads INTEGER DEFAULT 0,
 		FOREIGN KEY(room_id) REFERENCES rooms(id) ON DELETE CASCADE
 	);
+
+	CREATE TABLE IF NOT EXISTS admin_users (
+		id TEXT PRIMARY KEY,
+		google_id TEXT UNIQUE NOT NULL,
+		email TEXT UNIQUE NOT NULL,
+		name TEXT NOT NULL,
+		avatar_url TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		last_login DATETIME
+	);
+
+	CREATE TABLE IF NOT EXISTS api_keys (
+		id TEXT PRIMARY KEY,
+		key_hash TEXT UNIQUE NOT NULL,
+		admin_id TEXT NOT NULL,
+		name TEXT NOT NULL,
+		expires_at DATETIME,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		last_used_at DATETIME,
+		is_active INTEGER DEFAULT 1,
+		FOREIGN KEY(admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
+	);
+
+	CREATE TABLE IF NOT EXISTS admin_sessions (
+		id TEXT PRIMARY KEY,
+		admin_id TEXT NOT NULL,
+		token_hash TEXT UNIQUE NOT NULL,
+		expires_at DATETIME NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY(admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
+	);
 	`
 	_, err = db.Exec(schema)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Create indexes
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_api_keys_admin ON api_keys(admin_id)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_admin ON admin_sessions(admin_id)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active, expires_at)")
+
+	return nil
 }
 
 func generatePin() (string, error) {
@@ -459,18 +499,49 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize Google OAuth
+	initGoogleOAuth(
+		os.Getenv("GOOGLE_CLIENT_ID"),
+		os.Getenv("GOOGLE_CLIENT_SECRET"),
+		os.Getenv("GOOGLE_REDIRECT_URL"),
+	)
+
 	go autoCleanupWorker()
 	go cleanOrphanedFiles()
 
 	r := mux.NewRouter()
 	r.Use(corsMiddleware)
 
+	// Public routes (existing)
 	r.HandleFunc("/api/room/create", createRoomHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/pin", accessRoomByPinHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/{id}", getRoomInfoHandler).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/upload/{roomId}", uploadChunkHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/file/{id}", deleteFileHandler).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/d/{id}", downloadFileHandler).Methods("GET")
+
+	// Google OAuth routes
+	r.HandleFunc("/auth/google/login", handleGoogleLogin).Methods("GET")
+	r.HandleFunc("/auth/google/callback", handleGoogleCallback).Methods("GET")
+	r.HandleFunc("/auth/logout", handleAdminLogout).Methods("POST", "OPTIONS")
+
+	// Admin routes (require session)
+	adminRouter := r.PathPrefix("/admin").Subrouter()
+	adminRouter.Use(requireAdminSession)
+	adminRouter.HandleFunc("/me", handleAdminMe).Methods("GET")
+	adminRouter.HandleFunc("/stats", handleAdminStats).Methods("GET")
+	adminRouter.HandleFunc("/api-keys", handleListAPIKeys).Methods("GET")
+	adminRouter.HandleFunc("/api-keys", handleCreateAPIKey).Methods("POST")
+	adminRouter.HandleFunc("/api-keys/{id}", handleDeleteAPIKey).Methods("DELETE")
+	adminRouter.HandleFunc("/api-keys/{id}/toggle", handleToggleAPIKey).Methods("POST")
+
+	// API v1 routes (require API key)
+	apiRouter := r.PathPrefix("/api/v1").Subrouter()
+	apiRouter.Use(requireAPIKey)
+	apiRouter.HandleFunc("/room/create", handleAPICreateRoom).Methods("POST")
+	apiRouter.HandleFunc("/room/{id}/link", handleAPIGetRoomLink).Methods("GET")
+	apiRouter.HandleFunc("/room/{id}/files", handleAPIGetRoomFiles).Methods("GET")
+	apiRouter.HandleFunc("/room/{id}/download-all", handleAPIDownloadAll).Methods("GET")
 
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public")))
 
