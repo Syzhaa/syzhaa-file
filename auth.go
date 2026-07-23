@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -152,6 +153,26 @@ func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func getOrCreateAdminUser(googleUser GoogleUserInfo) (*AdminUser, error) {
+	// Check admin email whitelist
+	allowedEmails := os.Getenv("ADMIN_EMAILS")
+	if allowedEmails == "" {
+		return nil, fmt.Errorf("admin whitelist not configured")
+	}
+	
+	// Check if email is whitelisted
+	emailList := strings.Split(allowedEmails, ",")
+	isWhitelisted := false
+	for _, email := range emailList {
+		if strings.TrimSpace(email) == googleUser.Email {
+			isWhitelisted = true
+			break
+		}
+	}
+	
+	if !isWhitelisted {
+		return nil, fmt.Errorf("email not authorized as admin")
+	}
+	
 	var admin AdminUser
 	err := db.QueryRow(`SELECT id, google_id, email, name, avatar_url, created_at, last_login 
 		FROM admin_users WHERE google_id = ?`, googleUser.ID).
