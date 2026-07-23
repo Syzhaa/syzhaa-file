@@ -81,11 +81,8 @@ func handleGoogleLogin(w http.ResponseWriter, r *http.Request) {
 
 // Handler: Initiate Google OAuth (User) - separate redirect URL
 func handleUserGoogleLogin(w http.ResponseWriter, r *http.Request) {
-	// Create temporary config with user callback URL
-	userOAuthConfig := *googleOAuthConfig
-	userOAuthConfig.RedirectURL = os.Getenv("BASE_URL") + "/auth/user/callback"
-	
-	url := userOAuthConfig.AuthCodeURL(oauthStateString, oauth2.AccessTypeOffline)
+	// Use existing Google Console redirect URL (unified for both admin and user)
+	url := googleOAuthConfig.AuthCodeURL(oauthStateString, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
