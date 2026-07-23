@@ -54,9 +54,9 @@ func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 
 	code := r.FormValue("code")
 	
-	// Create temporary config with user callback URL (SAME as login)
+	// Create temporary config with user callback URL (use existing Google Console URI)
 	userOAuthConfig := *googleOAuthConfig
-	userOAuthConfig.RedirectURL = os.Getenv("BASE_URL") + "/auth/user/callback"
+	userOAuthConfig.RedirectURL = os.Getenv("GOOGLE_REDIRECT_URL") // Use existing /auth/google/callback
 	
 	token, err := userOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
