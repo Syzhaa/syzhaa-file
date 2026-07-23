@@ -7,6 +7,9 @@ module.exports = {
     autorestart: true,
     watch: false,
     max_memory_restart: '500M',
-    env_file: '.env'
+    env_file: '.env',
+    env: {
+      ADMIN_EMAILS: 'syzhaadigital@gmail.com'
+    }
   }]
 };
