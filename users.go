@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -38,11 +39,17 @@ type UserStats struct {
 
 // Handler: User registration (Google OAuth callback for users)
 func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
+	log.Printf("🔍 User callback: method=%s url=%s", r.Method, r.URL.String())
+	log.Printf("🔍 Query params: %v", r.URL.Query())
+	log.Printf("🔍 Form values: state=%s code=%s", r.FormValue("state"), r.FormValue("code"))
+	
 	state := r.FormValue("state")
 	if state != oauthStateString {
+		log.Printf("❌ User OAuth state mismatch: got='%s' want='%s'", state, oauthStateString)
 		http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
 		return
 	}
+	log.Printf("✅ User OAuth state valid")
 
 	code := r.FormValue("code")
 	

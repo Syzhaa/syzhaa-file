@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -91,9 +92,11 @@ func handleUserGoogleLogin(w http.ResponseWriter, r *http.Request) {
 func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	state := r.FormValue("state")
 	if state != oauthStateString {
+		log.Printf("❌ Admin OAuth state mismatch: got=%s want=%s", state, oauthStateString)
 		http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
 		return
 	}
+	log.Printf("✅ Admin OAuth state valid")
 
 	code := r.FormValue("code")
 	token, err := googleOAuthConfig.Exchange(context.Background(), code)
