@@ -529,7 +529,7 @@ func main() {
 	r.HandleFunc("/auth/logout", handleAdminLogout).Methods("POST", "OPTIONS")
 	
 	// User OAuth routes
-	r.HandleFunc("/auth/user/login", handleGoogleLogin).Methods("GET")
+	r.HandleFunc("/auth/user/login", handleUserGoogleLogin).Methods("GET")
 	r.HandleFunc("/auth/user/callback", handleUserGoogleCallback).Methods("GET")
 	r.HandleFunc("/auth/user/logout", handleUserLogout).Methods("POST", "OPTIONS")
 

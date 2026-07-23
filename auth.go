@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -70,9 +71,19 @@ func hashString(s string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// Handler: Initiate Google OAuth
+// Handler: Initiate Google OAuth (Admin)
 func handleGoogleLogin(w http.ResponseWriter, r *http.Request) {
 	url := googleOAuthConfig.AuthCodeURL(oauthStateString, oauth2.AccessTypeOffline)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+// Handler: Initiate Google OAuth (User) - separate redirect URL
+func handleUserGoogleLogin(w http.ResponseWriter, r *http.Request) {
+	// Create temporary config with user callback URL
+	userOAuthConfig := *googleOAuthConfig
+	userOAuthConfig.RedirectURL = os.Getenv("BASE_URL") + "/auth/user/callback"
+	
+	url := userOAuthConfig.AuthCodeURL(oauthStateString, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
