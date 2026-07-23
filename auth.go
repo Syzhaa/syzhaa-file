@@ -148,7 +148,7 @@ func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Redirect to admin panel
-	http.Redirect(w, r, "/admin/dashboard", http.StatusTemporaryRedirect)
+	http.Redirect(w, r, "/admin/dashboard-v2.html", http.StatusTemporaryRedirect)
 }
 
 func getOrCreateAdminUser(googleUser GoogleUserInfo) (*AdminUser, error) {
