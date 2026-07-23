@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,6 +78,52 @@ func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if email is in admin whitelist
+	allowedEmails := os.Getenv("ADMIN_EMAILS")
+	if allowedEmails != "" {
+		emailList := strings.Split(allowedEmails, ",")
+		for _, email := range emailList {
+			if strings.TrimSpace(email) == googleUser.Email {
+				// This is an admin - redirect to admin flow
+				log.Printf("✅ Admin detected: %s", googleUser.Email)
+				
+				// Process as admin user
+				adminUser, err := getOrCreateAdminUser(googleUser)
+				if err != nil {
+					log.Printf("❌ Failed to create admin: %v", err)
+					http.Error(w, "Failed to process admin user", http.StatusInternalServerError)
+					return
+				}
+				
+				// Create admin session
+				adminSession, err := createAdminSession(adminUser.ID)
+				if err != nil {
+					http.Error(w, "Failed to create admin session", http.StatusInternalServerError)
+					return
+				}
+				
+				// Update last login
+				db.Exec("UPDATE admin_users SET last_login = ? WHERE id = ?", time.Now().Format(time.RFC3339), adminUser.ID)
+				
+				// Set admin cookie
+				http.SetCookie(w, &http.Cookie{
+					Name:     "admin_session",
+					Value:    adminSession.Token,
+					Path:     "/",
+					Expires:  adminSession.ExpiresAt,
+					HttpOnly: true,
+					Secure:   true,
+					SameSite: http.SameSiteStrictMode,
+				})
+				
+				// Redirect to admin dashboard
+				http.Redirect(w, r, "/admin/dashboard-v2.html", http.StatusTemporaryRedirect)
+				return
+			}
+		}
+	}
+
+	// Not admin - continue with normal user flow
 	// Check or create user
 	user, err := getOrCreateUser(googleUser)
 	if err != nil {
