@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Syzhaa File</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .sidebar-item:hover {
+            background: rgba(0, 83, 219, 0.08);
+        }
+        .sidebar-item.active {
+            background: #dbe1ff;
+            color: #0053db;
+            font-weight: 600;
+        }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+        .modal.active {
+            display: flex;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#004ac6",
+                        "primary-fixed": "#dbe1ff",
+                        "secondary": "#565e74",
+                        "secondary-fixed": "#dae2fd",
+                        "tertiary": "#006242",
+                        "surface": "#f7f9fb",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container": "#eceef0",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-container-high": "#e6e8ea",
+                        "on-surface": "#191c1e",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "outline": "#737686",
+                        "outline-variant": "#c3c6d7"
+                    },
+                    fontFamily: {
+                        "headline": ["Sora"],
+                        "body": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface-container-low font-body text-on-surface">
+    
+    <!-- Loading Overlay -->
+    <div id="loading" class="fixed inset-0 bg-surface/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center gap-4">
+            <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-on-surface font-medium">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="app" class="hidden">
+        
+        <!-- Top Header -->
+        <header class="fixed top-0 left-0 right-0 h-16 bg-white border-b border-outline-variant z-40 flex items-center px-6">
+            <div class="flex items-center gap-4 flex-1">
+                <button id="menuToggle" class="lg:hidden text-on-surface hover:bg-surface-container p-2 rounded-lg">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <h1 class="text-xl font-headline font-bold text-primary">Syzhaa File Admin</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="text-on-surface hover:bg-surface-container p-2 rounded-lg relative">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-outline-variant">
+                    <img id="userAvatar" class="w-10 h-10 rounded-full border-2 border-outline-variant" src="" alt="Avatar">
+                    <div class="hidden md:block">
+                        <p id="userName" class="font-semibold text-sm text-on-surface"></p>
+                        <p id="userEmail" class="text-xs text-outline"></p>
+                    </div>
+                    <button onclick="logout()" class="text-on-surface hover:bg-surface-container p-2 rounded-lg">
+                        <span class="material-symbols-outlined">logout</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-outline-variant overflow-y-auto transition-transform duration-300 z-30 lg:translate-x-0 -translate-x-full">
+            <nav class="p-4 space-y-1">
+                <a href="#" data-view="dashboard" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+                <a href="#" data-view="users" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
+                    <span class="material-symbols-outlined">group</span>
+                    Users Management
+                </a>
+                <a href="#" data-view="api-keys" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
+                    <span class="material-symbols-outlined">key</span>
+                    API Keys
+                </a>
+                <a href="#" data-view="rooms" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
+                    <span class="material-symbols-outlined">folder_open</span>
+                    Active Rooms
+                </a>
+                <a href="#" data-view="settings" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
+                    <span class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+            </nav>
+            <div class="p-4 mt-auto">
+                <div class="bg-primary-fixed p-4 rounded-xl">
+                    <p class="text-xs font-semibold text-primary mb-1">Syzhaa File v1.0</p>
+                    <p class="text-xs text-outline">Last updated: Jul 2026</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="pt-16 lg:pl-64 min-h-screen">
+            
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="p-6 space-y-6">
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="stat-card bg-white p-6 rounded-2xl border border-outline-variant shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                                <span class="material-symbols-outlined text-primary text-2xl">folder_open</span>
+                            </div>
+                            <span class="text-xs text-outline">Total</span>
+                        </div>
+                        <h3 id="stat-rooms" class="text-3xl font-bold text-on-surface mb-1">0</h3>
+                        <p class="text-sm text-outline">Total Rooms</p>
+                    </div>
+                    
+                    <div class="stat-card bg-white p-6 rounded-2xl border border-outline-variant shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center">
+                                <span class="material-symbols-outlined text-secondary text-2xl">description</span>
+                            </div>
+                            <span class="text-xs text-outline">Total</span>
+                        </div>
+                        <h3 id="stat-files" class="text-3xl font-bold text-on-surface mb-1">0</h3>
+                        <p class="text-sm text-outline">Total Files</p>
+                    </div>
+                    
+                    <div class="stat-card bg-white p-6 rounded-2xl border border-outline-variant shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-tertiary/10 rounded-xl flex items-center justify-center">
+                                <span class="material-symbols-outlined text-tertiary text-2xl">group</span>
+                            </div>
+                            <span class="text-xs text-outline">Active</span>
+                        </div>
+                        <h3 id="stat-users" class="text-3xl font-bold text-on-surface mb-1">0</h3>
+                        <p class="text-sm text-outline">Registered Users</p>
+                    </div>
+                    
+                    <div class="stat-card bg-white p-6 rounded-2xl border border-outline-variant shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                                <span class="material-symbols-outlined text-primary text-2xl">storage</span>
+                            </div>
+                            <span class="text-xs text-outline">Used</span>
+                        </div>
+                        <h3 id="stat-storage" class="text-3xl font-bold text-on-surface mb-1">0 GB</h3>
+                        <p class="text-sm text-outline">Total Storage</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-outline-variant">
+                        <h3 class="text-lg font-headline font-semibold mb-4">Quick Actions</h3>
+                        <div class="space-y-3">
+                            <button onclick="openModal('createRoom')" class="w-full flex items-center gap-3 p-4 bg-primary text-on-primary rounded-xl hover:brightness-110 transition-all">
+                                <span class="material-symbols-outlined">add_circle</span>
+                                Create New Room
+                            </button>
+                            <button onclick="openModal('joinPin')" class="w-full flex items-center gap-3 p-4 bg-surface-container border-2 border-outline-variant rounded-xl hover:bg-surface-container-high transition-all">
+                                <span class="material-symbols-outlined">dialpad</span>
+                                Join with PIN
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl border border-outline-variant">
+                        <h3 class="text-lg font-headline font-semibold mb-4">Recent Activity</h3>
+                        <div id="recentActivity" class="space-y-3">
+                            <!-- Activity items will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Users Section -->
+                <div class="bg-white p-6 rounded-2xl border border-outline-variant">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-headline font-semibold">Pending User Approvals</h3>
+                        <span id="pending-count" class="bg-primary text-on-primary text-xs font-semibold px-3 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="pendingUsers" class="space-y-3">
+                        <!-- Pending users will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users View -->
+            <div id="view-users" class="p-6 space-y-6 hidden">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-headline font-bold">Users Management</h2>
+                    <button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-xl hover:brightness-110">
+                        <span class="material-symbols-outlined">refresh</span>
+                        Refresh
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl border border-outline-variant overflow-hidden">
+                    <table id="usersTable" class="w-full">
+                        <thead class="bg-surface-container">
+                            <tr class="border-b border-outline-variant">
+                                <th class="px-6 py-4 text-left text-sm font-semibold">User</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold">Status</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold">Joined</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold">Storage Used</th>
+                                <th class="px-6 py-4 text-right text-sm font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- API Keys View -->
+            <div id="view-api-keys" class="p-6 space-y-6 hidden">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-headline font-bold">API Keys Management</h2>
+                    <button onclick="createAPIKey()" class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-xl hover:brightness-110">
+                        <span class="material-symbols-outlined">add</span>
+                        Create API Key
+                    </button>
+                </div>
+                <div id="apiKeysList" class="grid grid-cols-1 gap-4">
+                    <!-- API keys will be injected here -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modal: Create Room -->
+    <div id="modal-createRoom" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-headline font-bold">Create New Room</h3>
+                <button onclick="closeModal('createRoom')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Expiry Duration</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="expiryValue" value="60" min="10" max="10080" class="flex-1 px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none">
+                        <select id="expiryUnit" class="px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none">
+                            <option value="1">Minutes</option>
+                            <option value="60" selected>Hours</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="createRoom()" class="w-full py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110">
+                    Create Room
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Join PIN -->
+    <div id="modal-joinPin" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-headline font-bold">Join with PIN</h3>
+                <button onclick="closeModal('joinPin')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Enter 6-digit PIN</label>
+                    <input type="text" id="pinInput" maxlength="6" placeholder="123456" class="w-full px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none text-center text-2xl font-bold tracking-widest">
+                </div>
+                <button onclick="joinRoom()" class="w-full py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110">
+                    Join Room
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Inline PIN join function (bypasses cache issue)
+    async function joinRoom() {
+        const pin = document.getElementById('pinInput').value.trim();
+        
+        if (pin.length !== 6 || !/^\d+$/.test(pin)) {
+            alert('PIN harus 6 digit angka');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/room/pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                window.location.href = `/room.html?id=${data.room_id}`;
+            } else {
+                alert('PIN tidak valid atau ruangan sudah kadaluarsa');
+            }
+        } catch (error) {
+            console.error('Error joining room:', error);
+            alert('Terjadi kesalahan saat join ruangan');
+        }
+    }
+    </script>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

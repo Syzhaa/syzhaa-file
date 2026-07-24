@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://file.syzhaa.my.id/sitemap.xml
+
+# Disallow admin/internal pages
+Disallow: /api/
+Disallow: /admin/
+Disallow: /backend/
+
+# Crawl delay
+Crawl-delay: 1
