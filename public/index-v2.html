@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Syzhaa File - Satu Ruang, Banyak File</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .hero-gradient {
+            background: radial-gradient(circle at 50% 50%, #dbe1ff 0%, #f7f9fb 100%);
+        }
+        .btn-press:active {
+            transform: translateY(2px);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+        .modal.active {
+            display: flex;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#004ac6",
+                        "primary-fixed": "#dbe1ff",
+                        "secondary": "#565e74",
+                        "surface": "#f7f9fb",
+                        "surface-container": "#eceef0",
+                        "surface-container-low": "#f2f4f6",
+                        "on-surface": "#191c1e",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "on-surface-variant": "#434655",
+                        "outline": "#737686",
+                        "outline-variant": "#c3c6d7"
+                    },
+                    spacing: {
+                        "xl": "64px",
+                        "lg": "40px",
+                        "md": "24px",
+                        "sm": "16px",
+                        "xs": "8px",
+                        "gutter": "24px",
+                        "margin": "32px"
+                    },
+                    fontFamily: {
+                        "headline": ["Sora"],
+                        "body": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface font-body text-on-surface">
+
+<!-- Top Navigation -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm">
+    <div class="flex justify-between items-center h-16 px-gutter max-w-[1280px] mx-auto">
+        <div class="flex items-center gap-md">
+            <span class="text-2xl font-headline font-bold text-primary tracking-tight">Syzhaa File</span>
+        </div>
+        <div class="flex items-center gap-sm">
+            <button onclick="openModal('login')" class="px-gutter py-2 text-primary font-semibold hover:bg-primary/5 rounded-xl transition-all">
+                Login
+            </button>
+            <button onclick="openModal('createRoom')" class="bg-primary text-on-primary px-gutter py-2 rounded-xl font-semibold btn-press hover:bg-primary/90 shadow-lg">
+                Mulai Berbagi
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="pt-16">
+    <!-- Hero Section -->
+    <section class="hero-gradient relative overflow-hidden py-xl md:py-[120px]">
+        <div class="relative z-10 max-w-[1280px] mx-auto px-margin grid grid-cols-1 lg:grid-cols-2 gap-lg items-center">
+            <div class="space-y-md">
+                <div class="inline-flex items-center gap-xs bg-primary-fixed text-on-primary-fixed px-sm py-1 rounded-full text-xs font-semibold">
+                    <span class="material-symbols-outlined text-[16px]">bolt</span>
+                    High-Velocity Professionalism
+                </div>
+                <h1 class="text-5xl font-headline font-bold text-on-surface leading-tight">
+                    Satu Ruang,<br><span class="text-primary">Banyak File</span>
+                </h1>
+                <p class="text-lg text-on-surface-variant max-w-lg">
+                    Bikin ruang, share link, upload bareng. Platform berbagi file paling presisi untuk kebutuhan profesional Anda.
+                </p>
+                <div class="flex flex-wrap gap-md pt-base">
+                    <button onclick="openModal('createRoom')" class="bg-primary text-on-primary px-lg py-4 rounded-xl font-semibold shadow-xl hover:brightness-110 btn-press flex items-center gap-sm">
+                        Mulai Berbagi <span class="material-symbols-outlined">arrow_forward</span>
+                    </button>
+                    <button onclick="openModal('joinPin')" class="bg-white border-2 border-outline-variant text-on-surface px-lg py-4 rounded-xl font-semibold hover:bg-surface-container transition-all">
+                        Masuk dengan PIN
+                    </button>
+                </div>
+            </div>
+            <div class="hidden lg:block relative">
+                <div class="relative z-20 glass-card p-md rounded-xl shadow-2xl">
+                    <img class="w-full h-auto rounded-lg shadow-sm border border-outline-variant/30" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXFZIwHxCQAuN6UgERlmRPRXNLS-Dq0GtewOGI7sqkov1gkwyxHd51tKTFB4wWJZi-7ZgjN88_VPqlsAqhrug1lQyY2dLU-xi1uXcGLlqZDlGrhDbPuV5kbuQy7s1FDZsI1UaZeTr-egA7GXLGZo1SeQ2WOZ0lmOtCbExWO70IOOwQ-g8RE_cbD_Lq35Ciin5DknRhwUmfqXIt2uadeVDiNEKyNltoQ75jr9o3tjgTQtDwQhb8LVZv-iYP-cw2qupqOZuPZyWQJOlS" alt="Dashboard">
+                </div>
+                <div class="absolute -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-[80px]"></div>
+                <div class="absolute -bottom-10 -left-10 w-48 h-48 bg-primary/10 rounded-full blur-[60px]"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="py-xl max-w-[1280px] mx-auto px-margin -mt-xl relative z-30">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+            <div onclick="openModal('createRoom')" class="bg-white p-lg rounded-xl border border-outline-variant shadow-lg hover:shadow-xl transition-all group cursor-pointer">
+                <div class="w-12 h-12 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-md group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-[32px]">folder_open</span>
+                </div>
+                <h3 class="text-2xl font-headline font-semibold mb-xs">Buat Ruang File Baru</h3>
+                <p class="text-on-surface-variant mb-md">Mulai membagikan file dalam hitungan detik dengan ruang penyimpanan terenkripsi.</p>
+                <div class="flex items-center text-primary font-semibold gap-xs">
+                    Buat Sekarang <span class="material-symbols-outlined">chevron_right</span>
+                </div>
+            </div>
+            <div onclick="openModal('joinPin')" class="bg-white p-lg rounded-xl border border-outline-variant shadow-lg hover:shadow-xl transition-all group cursor-pointer">
+                <div class="w-12 h-12 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-md group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-[32px]">dialpad</span>
+                </div>
+                <h3 class="text-2xl font-headline font-semibold mb-xs">Masuk Lewat PIN</h3>
+                <p class="text-on-surface-variant mb-md">Punya kode akses 6-digit? Masukkan untuk akses ruang file.</p>
+                <div class="flex items-center text-primary font-semibold gap-xs">
+                    Masukkan PIN <span class="material-symbols-outlined">login</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="py-xl bg-surface-container-low">
+        <div class="max-w-[1280px] mx-auto px-margin">
+            <div class="text-center mb-xl">
+                <h2 class="text-4xl font-headline font-bold mb-md">Performa Tinggi untuk Profesional</h2>
+                <p class="text-on-surface-variant max-w-2xl mx-auto">Syzhaa File dibangun untuk kecepatan maksimal dan keamanan tanpa kompromi.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
+                <div class="flex flex-col items-center text-center space-y-md">
+                    <div class="w-16 h-16 rounded-full bg-white shadow-md flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">speed</span>
+                    </div>
+                    <h4 class="text-xl font-headline font-semibold">High-velocity Performance</h4>
+                    <p class="text-on-surface-variant">File terkirim secepat koneksi internet Anda mengizinkan.</p>
+                </div>
+                <div class="flex flex-col items-center text-center space-y-md">
+                    <div class="w-16 h-16 rounded-full bg-white shadow-md flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">enhanced_encryption</span>
+                    </div>
+                    <h4 class="text-xl font-headline font-semibold">E2E Encryption</h4>
+                    <p class="text-on-surface-variant">Data Anda dienkripsi end-to-end untuk keamanan maksimal.</p>
+                </div>
+                <div class="flex flex-col items-center text-center space-y-md">
+                    <div class="w-16 h-16 rounded-full bg-white shadow-md flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">auto_delete</span>
+                    </div>
+                    <h4 class="text-xl font-headline font-semibold">Auto-Delete Logic</h4>
+                    <p class="text-on-surface-variant">Timer penghapusan otomatis untuk kerahasiaan data.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-xl bg-white">
+        <div class="max-w-[1280px] mx-auto px-margin">
+            <div class="flex flex-col lg:flex-row items-center gap-xl">
+                <div class="lg:w-1/2">
+                    <h2 class="text-4xl font-headline font-bold mb-lg">Bagaimana Cara Kerjanya?</h2>
+                    <div class="space-y-lg">
+                        <div class="flex gap-md">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">1</div>
+                            <div>
+                                <h5 class="text-xl font-headline font-semibold mb-xs">Buat Ruang & Upload</h5>
+                                <p class="text-on-surface-variant">Drag and drop file ke browser. Total kapasitas hingga 5GB.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-md">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">2</div>
+                            <div>
+                                <h5 class="text-xl font-headline font-semibold mb-xs">Bagikan Link atau PIN</h5>
+                                <p class="text-on-surface-variant">Dapatkan URL unik atau PIN 6-digit untuk dibagikan.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-md">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">3</div>
+                            <div>
+                                <h5 class="text-xl font-headline font-semibold mb-xs">Download Selesai</h5>
+                                <p class="text-on-surface-variant">Penerima download file tanpa perlu registrasi akun.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:w-1/2">
+                    <div class="w-full h-[400px] bg-cover bg-center rounded-xl shadow-xl" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB1aZkPnw1K5AIwqlHWfOyU8cK3YBTB1H_7fVBB_qNu3GJfP-PJ7QI14UFQFFWKwaxPc1GQn2yDpPHKnRQ4C5ALeP5cGGz8vZkdIs01HahuUdMqs5LPZXqsdr8ASXEIW9xExfNbLnyh_hLsOdD3eLv3uQCYiNggJPrVog2GUBVUbVUJaRE6DoUacPecVqANlL9MLNh2p1XDxepMwjtYgK0qnb169OS6RbHWeegUGAC9OzfV0C94sFzaMPPDdGPKVJBKQCwrmQpGU77m')"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Section -->
+    <section class="py-xl bg-surface-container-low border-t border-outline-variant/30">
+        <div class="max-w-[1280px] mx-auto px-margin">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-xl items-center">
+                <div>
+                    <h2 class="text-4xl font-headline font-bold mb-md">Butuh API Key?</h2>
+                    <p class="text-on-surface-variant mb-lg">Integrasikan Syzhaa File langsung ke dalam aplikasi Anda dengan API kami.</p>
+                    <ul class="space-y-md mb-lg">
+                        <li class="flex items-center gap-sm text-on-surface">
+                            <span class="material-symbols-outlined text-primary">integration_instructions</span>
+                            <span class="font-semibold">Mudah diintegrasikan dengan SDK populer</span>
+                        </li>
+                        <li class="flex items-center gap-sm text-on-surface">
+                            <span class="material-symbols-outlined text-primary">menu_book</span>
+                            <span class="font-semibold">Dokumentasi lengkap dan interaktif</span>
+                        </li>
+                        <li class="flex items-center gap-sm text-on-surface">
+                            <span class="material-symbols-outlined text-primary">key</span>
+                            <span class="font-semibold">Token akses aman dengan enkripsi tingkat tinggi</span>
+                        </li>
+                    </ul>
+                    <button onclick="openModal('login')" class="bg-primary text-on-primary px-lg py-3 rounded-xl font-semibold shadow-lg hover:brightness-110 btn-press">
+                        Dapatkan Token API
+                    </button>
+                </div>
+                <div class="bg-white p-lg rounded-xl border border-outline-variant shadow-sm">
+                    <div class="bg-gray-900 p-md rounded-lg font-mono text-sm text-white overflow-x-auto">
+                        <code>curl -X POST https://api.syzhaa.file/v1/rooms \<br>  -H "Authorization: Bearer YOUR_TOKEN" \<br>  -d "name=Project-Alpha"</code>
+                    </div>
+                    <p class="mt-md text-xs text-on-surface-variant text-center">Contoh request pembuatan ruang via API</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="py-xl relative overflow-hidden bg-primary-fixed">
+        <div class="relative z-10 max-w-[1280px] mx-auto px-margin text-center">
+            <h2 class="text-5xl font-headline font-bold text-on-primary-fixed mb-lg">Siap untuk Berbagi?</h2>
+            <p class="text-on-surface-variant max-w-xl mx-auto mb-xl text-lg">Bergabunglah dengan ribuan profesional yang mengandalkan Syzhaa File.</p>
+            <button onclick="openModal('createRoom')" class="bg-primary text-on-primary px-xl py-4 rounded-xl font-semibold shadow-2xl hover:brightness-110 btn-press">
+                Mulai Berbagi Sekarang — Gratis
+            </button>
+        </div>
+    </section>
+</main>
+
+<!-- Footer -->
+<footer class="w-full py-xl bg-white border-t border-outline-variant">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-md px-margin max-w-[1280px] mx-auto">
+        <div class="col-span-1">
+            <span class="text-xl font-headline font-semibold text-on-surface mb-md block">Syzhaa File</span>
+            <p class="text-xs text-on-surface-variant">© 2026 Syzhaa File. High-Velocity Professionalism.</p>
+        </div>
+        <div>
+            <h6 class="font-semibold text-sm mb-md text-primary">Produk</h6>
+            <ul class="space-y-xs text-sm">
+                <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Fitur Utama</a></li>
+                <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Syzhaa Plus</a></li>
+                <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Enterprise</a></li>
+            </ul>
+        </div>
+        <div>
+            <h6 class="font-semibold text-sm mb-md text-primary">Dukungan</h6>
+            <ul class="space-y-xs text-sm">
+                <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Pusat Bantuan</a></li>
+                <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">API Documentation</a></li>
+                <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Security Status</a></li>
+            </ul>
+        </div>
+        <div>
+            <h6 class="font-semibold text-sm mb-md text-primary">Legal</h6>
+            <ul class="space-y-xs text-sm">
+                <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a></li>
+                <li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a></li>
+            </ul>
+        </div>
+    </div>
+</footer>
+
+<!-- Modal: Login -->
+<div id="modal-login" class="modal items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-headline font-bold">Login</h3>
+            <button onclick="closeModal('login')" class="text-outline hover:text-on-surface">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <p class="text-on-surface-variant mb-6">Pilih cara login untuk akses fitur lengkap</p>
+        <div class="space-y-4">
+            <a href="/user-login.html" class="w-full flex items-center justify-center gap-3 p-4 bg-primary text-on-primary rounded-xl hover:brightness-110 transition-all">
+                <span class="material-symbols-outlined">person</span>
+                Login sebagai User
+            </a>
+            <a href="/admin/login.html" class="w-full flex items-center justify-center gap-3 p-4 bg-surface-container border-2 border-outline-variant rounded-xl hover:bg-surface-container-low transition-all">
+                <span class="material-symbols-outlined">admin_panel_settings</span>
+                Login sebagai Admin
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Create Room -->
+<div id="modal-createRoom" class="modal items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-headline font-bold">Buat Ruang Baru</h3>
+            <button onclick="closeModal('createRoom')" class="text-outline hover:text-on-surface">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold mb-2">Durasi Berlaku</label>
+                <div class="flex gap-2">
+                    <input type="number" id="expiryValue" value="60" min="10" max="10080" class="flex-1 px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none">
+                    <select id="expiryUnit" class="px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none">
+                        <option value="1">Menit</option>
+                        <option value="60" selected>Jam</option>
+                    </select>
+                </div>
+                <p class="text-xs text-on-surface-variant mt-2">Maksimal 7 hari (10080 menit)</p>
+            </div>
+            <button onclick="createRoom()" class="w-full py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110 btn-press">
+                Buat Ruangan
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Join PIN -->
+<div id="modal-joinPin" class="modal items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-headline font-bold">Masuk dengan PIN</h3>
+            <button onclick="closeModal('joinPin')" class="text-outline hover:text-on-surface">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold mb-2">Masukkan 6-digit PIN</label>
+                <input type="text" id="pinInput" maxlength="6" placeholder="123456" class="w-full px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none text-center text-2xl font-bold tracking-widest">
+            </div>
+            <button onclick="joinRoom()" class="w-full py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110 btn-press">
+                Masuk ke Ruangan
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal Functions
+function openModal(modalName) {
+    document.getElementById(`modal-${modalName}`).classList.add('active');
+}
+
+function closeModal(modalName) {
+    document.getElementById(`modal-${modalName}`).classList.remove('active');
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('active');
+    }
+});
+
+// Create Room
+async function createRoom() {
+    const expiryValue = parseInt(document.getElementById('expiryValue').value);
+    const expiryUnit = parseInt(document.getElementById('expiryUnit').value);
+    const expiryMinutes = expiryValue * expiryUnit;
+    
+    if (expiryMinutes < 10 || expiryMinutes > 10080) {
+        alert('Durasi tidak valid (10 menit - 7 hari)');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/room/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expiry_minutes: expiryMinutes })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const roomURL = `${window.location.origin}/?room=${data.room_id}`;
+            window.location.href = roomURL;
+        } else {
+            alert('Gagal membuat ruangan: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error creating room:', error);
+        alert('Terjadi kesalahan saat membuat ruangan');
+    }
+}
+
+// Join Room with PIN
+function joinRoom() {
+    const pin = document.getElementById('pinInput').value.trim();
+    
+    if (pin.length !== 6 || !/^\d+$/.test(pin)) {
+        alert('PIN harus 6 digit angka');
+        return;
+    }
+    
+    window.location.href = `/?pin=${pin}`;
+}
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+});
+</script>
+
+</body>
+</html>
