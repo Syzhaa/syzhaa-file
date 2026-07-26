@@ -89,6 +89,52 @@ function closeModal(modalName) {
     }
 }
 
+// Copy API key to clipboard
+function copyAPIKey() {
+    const apiKeyInput = document.getElementById('apiKeyDisplay');
+    apiKeyInput.select();
+    navigator.clipboard.writeText(apiKeyInput.value).then(() => {
+        showToast('✓ API key copied to clipboard!', 'success');
+    }).catch(() => {
+        // Fallback for older browsers
+        document.execCommand('copy');
+        showToast('✓ API key copied to clipboard!', 'success');
+    });
+}
+
+// Generic copy text function
+function copyText(elementId) {
+    const input = document.getElementById(elementId);
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+        showToast('✓ Copied to clipboard!', 'success');
+    }).catch(() => {
+        // Fallback for older browsers
+        document.execCommand('copy');
+        showToast('✓ Copied to clipboard!', 'success');
+    });
+}
+
+// Show confirmation modal
+let confirmCallback = null;
+function showConfirmModal(title, message, onConfirm) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    confirmCallback = onConfirm;
+    
+    // Attach callback to confirm button
+    const confirmBtn = document.getElementById('confirmButton');
+    confirmBtn.onclick = () => {
+        closeModal('confirm');
+        if (confirmCallback) {
+            confirmCallback();
+            confirmCallback = null;
+        }
+    };
+    
+    openModal('confirm');
+}
+
 // Close modal when clicking outside
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal')) {
@@ -276,11 +322,14 @@ async function createRoom() {
         showToast('Room created successfully!', 'success');
         closeModal('createRoom');
         
-        // Show room details
+        // Show room details in modal
         const roomLink = `https://file.syzhaa.my.id/?room=${data.room_id}`;
         const pinLink = `https://file.syzhaa.my.id/?pin=${data.pin}`;
         
-        alert(`Room Created!\n\nPIN: ${data.pin}\nRoom Link: ${roomLink}\nPIN Link: ${pinLink}`);
+        document.getElementById('roomPinDisplay').value = data.pin;
+        document.getElementById('roomLinkDisplay').value = roomLink;
+        document.getElementById('pinLinkDisplay').value = pinLink;
+        openModal('roomCreated');
         
         loadStats();
     } else {
@@ -382,27 +431,43 @@ function renderUsersTable() {
     `).join('');
 }
 
-async function approveUser(userId) {
-    if (!confirm('Approve this user?')) return;
-    
-    const data = await apiCall(`/admin/users/${userId}/approve`, {
-        method: 'POST'
-    });
-    
-    if (data && data.success) {
-        showToast('User approved successfully', 'success');
-        loadUsers();
-        loadPendingUsers();
-        loadStats();
-    } else {
-        showToast('Failed to approve user', 'error');
-    }
+function approveUser(userId) {
+    showConfirmModal(
+        'Approve User',
+        'Approve this user and grant them access to the platform?',
+        async () => {
+            const data = await apiCall(`/admin/users/${userId}/approve`, {
+                method: 'POST'
+            });
+            
+            if (data && data.success) {
+                showToast('User approved successfully', 'success');
+                loadUsers();
+                loadPendingUsers();
+                loadStats();
+            } else {
+                showToast('Failed to approve user', 'error');
+            }
+        }
+    );
 }
 
-async function rejectUser(userId) {
-    const reason = prompt('Rejection reason (optional):');
+// Store userId for rejection
+let rejectUserId = null;
+
+function rejectUser(userId) {
+    rejectUserId = userId;
+    document.getElementById('rejectReasonInput').value = '';
+    openModal('rejectUser');
+}
+
+async function confirmRejectUser() {
+    const reason = document.getElementById('rejectReasonInput').value.trim();
+    closeModal('rejectUser');
     
-    const data = await apiCall(`/admin/users/${userId}/reject`, {
+    if (!rejectUserId) return;
+    
+    const data = await apiCall(`/admin/users/${rejectUserId}/reject`, {
         method: 'POST',
         body: JSON.stringify({ reason: reason || '' })
     });
@@ -415,21 +480,27 @@ async function rejectUser(userId) {
     } else {
         showToast('Failed to reject user', 'error');
     }
+    
+    rejectUserId = null;
 }
 
-async function suspendUser(userId) {
-    if (!confirm('Suspend this user? They will not be able to access the platform.')) return;
-    
-    const data = await apiCall(`/admin/users/${userId}/suspend`, {
-        method: 'POST'
-    });
-    
-    if (data && data.success) {
-        showToast('User suspended', 'success');
-        loadUsers();
-    } else {
-        showToast('Failed to suspend user', 'error');
-    }
+function suspendUser(userId) {
+    showConfirmModal(
+        'Suspend User',
+        'Suspend this user? They will not be able to access the platform.',
+        async () => {
+            const data = await apiCall(`/admin/users/${userId}/suspend`, {
+                method: 'POST'
+            });
+            
+            if (data && data.success) {
+                showToast('User suspended', 'success');
+                loadUsers();
+            } else {
+                showToast('Failed to suspend user', 'error');
+            }
+        }
+    );
 }
 
 // ============================================
@@ -503,8 +574,16 @@ function renderAPIKeys() {
     `).join('');
 }
 
-async function createAPIKey() {
-    const name = prompt('Enter a name for this API key (optional):');
+// Open modal to create API key
+function createAPIKey() {
+    document.getElementById('apiKeyNameInput').value = '';
+    openModal('createApiKey');
+}
+
+// Confirm and create API key
+async function confirmCreateAPIKey() {
+    const name = document.getElementById('apiKeyNameInput').value.trim();
+    closeModal('createApiKey');
     
     const data = await apiCall('/admin/api-keys', {
         method: 'POST',
@@ -516,8 +595,9 @@ async function createAPIKey() {
     if (data && data.success && data.api_key) {
         showToast('API key created successfully!', 'success');
         
-        // Show the full key (only shown once)
-        alert(`API Key Created!\n\nKey: ${data.api_key.key}\n\nIMPORTANT: Save this key now. You won't be able to see it again!`);
+        // Show the full key in modal (only shown once)
+        document.getElementById('apiKeyDisplay').value = data.api_key.key;
+        openModal('apiKey');
         
         loadAPIKeys();
     } else {
@@ -538,30 +618,38 @@ async function toggleAPIKey(keyId, activate) {
     }
 }
 
-async function deleteAPIKey(keyId) {
-    if (!confirm('Delete this API key? This action cannot be undone.')) return;
-    
-    const data = await apiCall(`/admin/api-keys/${keyId}`, {
-        method: 'DELETE'
-    });
-    
-    if (data && data.success) {
-        showToast('API key deleted', 'success');
-        loadAPIKeys();
-    } else {
-        showToast('Failed to delete API key', 'error');
-    }
+function deleteAPIKey(keyId) {
+    showConfirmModal(
+        'Delete API Key',
+        'Delete this API key? This action cannot be undone.',
+        async () => {
+            const data = await apiCall(`/admin/api-keys/${keyId}`, {
+                method: 'DELETE'
+            });
+            
+            if (data && data.success) {
+                showToast('API key deleted', 'success');
+                loadAPIKeys();
+            } else {
+                showToast('Failed to delete API key', 'error');
+            }
+        }
+    );
 }
 
 // ============================================
 // LOGOUT
 // ============================================
 
-async function logout() {
-    if (!confirm('Are you sure you want to logout?')) return;
-    
-    await apiCall('/auth/logout', { method: 'POST' });
-    window.location.href = '/';
+function logout() {
+    showConfirmModal(
+        'Logout',
+        'Are you sure you want to logout?',
+        async () => {
+            await apiCall('/auth/logout', { method: 'POST' });
+            window.location.href = '/';
+        }
+    );
 }
 
 // ============================================

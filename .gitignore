@@ -38,6 +38,7 @@ logs/
 
 # User uploads and data
 uploads/
+backend/uploads/
 chunks/
 data/
 

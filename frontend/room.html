@@ -15,6 +15,38 @@
         .timer-pulse { animation: pulse-timer 2s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; }
+        
+        /* Mobile Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px;
+            color: #6B7280;
+            text-decoration: none;
+            transition: all 0.2s;
+            gap: 4px;
+        }
+        .bottom-nav-item.active { color: #7C3AED; }
+        .bottom-nav-item:active { transform: scale(0.95); }
+        .bottom-nav-icon { font-size: 24px; }
+        .bottom-nav-label { font-size: 11px; font-weight: 500; }
+        @media (min-width: 768px) { .bottom-nav { display: none; } }
+        @media (max-width: 767px) { body { padding-bottom: 80px; } }
     </style>
     <script>
         tailwind.config = {
@@ -1344,7 +1376,62 @@ async function deleteFolder(folderId) {
         alert('Gagal menghapus folder');
     }
 }
+
+async function copyRoomLink() {
+    const link = window.location.href;
+    try {
+        await navigator.clipboard.writeText(link);
+        alert('✅ Link ruangan berhasil disalin ke clipboard!');
+    } catch (err) {
+        const input = document.createElement('input');
+        input.value = link;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        alert('✅ Link ruangan berhasil disalin!');
+    }
+}
+
+function showRoomInfo() {
+    const roomData = window.roomData || {};
+    const pin = roomData.pin || 'N/A';
+    const expiry = roomData.expires_at ? new Date(roomData.expires_at).toLocaleString('id-ID') : 'N/A';
+    
+    const info = `📋 INFORMASI RUANGAN
+
+🆔 Room ID: ${roomId || 'Unknown'}
+🔢 PIN: ${pin}
+⏰ Kadaluarsa: ${expiry}
+🔗 Link: ${window.location.href}
+
+Bagikan PIN atau link ini untuk mengundang orang lain ke ruangan.`;
+    
+    alert(info);
+}
 </script>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="bottom-nav md:hidden">
+    <div class="flex items-center justify-around max-w-md mx-auto">
+        <a href="/" class="bottom-nav-item">
+            <span class="material-symbols-outlined bottom-nav-icon">home</span>
+            <span class="bottom-nav-label">Home</span>
+        </a>
+        <a href="#files" onclick="event.preventDefault(); document.getElementById('files-tab')?.click();" class="bottom-nav-item active">
+            <span class="material-symbols-outlined bottom-nav-icon">folder</span>
+            <span class="bottom-nav-label">Files</span>
+        </a>
+        <button onclick="copyRoomLink()" class="bottom-nav-item border-0 bg-transparent">
+            <span class="material-symbols-outlined bottom-nav-icon">share</span>
+            <span class="bottom-nav-label">Share</span>
+        </button>
+        <button onclick="showRoomInfo()" class="bottom-nav-item border-0 bg-transparent">
+            <span class="material-symbols-outlined bottom-nav-icon">info</span>
+            <span class="bottom-nav-label">Info</span>
+        </button>
+    </div>
+</nav>
 
 </body>
 </html>

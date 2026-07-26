@@ -13,14 +13,18 @@ import (
 )
 
 type APIKey struct {
-	ID         string     `json:"id"`
-	Key        string     `json:"key,omitempty"` // Only shown once on creation
-	AdminID    string     `json:"admin_id"`
-	Name       string     `json:"name"`
-	ExpiresAt  *time.Time `json:"expires_at"`
-	CreatedAt  time.Time  `json:"created_at"`
-	LastUsedAt *time.Time `json:"last_used_at"`
-	IsActive   bool       `json:"is_active"`
+	ID            string     `json:"id"`
+	Key           string     `json:"key,omitempty"` // Only shown once on creation
+	KeyPrefix     string     `json:"key_prefix,omitempty"`
+	KeySuffix     string     `json:"key_suffix,omitempty"`
+	AdminID       string     `json:"admin_id"`
+	Name          string     `json:"name"`
+	ExpiresAt     *time.Time `json:"expires_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+	LastUsedAt    *time.Time `json:"last_used_at"`
+	IsActive      bool       `json:"is_active"`
+	RoomsCreated  int        `json:"rooms_created,omitempty"`
+	FilesUploaded int        `json:"files_uploaded,omitempty"`
 }
 
 type CreateAPIKeyRequest struct {
@@ -86,7 +90,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*AdminUser)
 
-	rows, err := db.Query(`SELECT id, admin_id, name, expires_at, created_at, last_used_at, is_active
+	rows, err := db.Query(`SELECT id, admin_id, name, expires_at, created_at, last_used_at, is_active, key_hash
 		FROM api_keys WHERE admin_id = ? ORDER BY created_at DESC`, admin.ID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch API keys"}`, http.StatusInternalServerError)
@@ -99,8 +103,9 @@ func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 		var k APIKey
 		var expiresAt, lastUsedAt sql.NullString
 		var isActive int
+		var keyHash string
 
-		rows.Scan(&k.ID, &k.AdminID, &k.Name, &expiresAt, &k.CreatedAt, &lastUsedAt, &isActive)
+		rows.Scan(&k.ID, &k.AdminID, &k.Name, &expiresAt, &k.CreatedAt, &lastUsedAt, &isActive, &keyHash)
 
 		if expiresAt.Valid {
 			t, _ := time.Parse(time.RFC3339, expiresAt.String)
@@ -112,13 +117,30 @@ func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 		}
 		k.IsActive = isActive == 1
 
+		// Generate display prefix/suffix (first 8 and last 4 chars of hash for display)
+		if len(keyHash) >= 12 {
+			k.KeyPrefix = keyHash[:8]
+			k.KeySuffix = keyHash[len(keyHash)-4:]
+		}
+
+		// Get statistics
+		var roomsCreated, filesUploaded int
+		db.QueryRow(`SELECT COUNT(DISTINCT r.id), COUNT(f.id) 
+			FROM api_keys ak
+			LEFT JOIN rooms r ON r.created_by_api_key = ak.id
+			LEFT JOIN files f ON f.room_id = r.id
+			WHERE ak.id = ?`, k.ID).Scan(&roomsCreated, &filesUploaded)
+		
+		k.RoomsCreated = roomsCreated
+		k.FilesUploaded = filesUploaded
+
 		keys = append(keys, k)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"keys":    keys,
+		"success":  true,
+		"api_keys": keys,
 	})
 }
 

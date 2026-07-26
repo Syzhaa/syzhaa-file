@@ -325,6 +325,106 @@
         </div>
     </div>
 
+    <!-- Modal: Alert -->
+    <div id="modal-alert" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-start gap-4 mb-6">
+                <div id="alertIcon" class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-2xl"></span>
+                </div>
+                <div class="flex-1">
+                    <h3 id="alertTitle" class="text-xl font-headline font-bold mb-2"></h3>
+                    <p id="alertMessage" class="text-sm text-outline whitespace-pre-wrap"></p>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button onclick="closeModal('alert')" class="px-6 py-3 bg-primary text-on-primary rounded-xl hover:brightness-110 font-semibold">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Confirm -->
+    <div id="modal-confirm" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-start gap-4 mb-6">
+                <div class="flex-shrink-0 w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-2xl text-amber-600">help</span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-headline font-bold mb-2">Confirm Action</h3>
+                    <p id="confirmMessage" class="text-sm text-outline"></p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('confirm')" class="flex-1 px-6 py-3 bg-surface-container border-2 border-outline-variant rounded-xl hover:bg-surface-container-high font-semibold">
+                    Cancel
+                </button>
+                <button id="confirmButton" class="flex-1 px-6 py-3 bg-primary text-on-primary rounded-xl hover:brightness-110 font-semibold">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Prompt -->
+    <div id="modal-prompt" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="mb-6">
+                <h3 class="text-xl font-headline font-bold mb-2" id="promptTitle">Input Required</h3>
+                <p id="promptMessage" class="text-sm text-outline mb-4"></p>
+                <input type="text" id="promptInput" class="w-full px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none">
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('prompt')" class="flex-1 px-6 py-3 bg-surface-container border-2 border-outline-variant rounded-xl hover:bg-surface-container-high font-semibold">
+                    Cancel
+                </button>
+                <button id="promptButton" class="flex-1 px-6 py-3 bg-primary text-on-primary rounded-xl hover:brightness-110 font-semibold">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: API Key Display -->
+    <div id="modal-apiKeyDisplay" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-headline font-bold text-green-600">✓ API Key Created!</h3>
+                <button onclick="closeModal('apiKeyDisplay')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            
+            <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-6">
+                <p class="text-sm font-semibold text-amber-800 mb-2">⚠️ IMPORTANT - Save This Key Now!</p>
+                <p class="text-xs text-amber-700">This is the only time you'll see this key. Copy it and store it securely.</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Your API Key:</label>
+                    <div class="relative">
+                        <input type="text" id="apiKeyValue" readonly 
+                               class="w-full px-4 py-3 pr-24 bg-surface-container border-2 border-outline-variant rounded-xl font-mono text-sm select-all"
+                               value="">
+                        <button onclick="copyAPIKeyFromModal()" 
+                                class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-on-primary rounded-lg hover:brightness-110 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span class="text-xs">Copy</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-outline mt-2">Click to select all, or use the Copy button</p>
+                </div>
+                
+                <button onclick="closeModal('apiKeyDisplay')" class="w-full py-3 bg-surface-container border-2 border-outline-variant rounded-xl hover:bg-surface-container-high font-semibold">
+                    I've Saved the Key
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="dashboard-v2.js"></script>
 </body>
 </html>

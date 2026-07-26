@@ -325,13 +325,201 @@
         </div>
     </div>
 
+    <!-- Modal: Create API Key Name Input -->
+    <div id="modal-createApiKey" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-headline font-bold">Create API Key</h3>
+                <button onclick="closeModal('createApiKey')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">API Key Name (optional)</label>
+                    <input type="text" id="apiKeyNameInput" placeholder="e.g., Production Server, Mobile App" 
+                           class="w-full px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none">
+                    <p class="text-xs text-outline mt-1">Give this key a descriptive name to remember where it's used</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeModal('createApiKey')" 
+                            class="flex-1 py-3 border-2 border-outline-variant text-outline rounded-xl font-semibold hover:bg-surface-container">
+                        Cancel
+                    </button>
+                    <button onclick="confirmCreateAPIKey()" 
+                            class="flex-1 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110">
+                        Create Key
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: API Key Created -->
+    <div id="modal-apiKey" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-headline font-bold text-green-600">✓ API Key Created!</h3>
+                <button onclick="closeModal('apiKey')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-4">
+                    <p class="text-sm font-semibold text-amber-800 mb-2">⚠️ IMPORTANT - Save This Key Now!</p>
+                    <p class="text-xs text-amber-700">This is the only time you'll see this key. Copy it and store it securely.</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Your API Key:</label>
+                    <div class="relative">
+                        <input type="text" id="apiKeyDisplay" readonly 
+                               class="w-full px-4 py-3 pr-24 bg-gray-50 border-2 border-outline-variant rounded-xl font-mono text-sm"
+                               value="">
+                        <button onclick="copyAPIKey()" 
+                                class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-white rounded-lg hover:brightness-110 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span class="text-xs">Copy</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-outline mt-2">Click to select all, or use the Copy button</p>
+                </div>
+                
+                <button onclick="closeModal('apiKey')" 
+                        class="w-full py-3 bg-green-500 text-white rounded-xl font-semibold hover:brightness-110">
+                    I've Saved the Key
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Generic Confirmation -->
+    <div id="modal-confirm" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="confirmTitle" class="text-xl font-headline font-bold">Confirm Action</h3>
+                <button onclick="closeModal('confirm')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <p id="confirmMessage" class="text-sm text-on-surface-variant"></p>
+                <div class="flex gap-2">
+                    <button onclick="closeModal('confirm')" 
+                            class="flex-1 py-3 border-2 border-outline-variant text-outline rounded-xl font-semibold hover:bg-surface-container">
+                        Cancel
+                    </button>
+                    <button id="confirmButton" 
+                            class="flex-1 py-3 bg-red-500 text-white rounded-xl font-semibold hover:brightness-110">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Reject User Input -->
+    <div id="modal-rejectUser" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-headline font-bold">Reject User</h3>
+                <button onclick="closeModal('rejectUser')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Rejection Reason (optional)</label>
+                    <textarea id="rejectReasonInput" rows="3" placeholder="e.g., Invalid email domain, Suspicious activity..." 
+                           class="w-full px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none resize-none"></textarea>
+                    <p class="text-xs text-outline mt-1">Provide a reason for rejecting this user</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeModal('rejectUser')" 
+                            class="flex-1 py-3 border-2 border-outline-variant text-outline rounded-xl font-semibold hover:bg-surface-container">
+                        Cancel
+                    </button>
+                    <button onclick="confirmRejectUser()" 
+                            class="flex-1 py-3 bg-red-500 text-white rounded-xl font-semibold hover:brightness-110">
+                        Reject User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Room Created Success -->
+    <div id="modal-roomCreated" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-headline font-bold text-green-600">✓ Room Created Successfully!</h3>
+                <button onclick="closeModal('roomCreated')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                    <p class="text-sm font-semibold text-blue-800 mb-2">📋 Share these details</p>
+                    <p class="text-xs text-blue-700">Save or share the PIN and links below to access this room</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Room PIN:</label>
+                    <div class="relative">
+                        <input type="text" id="roomPinDisplay" readonly 
+                               class="w-full px-4 py-3 pr-24 bg-gray-50 border-2 border-outline-variant rounded-xl font-mono text-2xl text-center font-bold tracking-widest"
+                               value="">
+                        <button onclick="copyText('roomPinDisplay')" 
+                                class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-white rounded-lg hover:brightness-110 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span class="text-xs">Copy</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Room Link:</label>
+                    <div class="relative">
+                        <input type="text" id="roomLinkDisplay" readonly 
+                               class="w-full px-4 py-3 pr-24 bg-gray-50 border-2 border-outline-variant rounded-xl font-mono text-sm"
+                               value="">
+                        <button onclick="copyText('roomLinkDisplay')" 
+                                class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-white rounded-lg hover:brightness-110 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span class="text-xs">Copy</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-2">PIN Link:</label>
+                    <div class="relative">
+                        <input type="text" id="pinLinkDisplay" readonly 
+                               class="w-full px-4 py-3 pr-24 bg-gray-50 border-2 border-outline-variant rounded-xl font-mono text-sm"
+                               value="">
+                        <button onclick="copyText('pinLinkDisplay')" 
+                                class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-white rounded-lg hover:brightness-110 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span class="text-xs">Copy</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <button onclick="closeModal('roomCreated')" 
+                        class="w-full py-3 bg-green-500 text-white rounded-xl font-semibold hover:brightness-110">
+                    Got it!
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
     // Inline PIN join function (bypasses cache issue)
     async function joinRoom() {
         const pin = document.getElementById('pinInput').value.trim();
         
         if (pin.length !== 6 || !/^\d+$/.test(pin)) {
-            alert('PIN harus 6 digit angka');
+            showToast('PIN harus 6 digit angka', 'error');
             return;
         }
         
@@ -347,11 +535,11 @@
             if (data.success) {
                 window.location.href = `/room.html?id=${data.room_id}`;
             } else {
-                alert('PIN tidak valid atau ruangan sudah kadaluarsa');
+                showToast('PIN tidak valid atau ruangan sudah kadaluarsa', 'error');
             }
         } catch (error) {
             console.error('Error joining room:', error);
-            alert('Terjadi kesalahan saat join ruangan');
+            showToast('Terjadi kesalahan saat join ruangan', 'error');
         }
     }
     </script>

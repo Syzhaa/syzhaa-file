@@ -117,7 +117,7 @@ func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 				})
 				
 				// Redirect to admin dashboard
-				http.Redirect(w, r, "/admin/dashboard-v2.html", http.StatusTemporaryRedirect)
+				http.Redirect(w, r, "/admin/dashboard.html", http.StatusTemporaryRedirect)
 				return
 			}
 		}

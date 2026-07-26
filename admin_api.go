@@ -43,8 +43,8 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 
 	expiresAt := time.Now().Add(time.Duration(req.ExpiryMinutes) * time.Minute)
 
-	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at) VALUES (?, ?, ?)",
-		roomID, pin, expiresAt.Format(time.RFC3339))
+	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at, created_by_api_key) VALUES (?, ?, ?, ?)",
+		roomID, pin, expiresAt.Format(time.RFC3339), apiKey.ID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to create room"}`, http.StatusInternalServerError)
 		return

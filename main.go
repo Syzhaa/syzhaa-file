@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -60,7 +61,8 @@ func initDB() error {
 		id TEXT PRIMARY KEY,
 		pin TEXT UNIQUE,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		expires_at DATETIME NOT NULL
+		expires_at DATETIME NOT NULL,
+		created_by_api_key TEXT
 	);
 	
 	CREATE TABLE IF NOT EXISTS files (
@@ -491,6 +493,9 @@ func cleanOrphanedFiles() {
 }
 
 func main() {
+	// Load environment variables from .env file
+	godotenv.Load()
+	
 	os.MkdirAll(ChunkDir, 0755)
 	os.MkdirAll(UploadDir, 0755)
 

@@ -51,6 +51,120 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+// ============================================
+// MODAL UTILITY FUNCTIONS
+// ============================================
+
+function openModal(modalId) {
+    const modal = document.getElementById(`modal-${modalId}`);
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(`modal-${modalId}`);
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+function showAlert(message, type = 'info') {
+    const modal = document.getElementById('modal-alert');
+    const icon = document.getElementById('alertIcon');
+    const iconSpan = icon.querySelector('.material-symbols-outlined');
+    const title = document.getElementById('alertTitle');
+    const messageEl = document.getElementById('alertMessage');
+    
+    // Configure based on type
+    if (type === 'error') {
+        icon.className = 'flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center';
+        iconSpan.className = 'material-symbols-outlined text-2xl text-red-600';
+        iconSpan.textContent = 'error';
+        title.textContent = 'Error';
+        title.className = 'text-xl font-headline font-bold mb-2 text-red-600';
+    } else if (type === 'success') {
+        icon.className = 'flex-shrink-0 w-12 h-12 rounded-full bg-green-100 flex items-center justify-center';
+        iconSpan.className = 'material-symbols-outlined text-2xl text-green-600';
+        iconSpan.textContent = 'check_circle';
+        title.textContent = 'Success';
+        title.className = 'text-xl font-headline font-bold mb-2 text-green-600';
+    } else if (type === 'warning') {
+        icon.className = 'flex-shrink-0 w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center';
+        iconSpan.className = 'material-symbols-outlined text-2xl text-amber-600';
+        iconSpan.textContent = 'warning';
+        title.textContent = 'Warning';
+        title.className = 'text-xl font-headline font-bold mb-2 text-amber-600';
+    } else {
+        icon.className = 'flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center';
+        iconSpan.className = 'material-symbols-outlined text-2xl text-blue-600';
+        iconSpan.textContent = 'info';
+        title.textContent = 'Information';
+        title.className = 'text-xl font-headline font-bold mb-2 text-blue-600';
+    }
+    
+    messageEl.textContent = message;
+    openModal('alert');
+}
+
+let confirmCallback = null;
+function showConfirm(message, onConfirm) {
+    document.getElementById('confirmMessage').textContent = message;
+    confirmCallback = onConfirm;
+    
+    const confirmBtn = document.getElementById('confirmButton');
+    confirmBtn.onclick = () => {
+        closeModal('confirm');
+        if (confirmCallback) {
+            confirmCallback();
+            confirmCallback = null;
+        }
+    };
+    
+    openModal('confirm');
+}
+
+let promptCallback = null;
+function showPrompt(message, onSubmit, placeholder = '', title = 'Input Required') {
+    document.getElementById('promptTitle').textContent = title;
+    document.getElementById('promptMessage').textContent = message;
+    const input = document.getElementById('promptInput');
+    input.value = '';
+    input.placeholder = placeholder;
+    promptCallback = onSubmit;
+    
+    const promptBtn = document.getElementById('promptButton');
+    promptBtn.onclick = () => {
+        const value = input.value.trim();
+        closeModal('prompt');
+        if (promptCallback) {
+            promptCallback(value);
+            promptCallback = null;
+        }
+    };
+    
+    // Allow Enter key to submit
+    input.onkeypress = (e) => {
+        if (e.key === 'Enter') {
+            promptBtn.click();
+        }
+    };
+    
+    openModal('prompt');
+    setTimeout(() => input.focus(), 100);
+}
+
+function copyAPIKeyFromModal() {
+    const input = document.getElementById('apiKeyValue');
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+        showToast('✓ API key copied to clipboard!', 'success');
+    }).catch(() => {
+        document.execCommand('copy');
+        showToast('✓ API key copied to clipboard!', 'success');
+    });
+}
+
 function formatBytes(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -486,25 +600,31 @@ function renderAPIKeys() {
 }
 
 async function createAPIKey() {
-    const name = prompt('Enter a name for this API key (optional):');
-    
-    const data = await apiCall('/admin/api-keys', {
-        method: 'POST',
-        body: JSON.stringify({
-            name: name || 'Unnamed Key'
-        })
-    });
-    
-    if (data && data.success && data.api_key) {
-        showToast('API key created successfully!', 'success');
-        
-        // Show the full key (only shown once)
-        alert(`API Key Created!\n\nKey: ${data.api_key.key}\n\nIMPORTANT: Save this key now. You won't be able to see it again!`);
-        
-        loadAPIKeys();
-    } else {
-        showToast('Failed to create API key', 'error');
-    }
+    showPrompt(
+        'Enter a name for this API key (optional):',
+        async (name) => {
+            const data = await apiCall('/admin/api-keys', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: name || 'Unnamed Key'
+                })
+            });
+            
+            if (data && data.success && data.api_key) {
+                showToast('API key created successfully!', 'success');
+                
+                // Show the full key in modal (only shown once)
+                document.getElementById('apiKeyValue').value = data.api_key.key;
+                openModal('apiKeyDisplay');
+                
+                loadAPIKeys();
+            } else {
+                showToast('Failed to create API key', 'error');
+            }
+        },
+        'My API Key',
+        'Create API Key'
+    );
 }
 
 async function toggleAPIKey(keyId, activate) {
@@ -521,18 +641,21 @@ async function toggleAPIKey(keyId, activate) {
 }
 
 async function deleteAPIKey(keyId) {
-    if (!confirm('Delete this API key? This action cannot be undone.')) return;
-    
-    const data = await apiCall(`/admin/api-keys/${keyId}`, {
-        method: 'DELETE'
-    });
-    
-    if (data && data.success) {
-        showToast('API key deleted', 'success');
-        loadAPIKeys();
-    } else {
-        showToast('Failed to delete API key', 'error');
-    }
+    showConfirm(
+        'Delete this API key? This action cannot be undone.',
+        async () => {
+            const data = await apiCall(`/admin/api-keys/${keyId}`, {
+                method: 'DELETE'
+            });
+            
+            if (data && data.success) {
+                showToast('API key deleted', 'success');
+                loadAPIKeys();
+            } else {
+                showToast('Failed to delete API key', 'error');
+            }
+        }
+    );
 }
 
 // ============================================

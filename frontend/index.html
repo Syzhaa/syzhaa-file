@@ -80,6 +80,64 @@
         .modal.active {
             display: flex;
         }
+        
+        /* Mobile Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px;
+            color: #6B7280;
+            text-decoration: none;
+            transition: all 0.2s;
+            gap: 4px;
+        }
+        
+        .bottom-nav-item.active {
+            color: #7C3AED;
+        }
+        
+        .bottom-nav-item:active {
+            transform: scale(0.95);
+        }
+        
+        .bottom-nav-icon {
+            font-size: 24px;
+        }
+        
+        .bottom-nav-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        /* Hide bottom nav on desktop */
+        @media (min-width: 768px) {
+            .bottom-nav {
+                display: none;
+            }
+        }
+        
+        /* Add padding to body on mobile for bottom nav */
+        @media (max-width: 767px) {
+            body {
+                padding-bottom: 80px;
+            }
+        }
     </style>
     <script data-nonce="{{NONCE}}">
         tailwind.config = {
@@ -536,5 +594,27 @@ checkUserSession();
         });
     }
     </script>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="bottom-nav md:hidden">
+        <div class="flex items-center justify-around max-w-md mx-auto">
+            <a href="/" class="bottom-nav-item active">
+                <span class="material-symbols-outlined bottom-nav-icon">home</span>
+                <span class="bottom-nav-label">Home</span>
+            </a>
+            <a href="#create-room" onclick="event.preventDefault(); openModal('createRoom');" class="bottom-nav-item">
+                <span class="material-symbols-outlined bottom-nav-icon">folder_shared</span>
+                <span class="bottom-nav-label">Room</span>
+            </a>
+            <a href="#join" onclick="event.preventDefault(); openModal('joinRoom');" class="bottom-nav-item">
+                <span class="material-symbols-outlined bottom-nav-icon">login</span>
+                <span class="bottom-nav-label">Join</span>
+            </a>
+            <a href="#account" onclick="event.preventDefault(); document.getElementById('auth-button').click();" class="bottom-nav-item">
+                <span class="material-symbols-outlined bottom-nav-icon">person</span>
+                <span class="bottom-nav-label">Account</span>
+            </a>
+        </div>
+    </nav>
 </body>
 </html>
