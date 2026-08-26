@@ -9,15 +9,9 @@ import (
 // Middleware: Require admin session
 func requireAdminSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("admin_session")
+		admin, err := validateAdminSession(r)
 		if err != nil {
 			http.Error(w, `{"error":"Unauthorized"}`, http.StatusUnauthorized)
-			return
-		}
-
-		admin, err := validateAdminSession(cookie.Value)
-		if err != nil {
-			http.Error(w, `{"error":"Invalid or expired session"}`, http.StatusUnauthorized)
 			return
 		}
 

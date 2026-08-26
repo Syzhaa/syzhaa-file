@@ -1,25 +1,19 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 type User struct {
 	ID                   string     `json:"id"`
-	GoogleID             string     `json:"google_id"`
 	Email                string     `json:"email"`
 	Name                 string     `json:"name"`
-	AvatarURL            string     `json:"avatar_url"`
 	Status               string     `json:"status"` // pending, approved, rejected, suspended
 	ApprovedBy           *string    `json:"approved_by,omitempty"`
 	ApprovedAt           *time.Time `json:"approved_at,omitempty"`
@@ -38,315 +32,281 @@ type UserStats struct {
 	LastUploadAt      *time.Time `json:"last_upload_at,omitempty"`
 }
 
-// Handler: User registration (Google OAuth callback for users)
-func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
-	log.Printf("🔍 User callback: method=%s url=%s", r.Method, r.URL.String())
-	log.Printf("🔍 Query params: %v", r.URL.Query())
-	log.Printf("🔍 Form values: state=%s code=%s", r.FormValue("state"), r.FormValue("code"))
-	
-	state := r.FormValue("state")
-	if state != oauthStateString {
-		log.Printf("❌ User OAuth state mismatch: got='%s' want='%s'", state, oauthStateString)
-		http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
-		return
-	}
-	log.Printf("✅ User OAuth state valid")
-
-	code := r.FormValue("code")
-	
-	// Create temporary config with user callback URL (use existing Google Console URI)
-	userOAuthConfig := *googleOAuthConfig
-	userOAuthConfig.RedirectURL = os.Getenv("GOOGLE_REDIRECT_URL") // Use existing /auth/google/callback
-	
-	token, err := userOAuthConfig.Exchange(context.Background(), code)
-	if err != nil {
-		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
-		return
-	}
-
-	client := userOAuthConfig.Client(context.Background(), token)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
-	if err != nil {
-		http.Error(w, "Failed to get user info", http.StatusInternalServerError)
-		return
-	}
-	defer resp.Body.Close()
-
-	var googleUser GoogleUserInfo
-	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
-		http.Error(w, "Failed to decode user info", http.StatusInternalServerError)
-		return
-	}
-
-	// Check if email is in admin whitelist
-	allowedEmails := os.Getenv("ADMIN_EMAILS")
-	if allowedEmails != "" {
-		emailList := strings.Split(allowedEmails, ",")
-		for _, email := range emailList {
-			if strings.TrimSpace(email) == googleUser.Email {
-				// This is an admin - redirect to admin flow
-				log.Printf("✅ Admin detected: %s", googleUser.Email)
-				
-				// Process as admin user
-				adminUser, err := getOrCreateAdminUser(googleUser)
-				if err != nil {
-					log.Printf("❌ Failed to create admin: %v", err)
-					http.Error(w, "Failed to process admin user", http.StatusInternalServerError)
-					return
-				}
-				
-				// Create admin session
-				adminSession, err := createAdminSession(adminUser.ID)
-				if err != nil {
-					http.Error(w, "Failed to create admin session", http.StatusInternalServerError)
-					return
-				}
-				
-				// Update last login
-				db.Exec("UPDATE admin_users SET last_login = ? WHERE id = ?", time.Now().Format(time.RFC3339), adminUser.ID)
-				
-				// Set admin cookie
-				http.SetCookie(w, &http.Cookie{
-					Name:     "admin_session",
-					Value:    adminSession.Token,
-					Path:     "/",
-					Expires:  adminSession.ExpiresAt,
-					HttpOnly: true,
-					Secure:   true,
-					SameSite: http.SameSiteStrictMode,
-				})
-				
-			// Redirect to admin dashboard
-			http.Redirect(w, r, "/admin/dashboard", http.StatusTemporaryRedirect)
-				return
-			}
-		}
-	}
-
-	// Not admin - continue with normal user flow
-	// Check or create user
-	user, err := getOrCreateUser(googleUser)
-	if err != nil {
-		http.Error(w, "Failed to process user", http.StatusInternalServerError)
-		return
-	}
-
-	// Check approval status
-	if user.Status == "pending" {
-		http.Redirect(w, r, "/pending-approval.html", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if user.Status == "rejected" {
-		http.Redirect(w, r, "/registration-rejected.html", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if user.Status == "suspended" {
-		http.Redirect(w, r, "/account-suspended.html", http.StatusTemporaryRedirect)
-		return
-	}
-
-	// Create user session
-	session, err := createUserSession(user.ID)
-	if err != nil {
-		http.Error(w, "Failed to create session", http.StatusInternalServerError)
-		return
-	}
-
-	// Update last login
-	db.Exec("UPDATE users SET last_login = ? WHERE id = ?", time.Now().Format(time.RFC3339), user.ID)
-
-	// Set cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "user_session",
-		Value:    session.Token,
-		Path:     "/",
-		Expires:  session.ExpiresAt,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	})
-
-	// Redirect to user dashboard
-	http.Redirect(w, r, "/user/dashboard", http.StatusTemporaryRedirect)
-}
-
-func getOrCreateUser(googleUser GoogleUserInfo) (*User, error) {
-	var user User
-	err := db.QueryRow(`SELECT id, google_id, email, name, avatar_url, status, 
-		storage_limit_mb, max_file_duration_days, created_at, last_login 
-		FROM users WHERE google_id = ?`, googleUser.ID).
-		Scan(&user.ID, &user.GoogleID, &user.Email, &user.Name, &user.AvatarURL,
-			&user.Status, &user.StorageLimitMB, &user.MaxFileDurationDays,
-			&user.CreatedAt, &user.LastLogin)
-
-	if err == sql.ErrNoRows {
-		// Check if approval required
-		var requireApproval string
-		db.QueryRow("SELECT value FROM system_settings WHERE key = 'require_approval'").Scan(&requireApproval)
-
-		status := "approved"
-		if requireApproval == "true" {
-			status = "pending"
-		}
-
-		// Create new user
-		user.ID = uuid.New().String()
-		user.GoogleID = googleUser.ID
-		user.Email = googleUser.Email
-		user.Name = googleUser.Name
-		user.AvatarURL = googleUser.Picture
-		user.Status = status
-		user.CreatedAt = time.Now()
-
-		_, err = db.Exec(`INSERT INTO users (id, google_id, email, name, avatar_url, status, created_at) 
-			VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			user.ID, user.GoogleID, user.Email, user.Name, user.AvatarURL, user.Status,
-			user.CreatedAt.Format(time.RFC3339))
-		if err != nil {
-			return nil, err
-		}
-
-		// Create stats entry
-		db.Exec(`INSERT INTO user_stats (user_id) VALUES (?)`, user.ID)
-
-		return &user, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func createUserSession(userID string) (*AdminSession, error) {
-	sessionID := uuid.New().String()
-	token := generateRandomString(64)
-	tokenHash := hashString(token)
-	expiresAt := time.Now().Add(7 * 24 * time.Hour) // 7 days
-
-	_, err := db.Exec(`INSERT INTO user_sessions (id, user_id, token_hash, expires_at) 
-		VALUES (?, ?, ?, ?)`,
-		sessionID, userID, tokenHash, expiresAt.Format(time.RFC3339))
-	if err != nil {
-		return nil, err
-	}
-
-	return &AdminSession{
-		ID:        sessionID,
-		AdminID:   userID, // reuse struct
-		Token:     token,
-		ExpiresAt: expiresAt,
-	}, nil
-}
-
-func validateUserSession(token string) (*User, error) {
-	tokenHash := hashString(token)
-
-	var user User
-	var expiresAt time.Time
-
-	err := db.QueryRow(`SELECT u.id, u.google_id, u.email, u.name, u.avatar_url, u.status,
-		u.storage_limit_mb, u.max_file_duration_days, s.expires_at
-		FROM users u
-		JOIN user_sessions s ON u.id = s.user_id
-		WHERE s.token_hash = ?`, tokenHash).
-		Scan(&user.ID, &user.GoogleID, &user.Email, &user.Name, &user.AvatarURL,
-			&user.Status, &user.StorageLimitMB, &user.MaxFileDurationDays, &expiresAt)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("invalid session")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if time.Now().After(expiresAt) {
-		return nil, fmt.Errorf("session expired")
-	}
-
-	if user.Status != "approved" {
-		return nil, fmt.Errorf("user not approved")
-	}
-
-	return &user, nil
-}
-
-// Handler: User logout
-func handleUserLogout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("user_session")
-	if err == nil {
-		tokenHash := hashString(cookie.Value)
-		db.Exec("DELETE FROM user_sessions WHERE token_hash = ?", tokenHash)
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "user_session",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-	})
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
-}
-
-// Handler: Get current user info
+// Handler: Get current user info (if implemented in future)
 func handleUserMe(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user").(*User)
-
-	// Get stats
-	var stats UserStats
-	db.QueryRow(`SELECT user_id, total_rooms_created, total_files_uploaded, 
-		total_storage_used_mb, last_upload_at 
-		FROM user_stats WHERE user_id = ?`, user.ID).
-		Scan(&stats.UserID, &stats.TotalRooms, &stats.TotalFiles,
-			&stats.StorageUsedMB, &stats.LastUploadAt)
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"user":  user,
-		"stats": stats,
+		"success": false,
+		"error":   "User authentication not implemented",
 	})
 }
 
-// Handler: Get user's active rooms
+// Handler: List user rooms (if implemented in future)
 func handleUserRooms(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user").(*User)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": false,
+		"error":   "User authentication not implemented",
+	})
+}
 
-	rows, err := db.Query(`SELECT id, pin, created_at, expires_at 
-		FROM rooms 
-		WHERE user_id = ? AND expires_at > datetime('now') 
-		ORDER BY created_at DESC`, user.ID)
+// Handler: List all users (admin only)
+func handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
+	status := r.URL.Query().Get("status") // filter by status
+
+	query := `SELECT id, email, name, status, 
+		approved_by, approved_at, storage_limit_mb, max_file_duration_days, 
+		created_at, last_login FROM users`
 	
+	args := []interface{}{}
+	if status != "" {
+		query += " WHERE status = ?"
+		args = append(args, status)
+	}
+	query += " ORDER BY created_at DESC"
+
+	rows, err := db.Query(query, args...)
 	if err != nil {
-		log.Printf("❌ Error querying user rooms: %v", err)
-		http.Error(w, `{"error":"Failed to get rooms"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"Failed to fetch users"}`, http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	rooms := []map[string]interface{}{}
+	users := []User{}
 	for rows.Next() {
-		var id, pin, createdAt, expiresAt string
-		if err := rows.Scan(&id, &pin, &createdAt, &expiresAt); err != nil {
-			continue
-		}
-
-		rooms = append(rooms, map[string]interface{}{
-			"id":         id,
-			"pin":        pin,
-			"created_at": createdAt,
-			"expires_at": expiresAt,
-		})
+		var u User
+		rows.Scan(&u.ID, &u.Email, &u.Name,
+			&u.Status, &u.ApprovedBy, &u.ApprovedAt, &u.StorageLimitMB,
+			&u.MaxFileDurationDays, &u.CreatedAt, &u.LastLogin)
+		users = append(users, u)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"rooms":   rooms,
+		"users":   users,
+		"count":   len(users),
 	})
+}
+
+// Handler: Approve user
+func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
+	admin := r.Context().Value("admin").(*AdminUser)
+	vars := mux.Vars(r)
+	userID := vars["id"]
+
+	var req struct {
+		StorageLimitMB      *int `json:"storage_limit_mb"`
+		MaxFileDurationDays *int `json:"max_file_duration_days"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+
+	// Check user exists
+	var currentStatus string
+	err := db.QueryRow("SELECT status FROM users WHERE id = ?", userID).Scan(&currentStatus)
+	if err == sql.ErrNoRows {
+		http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, `{"error":"Server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	now := time.Now().Format(time.RFC3339)
+	_, err = db.Exec(`UPDATE users 
+		SET status = 'approved', approved_by = ?, approved_at = ?, 
+		    storage_limit_mb = ?, max_file_duration_days = ?
+		WHERE id = ?`,
+		admin.ID, now, req.StorageLimitMB, req.MaxFileDurationDays, userID)
+
+	if err != nil {
+		http.Error(w, `{"error":"Failed to approve user"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "User approved successfully",
+	})
+}
+
+// Handler: Reject user
+func handleAdminRejectUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["id"]
+
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+
+	if req.Reason == "" {
+		req.Reason = "Registration rejected by admin"
+	}
+
+	_, err := db.Exec(`UPDATE users 
+		SET status = 'rejected', rejected_reason = ?
+		WHERE id = ?`, req.Reason, userID)
+
+	if err != nil {
+		http.Error(w, `{"error":"Failed to reject user"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "User rejected",
+	})
+}
+
+// Handler: Suspend user
+func handleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["id"]
+
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+
+	_, err := db.Exec(`UPDATE users 
+		SET status = 'suspended', rejected_reason = ?
+		WHERE id = ?`, req.Reason, userID)
+
+	if err != nil {
+		http.Error(w, `{"error":"Failed to suspend user"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Delete all user sessions
+	db.Exec("DELETE FROM user_sessions WHERE user_id = ?", userID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "User suspended",
+	})
+}
+
+// Handler: Get user stats
+func handleAdminGetUserStats(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["id"]
+
+	var stats UserStats
+	stats.UserID = userID
+
+	// Get total rooms created by user
+	db.QueryRow(`SELECT COUNT(*) FROM rooms WHERE created_by = ?`, userID).Scan(&stats.TotalRooms)
+
+	// Get total files uploaded by user
+	db.QueryRow(`SELECT COUNT(*) FROM files WHERE created_by = ?`, userID).Scan(&stats.TotalFiles)
+
+	// Get total storage used
+	db.QueryRow(`SELECT COALESCE(SUM(size), 0) / 1024 / 1024 FROM files WHERE created_by = ?`, userID).Scan(&stats.StorageUsedMB)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"stats":   stats,
+	})
+}
+
+// Handler: Update user quotas
+func handleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["id"]
+
+	var req struct {
+		StorageLimitMB      int `json:"storage_limit_mb"`
+		MaxFileDurationDays int `json:"max_file_duration_days"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+
+	_, err := db.Exec(`UPDATE users 
+		SET storage_limit_mb = ?, max_file_duration_days = ?
+		WHERE id = ?`,
+		req.StorageLimitMB, req.MaxFileDurationDays, userID)
+
+	if err != nil {
+		http.Error(w, `{"error":"Failed to update quotas"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Quotas updated successfully",
+	})
+}
+
+// Stub middleware for user sessions (not implemented yet)
+func requireUserSession(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"error":"User authentication not implemented"}`, http.StatusUnauthorized)
+	})
+}
+
+// Handler: Admin system settings
+func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == "GET" {
+		rows, err := db.Query(`SELECT key, value FROM system_settings`)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Failed to fetch settings",
+			})
+			return
+		}
+		defer rows.Close()
+
+		settings := make(map[string]string)
+		for rows.Next() {
+			var key, value string
+			rows.Scan(&key, &value)
+			settings[key] = value
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":  true,
+			"settings": settings,
+		})
+		return
+	}
+
+	if r.Method == "POST" {
+		admin := r.Context().Value("admin").(*AdminUser)
+
+		var req struct {
+			Key   string `json:"key"`
+			Value string `json:"value"`
+		}
+		json.NewDecoder(r.Body).Decode(&req)
+
+		now := time.Now().Format(time.RFC3339)
+		_, err := db.Exec(`UPDATE system_settings 
+			SET value = ?, updated_at = ?
+			WHERE key = ?`,
+			req.Value, now, req.Key)
+
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Failed to update setting",
+			})
+			return
+		}
+
+		log.Printf("✅ Admin %s updated setting: %s", admin.Email, req.Key)
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Setting updated successfully",
+		})
+	}
 }

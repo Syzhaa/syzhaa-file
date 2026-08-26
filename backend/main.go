@@ -100,12 +100,12 @@ func initDB() error {
 
 	CREATE TABLE IF NOT EXISTS admin_users (
 		id TEXT PRIMARY KEY,
-		google_id TEXT UNIQUE NOT NULL,
 		email TEXT UNIQUE NOT NULL,
 		name TEXT NOT NULL,
-		avatar_url TEXT,
+		password_hash TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		last_login DATETIME
+		last_login DATETIME,
+		is_super_admin INTEGER DEFAULT 1
 	);
 
 	CREATE TABLE IF NOT EXISTS api_keys (
@@ -863,11 +863,15 @@ func main() {
 	}
 	defer db.Close()
 
-	// Initialize Google OAuth
-	initGoogleOAuth(
-		os.Getenv("GOOGLE_CLIENT_ID"),
-		os.Getenv("GOOGLE_CLIENT_SECRET"),
-		os.Getenv("GOOGLE_REDIRECT_URL"),
+	// Initialize admin password (use ADMIN_PASSWORD env or default)
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	if adminPassword == "" {
+		adminPassword = "admin"
+	}
+	initAdminDefaults(
+		os.Getenv("ADMIN_EMAIL"),
+		os.Getenv("ADMIN_NAME"),
+		adminPassword,
 	)
 
 	// Initialize rate limiters
@@ -893,15 +897,9 @@ func main() {
 	r.HandleFunc("/api/folder/{id}", deleteFolderHandler).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/d/{id}", downloadFileHandler).Methods("GET")
 
-	// Google OAuth routes
-	r.HandleFunc("/auth/google/login", handleGoogleLogin).Methods("GET")
-	r.HandleFunc("/auth/google/callback", handleGoogleCallback).Methods("GET")
+	// Admin email/password auth routes
+	r.HandleFunc("/auth/login", handleAdminLogin).Methods("POST", "OPTIONS")
 	r.HandleFunc("/auth/logout", handleAdminLogout).Methods("POST", "OPTIONS")
-	
-	// User OAuth routes
-	r.HandleFunc("/auth/user/login", handleUserGoogleLogin).Methods("GET")
-	r.HandleFunc("/auth/user/callback", handleUserGoogleCallback).Methods("GET")
-	r.HandleFunc("/auth/user/logout", handleUserLogout).Methods("POST", "OPTIONS")
 
 	// Admin routes (require session)
 	adminRouter := r.PathPrefix("/admin").Subrouter()
@@ -936,7 +934,7 @@ func main() {
 	apiRouter.HandleFunc("/room/{id}/files", handleAPIGetRoomFiles).Methods("GET")
 	apiRouter.HandleFunc("/room/{id}/download-all", handleAPIDownloadAll).Methods("GET")
 
-	r.PathPrefix("/").Handler(cleanURLMiddleware(http.FileServer(http.Dir("../frontend"))))
+	r.PathPrefix("/").Handler(cleanURLMiddleware(http.FileServer(http.Dir("./frontend"))))
 
 	addr := fmt.Sprintf(":%d", Port)
 	log.Printf("🚀 Syzhaa File Server (Go) running on port %d", Port)
