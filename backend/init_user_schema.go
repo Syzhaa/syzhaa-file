@@ -80,6 +80,9 @@ func initUserSchema() error {
 	// no_quota: rooms created by admin bypass storage limits
 	db.Exec("ALTER TABLE rooms ADD COLUMN no_quota INTEGER DEFAULT 0")
 
+	// permission: 'both' (default), 'view' (lihat saja), 'download' (download saja)
+	db.Exec("ALTER TABLE rooms ADD COLUMN permission TEXT DEFAULT 'both'")
+
 	// API key approval: users login immediately, but need admin approval for API keys
 	db.Exec("ALTER TABLE users ADD COLUMN api_approved INTEGER DEFAULT 0")
 	db.Exec("ALTER TABLE users ADD COLUMN api_requested_at DATETIME")

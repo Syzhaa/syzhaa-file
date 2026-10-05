@@ -606,11 +606,12 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	var isEncrypted sql.NullInt64
 	var originalSize sql.NullInt64
 	
+	var permission string
 	err := db.QueryRow(`SELECT f.id, f.filename, f.original_name, f.size, r.expires_at, 
-		f.salt, f.nonce, f.is_encrypted, f.original_size
+		f.salt, f.nonce, f.is_encrypted, f.original_size, COALESCE(r.permission, 'both')
 		FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).
 		Scan(&f.ID, &f.Filename, &f.OriginalName, &f.Size, &expiresAt, 
-			&saltB64, &nonceB64, &isEncrypted, &originalSize)
+			&saltB64, &nonceB64, &isEncrypted, &originalSize, &permission)
 
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusNotFound)
@@ -620,6 +621,13 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("❌ Download query error: %v", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Enforce room permission: 'view' only blocks downloads
+	if permission == "view" {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "<h1>Download dinonaktifkan</h1><p>Pemilik room hanya mengizinkan melihat file.</p>")
 		return
 	}
 
