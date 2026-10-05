@@ -147,6 +147,13 @@ document.addEventListener('click', (e) => {
 // ============================================
 
 function switchView(viewName) {
+    // Update bottom nav active state FIRST (mobile) - inline style, bulletproof
+    try {
+        document.querySelectorAll('.bnav-item').forEach(item => {
+            item.style.color = (item.dataset.bnav === viewName) ? '#F6821F' : '#737686';
+        });
+    } catch (e) {}
+
     // Hide all views
     document.querySelectorAll('[id^="view-"]').forEach(view => {
         view.classList.add('hidden');
@@ -164,15 +171,6 @@ function switchView(viewName) {
         item.classList.remove('active');
         if (item.dataset.view === viewName) {
             item.classList.add('active');
-        }
-    });
-
-    // Update bottom nav active state (mobile) - uses explicit CSS class
-    document.querySelectorAll('.bnav-item').forEach(item => {
-        if (item.dataset.bnav === viewName) {
-            item.classList.add('bnav-active');
-        } else {
-            item.classList.remove('bnav-active');
         }
     });
     

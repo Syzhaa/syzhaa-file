@@ -23,6 +23,17 @@
         @media (min-width: 768px) { .bottom-nav { display: none; } }
         @media (max-width: 767px) { body { padding-bottom: 72px; } }
         .field:focus { border-color: #F6821F !important; box-shadow: 0 0 0 3px rgba(246,130,31,.15); outline: none; }
+        /* Bottom sheet modals on mobile */
+        @media (max-width: 767px) {
+            #info-modal, #confirm-modal, #error-modal { align-items: flex-end !important; padding: 0 !important; }
+            #info-modal > div, #confirm-modal > div, #error-modal > div {
+                border-radius: 24px 24px 0 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                animation: sheetUp .3s ease-out;
+            }
+            @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        }
     </style>
     <script>
         tailwind.config = {

@@ -42,9 +42,26 @@
         .modal.active {
             display: flex;
         }
-        /* Bottom nav active state (explicit, not Tailwind-dependent) */
-        .bnav-item { color: #737686; }
-        .bnav-item.bnav-active { color: #F6821F; }
+        /* Bottom sheet modals on mobile (slide from bottom like native apps) */
+        @media (max-width: 1023px) {
+            .modal {
+                align-items: flex-end !important;
+                justify-content: center !important;
+            }
+            .modal > div {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                border-radius: 24px 24px 0 0 !important;
+                max-height: 92vh;
+                overflow-y: auto;
+                animation: slideUp .3s ease-out;
+            }
+            @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
+        }
         /* Main content padding for mobile bottom nav */
         @media (max-width: 1023px) {
             main { padding-bottom: 90px !important; }
@@ -312,19 +329,19 @@
         <!-- Bottom Navigation (mobile) -->
         <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-outline-variant z-40" style="padding-bottom: env(safe-area-inset-bottom);">
             <div class="flex items-center justify-around px-2 py-1">
-                <button data-bnav="dashboard" onclick="switchView('dashboard')" class="bnav-item bnav-active flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium">
+                <button data-bnav="dashboard" onclick="switchView('dashboard')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#F6821F">
                     <span class="material-symbols-outlined text-2xl">dashboard</span>
                     <span>Dashboard</span>
                 </button>
-                <button data-bnav="users" onclick="switchView('users')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium">
+                <button data-bnav="users" onclick="switchView('users')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#737686">
                     <span class="material-symbols-outlined text-2xl">group</span>
                     <span>Users</span>
                 </button>
-                <button data-bnav="api-keys" onclick="switchView('api-keys')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium">
+                <button data-bnav="api-keys" onclick="switchView('api-keys')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#737686">
                     <span class="material-symbols-outlined text-2xl">key</span>
                     <span>API Key</span>
                 </button>
-                <button data-bnav="settings" onclick="switchView('settings')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium">
+                <button data-bnav="settings" onclick="switchView('settings')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#737686">
                     <span class="material-symbols-outlined text-2xl">settings</span>
                     <span>Settings</span>
                 </button>
