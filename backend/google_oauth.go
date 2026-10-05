@@ -155,7 +155,7 @@ func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 		})
-		http.Redirect(w, r, "/user/dashboard.html", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 	case "rejected":
 		http.Redirect(w, r, "/user-login.html?error=rejected", http.StatusTemporaryRedirect)
 	case "suspended":

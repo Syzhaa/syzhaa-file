@@ -1123,6 +1123,20 @@ func main() {
 	apiRouter.HandleFunc("/room/{id}/files", handleAPIGetRoomFiles).Methods("GET")
 	apiRouter.HandleFunc("/room/{id}/download-all", handleAPIDownloadAll).Methods("GET")
 
+	// Clean URLs: /user -> user dashboard, /admin -> admin dashboard
+	r.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/user/dashboard.html", http.StatusTemporaryRedirect)
+	}).Methods("GET")
+	r.HandleFunc("/user/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/user/dashboard.html", http.StatusTemporaryRedirect)
+	}).Methods("GET")
+	r.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/admin/dashboard.html", http.StatusTemporaryRedirect)
+	}).Methods("GET")
+	r.HandleFunc("/admin/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/admin/dashboard.html", http.StatusTemporaryRedirect)
+	}).Methods("GET")
+
 	r.PathPrefix("/").Handler(cleanURLMiddleware(http.FileServer(http.Dir("./frontend"))))
 
 	addr := fmt.Sprintf(":%d", Port)

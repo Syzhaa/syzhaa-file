@@ -74,7 +74,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         });
         const data = await res.json();
         if (data.success) {
-            window.location.href = '/admin/dashboard.html';
+            window.location.href = '/admin';
         } else {
             err.textContent = data.error || 'Login gagal. Periksa email dan password.';
             err.classList.remove('hidden');
