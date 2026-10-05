@@ -71,12 +71,11 @@ self.addEventListener('fetch', event => {
   // For HTML/JS/CSS: NETWORK FIRST (always get fresh version!)
   event.respondWith(
     fetch(event.request)
-      .then(response => {
+      .then(async response => {
         // Cache the fresh response for offline use
         if (event.request.method === 'GET' && response.status === 200) {
-          caches.open(RUNTIME_CACHE).then(cache => {
-            cache.put(event.request, response.clone());
-          });
+          const cache = await caches.open(RUNTIME_CACHE);
+          await cache.put(event.request, response.clone());
         }
         return response;
       })

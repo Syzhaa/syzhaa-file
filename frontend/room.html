@@ -120,6 +120,11 @@ async function loadRoom(roomId) {
         }
         
         currentRoom = data.room;
+        // Update quota label
+        if (data.quota_info && data.quota_info.label) {
+            const ql = document.getElementById('quota-label');
+            if (ql) ql.textContent = 'Maksimal ' + data.quota_info.label + ' total per ruangan';
+        }
         await loadTotalFileCount();
         renderRoom();
         await loadRoomContent();
@@ -243,7 +248,7 @@ function renderRoom() {
             <h3 class="text-lg font-bold mb-1.5">Tarik & letakkan file di sini</h3>
             <p class="text-muted text-sm mb-4">atau <span class="font-semibold text-ink underline underline-offset-2">klik untuk memilih</span></p>
             <input type="file" id="file-input" multiple class="hidden" onchange="handleFileSelect(event)">
-            <p class="text-xs text-muted mt-4">Maksimal 5 GB total per ruangan</p>
+            <p class="text-xs text-muted mt-4" id="quota-label">Maksimal 1 GB total per ruangan</p>
         </div>
 
         <!-- File List -->

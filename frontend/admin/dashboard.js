@@ -147,6 +147,11 @@ document.addEventListener('click', (e) => {
 // ============================================
 
 function switchView(viewName) {
+    // Update URL hash for persistence across reloads
+    try {
+        history.replaceState(null, '', '#' + viewName);
+    } catch (e) {}
+
     // Update bottom nav active state FIRST (mobile) - inline style, bulletproof
     try {
         document.querySelectorAll('.bnav-item').forEach(item => {
@@ -718,6 +723,13 @@ async function initDashboard() {
         // Hide loading, show app
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
+
+        // Restore view from URL hash (persist active tab across reloads)
+        const hash = (location.hash || '').replace('#', '');
+        const validViews = ['dashboard', 'users', 'api-keys', 'settings'];
+        if (validViews.includes(hash) && hash !== 'dashboard') {
+            switchView(hash);
+        }
         
     } catch (error) {
         console.error('Dashboard initialization failed:', error);

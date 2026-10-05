@@ -383,9 +383,36 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"room":  room,
-		"files": files,
+		"room":       room,
+		"files":      files,
+		"quota_info": getRoomQuotaInfo(roomID),
 	})
+}
+
+// getRoomQuotaInfo returns quota display info for a room
+func getRoomQuotaInfo(roomID string) map[string]interface{} {
+	var noQuota int
+	var userID sql.NullString
+	_ = db.QueryRow(`SELECT COALESCE(no_quota, 0), user_id FROM rooms WHERE id = ?`, roomID).Scan(&noQuota, &userID)
+
+	if noQuota == 1 {
+		return map[string]interface{}{"label": "Tanpa batas", "unlimited": true}
+	}
+	if userID.Valid && userID.String != "" {
+		var lim sql.NullInt64
+		_ = db.QueryRow(`SELECT storage_limit_mb FROM users WHERE id = ?`, userID.String).Scan(&lim)
+		mb := lim.Int64
+		if !lim.Valid || mb <= 0 {
+			mb = 2048
+		}
+		return map[string]interface{}{"label": formatBytesID(mb * 1024 * 1024), "unlimited": false}
+	}
+	var anonMB int64 = 1024
+	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'anonymous_storage_limit_mb'`).Scan(&anonMB)
+	if anonMB <= 0 {
+		anonMB = 1024
+	}
+	return map[string]interface{}{"label": formatBytesID(anonMB * 1024 * 1024), "unlimited": false}
 }
 
 // checkStorageQuota verifies the incoming file fits within the applicable
