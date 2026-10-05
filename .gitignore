@@ -63,3 +63,6 @@ Thumbs.db
 *.backup
 _tmp*.js
 public/
+hidden_files/
+*.log
+last_check
