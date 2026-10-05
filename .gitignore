@@ -66,3 +66,13 @@ public/
 hidden_files/
 *.log
 last_check
+
+# Backup files
+*.backup
+*.backup-*
+file-server*
+
+# Runtime data (backend)
+backend/chunks/
+backend/data/
+backend/uploads/
