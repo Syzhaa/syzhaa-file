@@ -64,9 +64,16 @@ func initUserSchema() error {
 
 	// Insert default settings
 	db.Exec(`INSERT OR IGNORE INTO system_settings (key, value, description) VALUES
-		('default_storage_limit_mb', '5120', 'Default storage limit per user (5GB)'),
+		('default_storage_limit_mb', '2048', 'Default storage limit per user (2GB)'),
+		('anonymous_storage_limit_mb', '1024', 'Storage limit per anonymous room (1GB)'),
 		('default_max_duration_days', '7', 'Default max file duration (7 days)'),
 		('require_approval', 'true', 'Require admin approval for new users')`)
+
+	// Migrate old 5GB default to 2GB (policy change 2026-10-05)
+	db.Exec(`UPDATE system_settings SET value = '2048', description = 'Default storage limit per user (2GB)'
+		WHERE key = 'default_storage_limit_mb' AND value = '5120'`)
+	db.Exec(`INSERT OR IGNORE INTO system_settings (key, value, description) VALUES
+		('anonymous_storage_limit_mb', '1024', 'Storage limit per anonymous room (1GB)')`)
 
 	// Alter rooms table to add user_id if not exists
 	db.Exec("ALTER TABLE rooms ADD COLUMN user_id TEXT")

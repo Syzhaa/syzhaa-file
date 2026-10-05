@@ -50,6 +50,10 @@
         .info .lbl { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
         .info .val { font-size: 14px; font-weight: 600; word-break: break-all; }
         .badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #dcfce7; color: #15803d; }
+        .storage-bar { margin-top: 16px; }
+        .storage-top { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 8px; }
+        .storage-track { height: 8px; background: #f1f2f6; border-radius: 99px; overflow: hidden; }
+        .storage-fill { height: 100%; background: #F6821F; border-radius: 99px; width: 0%; transition: width .5s; }
         .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .stat { background: #fff; border: 1px solid #e8eaf0; border-radius: 14px; padding: 18px; display: flex; align-items: center; gap: 14px; }
         .stat .material-symbols-outlined { font-size: 32px; color: #F6821F; }
@@ -99,6 +103,10 @@
                 <div><div class="lbl">Email</div><div class="val" id="acc-email">—</div></div>
                 <div><div class="lbl">Status</div><div class="val"><span class="badge">Disetujui</span></div></div>
                 <div><div class="lbl">Terdaftar</div><div class="val" id="acc-since">—</div></div>
+            </div>
+            <div class="storage-bar">
+                <div class="storage-top"><span>Penyimpanan</span><span id="storage-label">—</span></div>
+                <div class="storage-track"><div class="storage-fill" id="storage-fill"></div></div>
             </div>
         </div>
 
@@ -238,6 +246,13 @@
                 document.getElementById('acc-name').textContent = u.name;
                 document.getElementById('acc-email').textContent = u.email;
                 document.getElementById('acc-since').textContent = new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                // Storage usage bar
+                const usedBytes = me.storage_used_bytes || 0;
+                const limitMB = u.storage_limit_mb || 2048;
+                const limitBytes = limitMB * 1024 * 1024;
+                const pct = limitBytes > 0 ? Math.min(100, Math.round(usedBytes / limitBytes * 100)) : 0;
+                document.getElementById('storage-fill').style.width = pct + '%';
+                document.getElementById('storage-label').textContent = (me.storage_used_label || '0 MB') + ' / ' + limitMB + ' MB';
             } catch { return; }
 
             const keys = await api('/user/api-keys');

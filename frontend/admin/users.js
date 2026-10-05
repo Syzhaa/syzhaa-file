@@ -238,7 +238,8 @@ async function suspendUser(userId) {
 async function loadSettings() {
     const data = await apiCall('/admin/settings');
     if (data && data.settings) {
-        document.getElementById('default-storage').value = data.settings.default_storage_limit_mb?.value || '5120';
+        document.getElementById('default-storage').value = data.settings.default_storage_limit_mb?.value || '2048';
+        document.getElementById('anonymous-storage').value = data.settings.anonymous_storage_limit_mb?.value || '1024';
         document.getElementById('default-duration').value = data.settings.default_max_duration_days?.value || '7';
         document.getElementById('require-approval').value = data.settings.require_approval?.value || 'true';
     }
@@ -247,6 +248,7 @@ async function loadSettings() {
 async function saveSettings() {
     const settings = [
         { key: 'default_storage_limit_mb', value: document.getElementById('default-storage').value },
+        { key: 'anonymous_storage_limit_mb', value: document.getElementById('anonymous-storage').value },
         { key: 'default_max_duration_days', value: document.getElementById('default-duration').value },
         { key: 'require_approval', value: document.getElementById('require-approval').value }
     ];

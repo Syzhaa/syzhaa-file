@@ -61,16 +61,24 @@
 
             <!-- System Settings -->
             <div class="bg-white border border-line shadow-card rounded-lg p-6 mb-6">
-                <h2 class="text-xl font-bold text-ink mb-4">Default User Settings</h2>
+                <h2 class="text-xl font-bold text-ink mb-4">Batas Penyimpanan</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-ink mb-2">Default Storage (MB)</label>
-                        <input id="default-storage" type="number" class="w-full px-4 py-2 border border-line rounded" value="5120">
+                        <label class="block text-sm font-semibold text-ink mb-2">User Terdaftar (MB)</label>
+                        <input id="default-storage" type="number" class="w-full px-4 py-2 border border-line rounded" value="2048">
+                        <p class="text-xs text-gray-500 mt-1">Default 2048 MB = 2 GB</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-ink mb-2">Tanpa Login / Room (MB)</label>
+                        <input id="anonymous-storage" type="number" class="w-full px-4 py-2 border border-line rounded" value="1024">
+                        <p class="text-xs text-gray-500 mt-1">Default 1024 MB = 1 GB per room</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-ink mb-2">Default Duration (days)</label>
                         <input id="default-duration" type="number" class="w-full px-4 py-2 border border-line rounded" value="7">
                     </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     <div>
                         <label class="block text-sm font-semibold text-ink mb-2">Require Approval</label>
                         <select id="require-approval" class="w-full px-4 py-2 border border-line rounded">
@@ -80,7 +88,7 @@
                     </div>
                 </div>
                 <button onclick="saveSettings()" class="mt-4 px-6 py-2 bg-ink text-white font-semibold rounded-lg border border-line hover:bg-black">
-                    Save Settings
+                    Simpan Pengaturan
                 </button>
             </div>
 

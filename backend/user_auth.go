@@ -199,10 +199,18 @@ func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := uuid.New().String()
+
+	// Default storage quota for new users (2GB, from system settings)
+	var defaultLimit int = 2048
+	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'default_storage_limit_mb'`).Scan(&defaultLimit)
+	if defaultLimit <= 0 {
+		defaultLimit = 2048
+	}
+
 	_, err = db.Exec(`
-		INSERT INTO users (id, google_id, email, name, password_hash, status, created_at)
-		VALUES (?, '', ?, ?, ?, 'pending', ?)
-	`, userID, req.Email, req.Name, hashPassword(req.Password), time.Now().Format(time.RFC3339))
+		INSERT INTO users (id, google_id, email, name, password_hash, status, storage_limit_mb, created_at)
+		VALUES (?, '', ?, ?, ?, 'pending', ?, ?)
+	`, userID, req.Email, req.Name, hashPassword(req.Password), defaultLimit, time.Now().Format(time.RFC3339))
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal mendaftar, coba lagi"})
 		return
@@ -302,7 +310,20 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "user": user})
+
+	// Current storage usage across user's rooms
+	var usedBytes int64
+	_ = db.QueryRow(`
+		SELECT COALESCE(SUM(f.size), 0) FROM files f
+		JOIN rooms r ON r.id = f.room_id
+		WHERE r.user_id = ?`, user.ID).Scan(&usedBytes)
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":             true,
+		"user":                user,
+		"storage_used_bytes":  usedBytes,
+		"storage_used_label":  formatBytesID(usedBytes),
+	})
 }
 
 // roomOut is the JSON shape for /user/rooms

@@ -403,7 +403,7 @@ async function createRoom() {
     }
     
     try {
-        const response = await fetch('/room/create', {
+        const response = await fetch('/api/room/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ expiry_minutes: expiryMinutes })

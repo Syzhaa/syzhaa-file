@@ -939,7 +939,7 @@ async function uploadFiles(files) {
             document.getElementById(`${itemId}-status`).className = 'text-xs font-semibold text-red-600';
             
             console.error('Upload error:', error);
-            showInfoModal(`Gagal upload ${file.name}`);
+            showInfoModal(error.message === 'Upload failed' ? `Gagal upload ${file.name}` : error.message);
         }
     }
     
@@ -995,7 +995,14 @@ async function uploadFileInChunks(file, fileId, roomId, onProgress) {
             signal: uploadAbortController.signal
         });
         
-        if (!response.ok) throw new Error('Upload failed');
+        if (!response.ok) {
+            let msg = 'Upload failed';
+            try {
+                const errData = await response.json();
+                if (errData.error) msg = errData.error;
+            } catch {}
+            throw new Error(msg);
+        }
         
         totalUploaded += chunk.size;
         const progress = Math.round(((i + 1) / totalChunks) * 100);

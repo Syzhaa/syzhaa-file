@@ -15,6 +15,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// getBaseURL returns the public base URL from BASE_URL env, with fallback.
+func getBaseURL() string {
+	if v := os.Getenv("BASE_URL"); v != "" {
+		return v
+	}
+	return "https://file.syzhaa.my.id"
+}
+
 // Handler: Create Room via API
 func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 	apiKey := r.Context().Value("api_key").(*APIKey)
@@ -85,7 +93,7 @@ func handleAPIGetRoomLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate shareable links
-	baseURL := "https://file.syzhaa.my.id" // TODO: make configurable
+	baseURL := getBaseURL()
 	roomLink := fmt.Sprintf("%s/?room=%s", baseURL, roomID)
 	pinLink := fmt.Sprintf("%s/?pin=%s", baseURL, pin)
 
@@ -224,7 +232,7 @@ func handleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var f fileEntry
 		rows.Scan(&f.ID, &f.OriginalName, &f.MimeType, &f.Size, &f.Downloads, &f.CreatedAt)
-		f.DownloadURL = fmt.Sprintf("https://file.syzhaa.my.id/d/%s", f.ID)
+		f.DownloadURL = fmt.Sprintf("%s/d/%s", getBaseURL(), f.ID)
 		files = append(files, f)
 	}
 
