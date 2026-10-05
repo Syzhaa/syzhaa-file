@@ -1,5 +1,5 @@
 // Admin Dashboard v2 - Modern Material Design 3
-// Syzhaa File Admin Panel
+// AmbilFile Admin Panel
 
 let currentUser = null;
 let currentView = 'dashboard';
@@ -166,12 +166,35 @@ function switchView(viewName) {
             item.classList.add('active');
         }
     });
+
+    // Update bottom nav active state (mobile)
+    document.querySelectorAll('.bnav-item').forEach(item => {
+        if (item.dataset.bnav === viewName) {
+            item.classList.remove('text-outline');
+            item.classList.add('text-primary');
+        } else {
+            item.classList.add('text-outline');
+            item.classList.remove('text-primary');
+        }
+    });
+
+    // Close mobile sidebar after navigation
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && window.innerWidth < 1024) {
+        sidebar.classList.add('-translate-x-full');
+    }
     
     // Load view-specific data
     if (viewName === 'users') {
         loadUsers();
     } else if (viewName === 'api-keys') {
         loadAPIKeys();
+    } else if (viewName === 'settings') {
+        apiCall('/admin/me').then(data => {
+            if (data && data.admin) {
+                document.getElementById('accountEmail').value = data.admin.email || '';
+            }
+        });
     }
 }
 
@@ -323,8 +346,8 @@ async function createRoom() {
         closeModal('createRoom');
         
         // Show room details in modal
-        const roomLink = `https://file.syzhaa.my.id/?room=${data.room_id}`;
-        const pinLink = `https://file.syzhaa.my.id/?pin=${data.pin}`;
+        const roomLink = `https://ambilfile.web.id/?room=${data.room_id}`;
+        const pinLink = `https://ambilfile.web.id/?pin=${data.pin}`;
         
         document.getElementById('roomPinDisplay').value = data.pin;
         document.getElementById('roomLinkDisplay').value = roomLink;
@@ -692,4 +715,44 @@ setInterval(() => {
         loadPendingUsers();
     }
 }, 30000);
+
+
+// Save admin account changes (email / password)
+async function saveAccount() {
+    const email = document.getElementById('accountEmail').value.trim();
+    const currentPw = document.getElementById('accountCurrentPw').value;
+    const newPw = document.getElementById('accountNewPw').value;
+    const newPw2 = document.getElementById('accountNewPw2').value;
+
+    if (!currentPw) {
+        showToast('Isi password saat ini untuk verifikasi', 'error');
+        return;
+    }
+    if (newPw && newPw !== newPw2) {
+        showToast('Password baru tidak sama', 'error');
+        return;
+    }
+    if (newPw && newPw.length < 8) {
+        showToast('Password baru minimal 8 karakter', 'error');
+        return;
+    }
+
+    const data = await apiCall('/admin/account', {
+        method: 'POST',
+        body: JSON.stringify({ email, current_password: currentPw, new_password: newPw })
+    });
+    if (data && data.success) {
+        showToast('Akun berhasil diperbarui', 'success');
+        document.getElementById('accountCurrentPw').value = '';
+        document.getElementById('accountNewPw').value = '';
+        document.getElementById('accountNewPw2').value = '';
+        if (data.admin && data.admin.email) {
+            document.getElementById('accountEmail').value = data.admin.email;
+            const emailEl = document.getElementById('userEmail');
+            if (emailEl) emailEl.textContent = data.admin.email;
+        }
+    } else if (data) {
+        showToast(data.error || 'Gagal menyimpan', 'error');
+    }
+}
 

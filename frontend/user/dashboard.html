@@ -17,7 +17,7 @@
         .userbox { display: flex; align-items: center; gap: 12px; }
         .userbox .name { font-size: 14px; font-weight: 600; }
         .logout { font-size: 13px; color: #dc2626; font-weight: 600; background: none; border: 0; cursor: pointer; font-family: inherit; }
-        main { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+        main { max-width: 880px; margin: 0 auto; padding: 32px 20px 120px; }
         h2 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
         .hello-sub { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
         .card { background: #fff; border: 1px solid #e8eaf0; border-radius: 14px; padding: 24px; margin-bottom: 20px; }
@@ -86,7 +86,7 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card" id="keys-card">
             <h3><span class="material-symbols-outlined">key</span> API Keys</h3>
             <p class="desc">Buat API key untuk mengakses AmbilFile lewat API. Key hanya ditampilkan sekali saat dibuat.</p>
             <div id="keys-list"><div class="empty">Memuat…</div></div>
@@ -109,6 +109,51 @@
             <div id="rooms-list"><div class="empty">Memuat…</div></div>
         </div>
     </main>
+
+    <!-- Bottom Navigation (mobile) -->
+    <nav class="bottom-nav">
+        <a href="/" class="bnav-item">
+            <span class="material-symbols-outlined">home</span>
+            <span>Beranda</span>
+        </a>
+        <a href="/user/dashboard.html" class="bnav-item active">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span>Dashboard</span>
+        </a>
+        <a href="#keys" class="bnav-item" onclick="document.getElementById('keys-card').scrollIntoView({behavior:'smooth'})">
+            <span class="material-symbols-outlined">key</span>
+            <span>API Key</span>
+        </a>
+    </nav>
+
+    <style>
+        .bottom-nav { display: none; }
+        @media (max-width: 768px) {
+            .bottom-nav {
+                display: flex;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                background: #fff;
+                border-top: 1px solid #e8eaf0;
+                z-index: 40;
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+            .bnav-item {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 2px;
+                padding: 10px 4px 8px;
+                text-decoration: none;
+                color: #9ca3af;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            .bnav-item .material-symbols-outlined { font-size: 24px; }
+            .bnav-item.active { color: #F6821F; }
+        }
+    </style>
 
     <!-- Info modal (pengganti alert) -->
     <div class="modal-backdrop" id="info-modal" onclick="if(event.target===this)closeInfoModal()">

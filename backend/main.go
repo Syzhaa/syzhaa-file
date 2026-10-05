@@ -932,6 +932,7 @@ func main() {
 	adminRouter.HandleFunc("/users/{id}/quotas", handleAdminUpdateUserQuotas).Methods("PUT")
 	adminRouter.HandleFunc("/users/{id}/stats", handleAdminGetUserStats).Methods("GET")
 	adminRouter.HandleFunc("/settings", handleAdminSystemSettings).Methods("GET", "POST")
+	adminRouter.HandleFunc("/account", handleAdminUpdateAccount).Methods("POST", "PUT")
 
 	// User routes (require user session)
 	userRouter := r.PathPrefix("/user").Subrouter()

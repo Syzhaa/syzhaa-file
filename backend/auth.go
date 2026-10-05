@@ -111,25 +111,28 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check admin email whitelist
+	// Check admin email whitelist (env) OR existing admin in DB.
+	// The env allowlist bootstraps initial access; once an admin changes
+	// their email via /admin/account, the DB becomes the source of truth.
 	allowedEmails := os.Getenv("ADMIN_EMAILS")
 	if allowedEmails == "" {
 		allowedEmails = os.Getenv("ADMIN_EMAIL")
 	}
 
-	if allowedEmails == "" {
-		http.Error(w, `{"error":"Admin configuration missing"}`, http.StatusInternalServerError)
-		return
-	}
-
-	// Verify email is whitelisted
-	emailList := strings.Split(allowedEmails, ",")
 	isWhitelisted := false
-	for _, e := range emailList {
-		if strings.TrimSpace(e) == req.Email {
-			isWhitelisted = true
-			break
+	if allowedEmails != "" {
+		emailList := strings.Split(allowedEmails, ",")
+		for _, e := range emailList {
+			if strings.TrimSpace(e) == req.Email {
+				isWhitelisted = true
+				break
+			}
 		}
+	}
+	if !isWhitelisted {
+		var inDB bool
+		_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ?)`, req.Email).Scan(&inDB)
+		isWhitelisted = inDB
 	}
 
 	if !isWhitelisted {
@@ -319,5 +322,70 @@ func handleAdminMe(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"admin":   admin,
+	})
+}
+
+// Handler: Update own admin account (email and/or password).
+// Requires current password verification.
+func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	admin := r.Context().Value("admin").(*AdminUser)
+
+	var req struct {
+		Email           string `json:"email"`
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Data tidak valid"})
+		return
+	}
+
+	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
+
+	// Verify current password
+	var storedHash string
+	err := db.QueryRow(`SELECT password_hash FROM admin_users WHERE id = ?`, admin.ID).Scan(&storedHash)
+	if err != nil || hashPassword(req.CurrentPassword) != storedHash {
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Password saat ini salah"})
+		return
+	}
+
+	// Update email if changed
+	if req.Email != "" && req.Email != admin.Email {
+		if !strings.Contains(req.Email, "@") {
+			json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Format email tidak valid"})
+			return
+		}
+		var taken bool
+		_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ? AND id != ?)`, req.Email, admin.ID).Scan(&taken)
+		if taken {
+			json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Email sudah dipakai admin lain"})
+			return
+		}
+		if _, err := db.Exec(`UPDATE admin_users SET email = ? WHERE id = ?`, req.Email, admin.ID); err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal mengganti email"})
+			return
+		}
+		admin.Email = req.Email
+	}
+
+	// Update password if provided
+	if req.NewPassword != "" {
+		if len(req.NewPassword) < 8 {
+			json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Password baru minimal 8 karakter"})
+			return
+		}
+		if _, err := db.Exec(`UPDATE admin_users SET password_hash = ? WHERE id = ?`, hashPassword(req.NewPassword), admin.ID); err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal mengganti password"})
+			return
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Akun berhasil diperbarui",
+		"admin":   map[string]string{"email": admin.Email, "name": admin.Name},
 	})
 }
