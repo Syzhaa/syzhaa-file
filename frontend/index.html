@@ -374,6 +374,15 @@
     </div>
 </div>
 
+<!-- ============ MODAL: INFO (pengganti alert) ============ -->
+<div id="modal-info" class="modal">
+    <div class="bg-white rounded-2xl shadow-pop w-full max-w-sm p-6 text-center">
+        <span id="info-icon" class="mx-auto w-12 h-12 rounded-xl flex items-center justify-center"><span class="material-symbols-outlined text-[28px]" id="info-icon-glyph">info</span></span>
+        <p id="info-text" class="text-sm text-ink font-medium mt-4 mb-6"></p>
+        <button onclick="closeModal('info')" class="w-full py-3 bg-ink hover:bg-black text-white rounded-lg font-semibold transition-colors">OK</button>
+    </div>
+</div>
+
 <!-- ============ BOTTOM NAV (mobile) ============ -->
 <nav class="bottom-nav md:hidden">
     <div class="flex items-center justify-around max-w-md mx-auto">
@@ -400,6 +409,21 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
 });
 
+// Info modal — pengganti alert()
+function showInfoModal(message, success = false) {
+    const badge = document.getElementById('info-icon');
+    const glyph = document.getElementById('info-icon-glyph');
+    if (success) {
+        badge.className = 'mx-auto w-12 h-12 rounded-xl flex items-center justify-center bg-green-50 border border-green-100 text-green-500';
+        glyph.textContent = 'check_circle';
+    } else {
+        badge.className = 'mx-auto w-12 h-12 rounded-xl flex items-center justify-center bg-red-50 border border-red-100 text-red-500';
+        glyph.textContent = 'error';
+    }
+    document.getElementById('info-text').textContent = message;
+    openModal('info');
+}
+
 // Hamburger
 document.getElementById('hamburger').addEventListener('click', () => {
     document.getElementById('mobile-menu').classList.toggle('open');
@@ -415,7 +439,7 @@ async function createRoom() {
     const expiryUnit = parseInt(document.getElementById('expiryUnit').value);
     const expiryMinutes = expiryValue * expiryUnit;
     if (!expiryMinutes || expiryMinutes < 10 || expiryMinutes > 10080) {
-        alert('Durasi tidak valid (10 menit - 7 hari)');
+        showInfoModal('Durasi tidak valid (10 menit - 7 hari)');
         return;
     }
     btn.disabled = true;
@@ -430,11 +454,11 @@ async function createRoom() {
         if (data.success) {
             window.location.href = '/room.html?id=' + data.room_id;
         } else {
-            alert('Gagal membuat ruangan: ' + (data.error || 'Unknown error'));
+            showInfoModal('Gagal membuat ruangan: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
         console.error('Error creating room:', error);
-        alert('Terjadi kesalahan saat membuat ruangan');
+        showInfoModal('Terjadi kesalahan saat membuat ruangan');
     }
     btn.disabled = false;
     btn.textContent = 'Buat Ruangan';
@@ -444,7 +468,7 @@ async function createRoom() {
 async function joinRoom() {
     const pin = document.getElementById('pinInput').value.trim();
     if (pin.length !== 6 || !/^\d+$/.test(pin)) {
-        alert('PIN harus 6 digit angka');
+        showInfoModal('PIN harus 6 digit angka');
         return;
     }
     try {
@@ -457,11 +481,11 @@ async function joinRoom() {
         if (data.success) {
             window.location.href = '/room.html?id=' + data.room_id;
         } else {
-            alert('PIN tidak valid atau ruangan sudah kadaluarsa');
+            showInfoModal('PIN tidak valid atau ruangan sudah kadaluarsa');
         }
     } catch (error) {
         console.error('Error joining room:', error);
-        alert('Terjadi kesalahan saat join ruangan');
+        showInfoModal('Terjadi kesalahan saat join ruangan');
     }
 }
 

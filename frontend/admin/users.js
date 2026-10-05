@@ -1,4 +1,22 @@
 // Admin User Management JS
+// Generic info modal — pengganti alert()
+function showInfoModal(message, success = false) {
+    const box = document.getElementById('infoModalIcon');
+    const glyph = document.getElementById('infoModalGlyph');
+    if (success) {
+        box.className = 'w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-green-50 border border-green-100 text-green-500';
+        glyph.textContent = 'check_circle';
+    } else {
+        box.className = 'w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-red-50 border border-red-100 text-red-500';
+        glyph.textContent = 'error';
+    }
+    document.getElementById('infoModalMsg').textContent = message;
+    document.getElementById('infoModal').classList.remove('hidden');
+}
+function closeInfoModal() {
+    document.getElementById('infoModal').classList.add('hidden');
+}
+
 let allUsers = [];
 let currentFilter = 'all';
 
@@ -131,7 +149,7 @@ async function confirmApprove() {
     if (data && data.success) {
         closeApproveModal();
         await loadUsers();
-        alert('User approved successfully!');
+        showInfoModal('User berhasil disetujui!', true);
     }
 }
 
@@ -157,7 +175,7 @@ async function confirmReject() {
     if (data && data.success) {
         closeRejectModal();
         await loadUsers();
-        alert('User rejected');
+        showInfoModal('User ditolak.', true);
     }
 }
 
@@ -172,7 +190,7 @@ async function suspendUser(userId) {
     
     if (data && data.success) {
         await loadUsers();
-        alert('User suspended');
+        showInfoModal('User di-suspend.', true);
     }
 }
 
@@ -196,7 +214,7 @@ async function saveSettings() {
         await apiCall('/admin/settings', { method: 'POST', body: JSON.stringify(setting) });
     }
     
-    alert('Settings saved successfully!');
+    showInfoModal('Pengaturan berhasil disimpan!', true);
 }
 
 async function init() {

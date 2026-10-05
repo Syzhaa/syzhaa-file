@@ -51,6 +51,16 @@
         .info .val { font-size: 14px; font-weight: 600; word-break: break-all; }
         .badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #dcfce7; color: #15803d; }
         @media (max-width: 560px) { .info { grid-template-columns: 1fr; } .formrow { flex-direction: column; } }
+        /* Info modal (pengganti alert) */
+        .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50; align-items: center; justify-content: center; padding: 16px; }
+        .modal-backdrop.open { display: flex; }
+        .modal-box { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 16px 48px rgba(0,0,0,.15); }
+        .modal-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+        .modal-icon.ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+        .modal-icon.err { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+        .modal-msg { font-size: 14px; font-weight: 500; margin-bottom: 20px; line-height: 1.5; }
+        .modal-btn { width: 100%; padding: 12px; background: #1a1a2e; color: #fff; border: 0; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .modal-btn:hover { background: #000; }
     </style>
 </head>
 <body>
@@ -100,7 +110,28 @@
         </div>
     </main>
 
+    <!-- Info modal (pengganti alert) -->
+    <div class="modal-backdrop" id="info-modal" onclick="if(event.target===this)closeInfoModal()">
+        <div class="modal-box">
+            <div class="modal-icon err" id="info-modal-icon"><span class="material-symbols-outlined" style="font-size:28px" id="info-modal-glyph">error</span></div>
+            <p class="modal-msg" id="info-modal-msg"></p>
+            <button class="modal-btn" onclick="closeInfoModal()">OK</button>
+        </div>
+    </div>
+
     <script>
+        function showInfoModal(message, success = false) {
+            const icon = document.getElementById('info-modal-icon');
+            const glyph = document.getElementById('info-modal-glyph');
+            icon.className = 'modal-icon ' + (success ? 'ok' : 'err');
+            glyph.textContent = success ? 'check_circle' : 'error';
+            document.getElementById('info-modal-msg').textContent = message;
+            document.getElementById('info-modal').classList.add('open');
+        }
+        function closeInfoModal() {
+            document.getElementById('info-modal').classList.remove('open');
+        }
+
         async function api(path, opts = {}) {
             const res = await fetch(path, opts);
             if (res.status === 401) { window.location.href = '/user-login.html'; throw new Error('unauth'); }
@@ -171,9 +202,9 @@
                     document.getElementById('key-name').value = '';
                     load();
                 } else {
-                    alert(data.error || 'Gagal membuat API key');
+                    showInfoModal(data.error || 'Gagal membuat API key');
                 }
-            } catch (e) { if (e.message !== 'unauth') alert('Tidak bisa terhubung ke server'); }
+            } catch (e) { if (e.message !== 'unauth') showInfoModal('Tidak bisa terhubung ke server'); }
             btn.disabled = false;
         }
 
@@ -182,8 +213,8 @@
             try {
                 const data = await api('/user/api-keys/' + id, { method: 'DELETE' });
                 if (data.success) load();
-                else alert(data.error || 'Gagal menghapus');
-            } catch (e) { if (e.message !== 'unauth') alert('Tidak bisa terhubung ke server'); }
+                else showInfoModal(data.error || 'Gagal menghapus');
+            } catch (e) { if (e.message !== 'unauth') showInfoModal('Tidak bisa terhubung ke server'); }
         }
 
         function copyNewKey() {
