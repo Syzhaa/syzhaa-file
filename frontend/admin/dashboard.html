@@ -91,10 +91,10 @@
             <div class="flex items-center gap-2 flex-1 min-w-0">
                 <h1 class="text-base font-headline font-bold text-primary whitespace-nowrap truncate">AmbilFile Admin</h1>
             </div>
-            <div class="flex items-center gap-4">
-                <button class="text-on-surface hover:bg-surface-container p-2 rounded-lg relative">
+            <div class="flex items-center gap-2">
+                <button onclick="switchView('users');document.getElementById('pendingCard').scrollIntoView({behavior:'smooth',block:'start'})" class="text-on-surface hover:bg-surface-container p-2 rounded-lg relative" title="Persetujuan pending">
                     <span class="material-symbols-outlined">notifications</span>
-                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    <span id="notif-dot" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full hidden"></span>
                 </button>
                 <div class="flex items-center gap-3 pl-4 border-l border-outline-variant">
                     <img id="userAvatar" class="w-10 h-10 rounded-full border-2 border-outline-variant" src="" alt="Avatar">
@@ -118,11 +118,11 @@
                 </a>
                 <a href="#" data-view="users" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
                     <span class="material-symbols-outlined">group</span>
-                    Users Management
+                    Kelola Pengguna
                 </a>
                 <a href="#" data-view="api-keys" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
                     <span class="material-symbols-outlined">key</span>
-                    API Keys
+                    API Key
                 </a>
                 <a href="#" data-view="settings" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
                     <span class="material-symbols-outlined">settings</span>
@@ -153,7 +153,7 @@
                             <span class="text-xs text-outline">Total</span>
                         </div>
                         <h3 id="stat-rooms" class="text-3xl font-bold text-on-surface mb-1">0</h3>
-                        <p class="text-sm text-outline">Total Rooms</p>
+                        <p class="text-sm text-outline">Total Ruangan</p>
                     </div>
                     
                     <div class="stat-card bg-white p-6 rounded-2xl border border-outline-variant shadow-sm">
@@ -164,7 +164,7 @@
                             <span class="text-xs text-outline">Total</span>
                         </div>
                         <h3 id="stat-files" class="text-3xl font-bold text-on-surface mb-1">0</h3>
-                        <p class="text-sm text-outline">Total Files</p>
+                        <p class="text-sm text-outline">Total File</p>
                     </div>
                     
                     <div class="stat-card bg-white p-6 rounded-2xl border border-outline-variant shadow-sm">
@@ -175,7 +175,7 @@
                             <span class="text-xs text-outline">Active</span>
                         </div>
                         <h3 id="stat-users" class="text-3xl font-bold text-on-surface mb-1">0</h3>
-                        <p class="text-sm text-outline">Registered Users</p>
+                        <p class="text-sm text-outline">User Terdaftar</p>
                     </div>
                     
                     <div class="stat-card bg-white p-6 rounded-2xl border border-outline-variant shadow-sm">
@@ -186,38 +186,38 @@
                             <span class="text-xs text-outline">Used</span>
                         </div>
                         <h3 id="stat-storage" class="text-3xl font-bold text-on-surface mb-1">0 GB</h3>
-                        <p class="text-sm text-outline">Total Storage</p>
+                        <p class="text-sm text-outline">Storage Terpakai</p>
                     </div>
                 </div>
 
                 <!-- Quick Actions -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white p-6 rounded-2xl border border-outline-variant">
-                        <h3 class="text-lg font-headline font-semibold mb-4">Quick Actions</h3>
+                        <h3 class="text-lg font-headline font-semibold mb-4">Aksi Cepat</h3>
                         <div class="space-y-3">
-                            <button onclick="openModal('createRoom')" class="w-full flex items-center gap-3 p-4 bg-primary text-on-primary rounded-xl hover:brightness-110 transition-all">
-                                <span class="material-symbols-outlined">add_circle</span>
-                                Create New Room
+                            <button onclick="switchView('users')" class="w-full flex items-center gap-3 p-4 bg-primary text-on-primary rounded-xl hover:brightness-110 transition-all text-left">
+                                <span class="material-symbols-outlined">group</span>
+                                <span class="font-semibold text-sm">Kelola Pengguna</span>
                             </button>
-                            <button onclick="openModal('joinPin')" class="w-full flex items-center gap-3 p-4 bg-surface-container border-2 border-outline-variant rounded-xl hover:bg-surface-container-high transition-all">
-                                <span class="material-symbols-outlined">dialpad</span>
-                                Join with PIN
+                            <button onclick="switchView('api-keys')" class="w-full flex items-center gap-3 p-4 bg-surface-container border-2 border-outline-variant rounded-xl hover:bg-surface-container-high transition-all text-left">
+                                <span class="material-symbols-outlined">key</span>
+                                <span class="font-semibold text-sm">Kelola API Key</span>
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="bg-white p-6 rounded-2xl border border-outline-variant">
-                        <h3 class="text-lg font-headline font-semibold mb-4">Recent Activity</h3>
+                        <h3 class="text-lg font-headline font-semibold mb-4">Pendaftar Terbaru</h3>
                         <div id="recentActivity" class="space-y-3">
-                            <!-- Activity items will be injected here -->
+                            <!-- Latest users will be injected here -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Pending Users Section -->
-                <div class="bg-white p-6 rounded-2xl border border-outline-variant">
+                <!-- Pending User Approvals -->
+                <div id="pendingCard" class="bg-white p-6 rounded-2xl border border-outline-variant">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-headline font-semibold">Pending User Approvals</h3>
+                        <h3 class="text-lg font-headline font-semibold">Menunggu Persetujuan</h3>
                         <span id="pending-count" class="bg-primary text-on-primary text-xs font-semibold px-3 py-1 rounded-full">0</span>
                     </div>
                     <div id="pendingUsers" class="space-y-3">
@@ -229,7 +229,7 @@
             <!-- Users View -->
             <div id="view-users" class="p-6 space-y-6 hidden">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-2xl font-headline font-bold">Users Management</h2>
+                    <h2 class="text-2xl font-headline font-bold">Kelola Pengguna</h2>
                     <button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-xl hover:brightness-110">
                         <span class="material-symbols-outlined">refresh</span>
                         Refresh
@@ -255,10 +255,10 @@
                 </div>
             </div>
 
-            <!-- API Keys View -->
+            <!-- API Key View -->
             <div id="view-api-keys" class="p-6 space-y-6 hidden">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-2xl font-headline font-bold">API Keys Management</h2>
+                    <h2 class="text-2xl font-headline font-bold">API Key Management</h2>
                     <button onclick="createAPIKey()" class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-xl hover:brightness-110">
                         <span class="material-symbols-outlined">add</span>
                         Create API Key
@@ -271,7 +271,7 @@
 
             <!-- Settings View -->
             <div id="view-settings" class="p-6 space-y-6 hidden">
-                <h2 class="text-2xl font-headline font-bold">Settings</h2>
+                <h2 class="text-2xl font-headline font-bold">Pengaturan</h2>
 
                 <div class="bg-white p-6 rounded-2xl border border-outline-variant max-w-xl">
                     <h3 class="text-lg font-headline font-semibold mb-1">Akun Admin</h3>
@@ -315,7 +315,7 @@
                 </button>
                 <button data-bnav="api-keys" onclick="switchView('api-keys')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium text-outline">
                     <span class="material-symbols-outlined text-2xl">key</span>
-                    <span>API Keys</span>
+                    <span>API Key</span>
                 </button>
                 <button data-bnav="settings" onclick="switchView('settings')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium text-outline">
                     <span class="material-symbols-outlined text-2xl">settings</span>

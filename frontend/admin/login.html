@@ -3,46 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login | Syzhaa File</title>
+    <title>Admin Login | AmbilFile</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: { extend: {
+                colors: {
+                    brand: { 50:'#FFF7ED',100:'#FFEDD5',500:'#F6821F',600:'#E06F0A',700:'#C05E08' },
+                    ink: '#101828', muted: '#667085', line: '#EAECF0', wash: '#F9FAFB'
+                },
+                fontFamily: { sans: ['Inter','system-ui','sans-serif'] }
+            } }
+        }
+    </script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .brutal-border { border: 3px solid #0f172a; }
-        .brutal-shadow { box-shadow: 6px 6px 0px #0f172a; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .field:focus { border-color: #F6821F; box-shadow: 0 0 0 3px rgba(246,130,31,.15); outline: none; }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-    <div class="max-w-md w-full">
-        <div class="bg-white brutal-border brutal-shadow p-8 rounded-lg">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-slate-900 mb-2">Syzhaa File Admin</h1>
-                <p class="text-slate-600">Login dengan Google untuk akses admin panel</p>
-            </div>
-
-            <a href="/auth/google/login" 
-               class="block w-full bg-white brutal-border hover:translate-x-1 hover:translate-y-1 hover:shadow-none brutal-shadow transition-all duration-150 rounded-lg p-4 text-center font-semibold text-slate-900">
-                <div class="flex items-center justify-center gap-3">
-                    <svg class="w-6 h-6" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Sign in with Google
-                </div>
+<body class="min-h-screen bg-wash flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <a href="/" class="inline-flex items-center gap-2">
+                <span class="w-10 h-10 rounded-xl bg-ink text-white flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[24px]">folder_shared</span>
+                </span>
+                <span class="text-xl font-extrabold tracking-tight">AmbilFile</span>
             </a>
+            <p class="text-sm text-muted mt-2">Panel Admin</p>
+        </div>
 
-            <div class="mt-6 text-center text-sm text-slate-500">
-                <p>Hanya admin yang terdaftar yang bisa akses</p>
-            </div>
+        <div class="bg-white border border-line rounded-2xl p-6 sm:p-8" style="box-shadow: 0 12px 32px rgba(16,24,40,.12)">
+            <h1 class="text-xl font-extrabold mb-1">Masuk sebagai Admin</h1>
+            <p class="text-sm text-muted mb-6">Gunakan email dan password admin.</p>
+
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1.5" for="email">Email</label>
+                    <input type="email" id="email" required autocomplete="username" placeholder="admin@example.com"
+                        class="field w-full px-4 py-3 border border-line rounded-lg text-[15px]">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1.5" for="password">Password</label>
+                    <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••"
+                        class="field w-full px-4 py-3 border border-line rounded-lg text-[15px]">
+                </div>
+                <p id="errorMsg" class="hidden text-sm text-red-600 font-medium bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5"></p>
+                <button type="submit" id="loginBtn"
+                    class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white rounded-lg font-semibold transition-colors">
+                    Masuk
+                </button>
+            </form>
         </div>
 
         <div class="text-center mt-6">
-            <a href="/" class="text-slate-600 hover:text-slate-900 font-medium">
-                ← Kembali ke Home
+            <a href="/" class="text-sm font-medium text-muted hover:text-ink inline-flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span> Kembali ke beranda
             </a>
         </div>
     </div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('errorMsg');
+    err.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
+    try {
+        const res = await fetch('/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.href = '/admin/dashboard.html';
+        } else {
+            err.textContent = data.error || 'Login gagal. Periksa email dan password.';
+            err.classList.remove('hidden');
+        }
+    } catch (e) {
+        err.textContent = 'Terjadi kesalahan koneksi. Coba lagi.';
+        err.classList.remove('hidden');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Masuk';
+});
+</script>
 </body>
 </html>

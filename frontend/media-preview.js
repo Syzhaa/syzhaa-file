@@ -1,4 +1,4 @@
-// Media Preview Enhancement for Syzhaa File
+// Media Preview Enhancement for AmbilFile
 // Auto-enhances file list with card layout and image thumbnails
 
 (function() {

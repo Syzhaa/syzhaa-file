@@ -150,6 +150,32 @@
         </div>
     </div>
 
+    <!-- Generic Confirm Modal (pengganti confirm) -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-ink/50 flex items-center justify-center z-[60] p-4" onclick="if(event.target===this)closeConfirmModal()">
+        <div class="bg-white rounded-2xl shadow-pop max-w-sm w-full p-6 text-center">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-red-50 border border-red-100 text-red-500">
+                <span class="material-symbols-outlined text-3xl">warning</span>
+            </div>
+            <p id="confirmModalMsg" class="text-sm text-ink font-medium mb-6"></p>
+            <div class="flex gap-2">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 border border-line rounded font-semibold hover:border-ink">Batal</button>
+                <button id="confirmModalYes" class="flex-1 py-2.5 bg-red-500 text-white font-semibold rounded hover:bg-red-600">Ya</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Prompt Modal (pengganti prompt) -->
+    <div id="promptModal" class="hidden fixed inset-0 bg-ink/50 flex items-center justify-center z-[60] p-4" onclick="if(event.target===this)closePromptModal()">
+        <div class="bg-white rounded-2xl shadow-pop max-w-sm w-full p-6">
+            <p id="promptModalMsg" class="text-sm text-ink font-medium mb-4"></p>
+            <input type="text" id="promptModalInput" class="w-full px-4 py-2.5 border-2 border-line rounded-xl focus:border-primary focus:outline-none text-sm mb-4">
+            <div class="flex gap-2">
+                <button onclick="closePromptModal()" class="flex-1 py-2.5 border border-line rounded font-semibold hover:border-ink">Batal</button>
+                <button id="promptModalYes" class="flex-1 py-2.5 bg-ink text-white font-semibold rounded hover:bg-black">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/admin/users.js"></script>
 </body>
 </html>

@@ -50,6 +50,11 @@
         .info .lbl { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
         .info .val { font-size: 14px; font-weight: 600; word-break: break-all; }
         .badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #dcfce7; color: #15803d; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat { background: #fff; border: 1px solid #e8eaf0; border-radius: 14px; padding: 18px; display: flex; align-items: center; gap: 14px; }
+        .stat .material-symbols-outlined { font-size: 32px; color: #F6821F; }
+        .stat-num { font-size: 24px; font-weight: 800; }
+        .stat-lbl { font-size: 12px; color: #9ca3af; font-weight: 600; }
         @media (max-width: 560px) { .info { grid-template-columns: 1fr; } .formrow { flex-direction: column; } }
         /* Info modal (pengganti alert) */
         .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50; align-items: center; justify-content: center; padding: 16px; }
@@ -72,8 +77,19 @@
         </div>
     </header>
     <main>
-        <h2>Dashboard</h2>
+        <h2 id="greeting">Dashboard</h2>
         <p class="hello-sub">Kelola API key dan ruanganmu di sini.</p>
+
+        <div class="stats">
+            <div class="stat">
+                <span class="material-symbols-outlined">key</span>
+                <div><div class="stat-num" id="stat-keys">0</div><div class="stat-lbl">API Key</div></div>
+            </div>
+            <div class="stat">
+                <span class="material-symbols-outlined">folder</span>
+                <div><div class="stat-num" id="stat-rooms">0</div><div class="stat-lbl">Ruangan</div></div>
+            </div>
+        </div>
 
         <div class="card">
             <h3><span class="material-symbols-outlined">person</span> Akun</h3>
@@ -164,6 +180,18 @@
         </div>
     </div>
 
+    <!-- Confirm modal (pengganti confirm) -->
+    <div class="modal-backdrop" id="confirm-modal" onclick="if(event.target===this)closeConfirmModal()">
+        <div class="modal-box">
+            <div class="modal-icon err"><span class="material-symbols-outlined" style="font-size:28px">warning</span></div>
+            <p class="modal-msg" id="confirm-modal-msg"></p>
+            <div style="display:flex;gap:10px">
+                <button class="modal-btn" style="background:#f1f2f6;color:#1a1a2e" onclick="closeConfirmModal()">Batal</button>
+                <button class="modal-btn" style="background:#dc2626" id="confirm-modal-yes">Hapus</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function showInfoModal(message, success = false) {
             const icon = document.getElementById('info-modal-icon');
@@ -176,6 +204,22 @@
         function closeInfoModal() {
             document.getElementById('info-modal').classList.remove('open');
         }
+
+        let confirmCallback = null;
+        function showConfirmModal(message, onYes) {
+            document.getElementById('confirm-modal-msg').textContent = message;
+            confirmCallback = onYes;
+            document.getElementById('confirm-modal').classList.add('open');
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.remove('open');
+            confirmCallback = null;
+        }
+        document.getElementById('confirm-modal-yes').addEventListener('click', () => {
+            const cb = confirmCallback;
+            closeConfirmModal();
+            if (cb) cb();
+        });
 
         async function api(path, opts = {}) {
             const res = await fetch(path, opts);
@@ -190,12 +234,14 @@
                 const me = await api('/user/me');
                 const u = me.user;
                 document.getElementById('user-name').textContent = u.name;
+                document.getElementById('greeting').textContent = 'Halo, ' + u.name;
                 document.getElementById('acc-name').textContent = u.name;
                 document.getElementById('acc-email').textContent = u.email;
                 document.getElementById('acc-since').textContent = new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             } catch { return; }
 
             const keys = await api('/user/api-keys');
+            document.getElementById('stat-keys').textContent = (keys.api_keys || []).length;
             const kl = document.getElementById('keys-list');
             if (!keys.api_keys || !keys.api_keys.length) {
                 kl.innerHTML = '<div class="empty">Belum ada API key. Buat satu di bawah.</div>';
@@ -214,6 +260,7 @@
             }
 
             const rooms = await api('/user/rooms');
+            document.getElementById('stat-rooms').textContent = (rooms.rooms || []).length;
             const rl = document.getElementById('rooms-list');
             if (!rooms.rooms || !rooms.rooms.length) {
                 rl.innerHTML = '<div class="empty">Belum ada ruangan. <a href="/" style="color:#F6821F;font-weight:600">Buat ruangan</a> dulu.</div>';
@@ -254,12 +301,13 @@
         }
 
         async function deleteKey(id, name) {
-            if (!confirm(`Hapus API key "${name}"? Aplikasi yang memakainya akan berhenti bekerja.`)) return;
-            try {
-                const data = await api('/user/api-keys/' + id, { method: 'DELETE' });
-                if (data.success) load();
-                else showInfoModal(data.error || 'Gagal menghapus');
-            } catch (e) { if (e.message !== 'unauth') showInfoModal('Tidak bisa terhubung ke server'); }
+            showConfirmModal(`Hapus API key "${name}"? Aplikasi yang memakainya akan berhenti bekerja.`, async () => {
+                try {
+                    const data = await api('/user/api-keys/' + id, { method: 'DELETE' });
+                    if (data.success) load();
+                    else showInfoModal(data.error || 'Gagal menghapus');
+                } catch (e) { if (e.message !== 'unauth') showInfoModal('Tidak bisa terhubung ke server'); }
+            });
         }
 
         function copyNewKey() {

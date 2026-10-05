@@ -166,6 +166,24 @@ function closeInfoModal() {
     document.getElementById('info-modal').classList.add('hidden');
 }
 
+// Generic confirm modal — pengganti confirm()
+let confirmCallback = null;
+function showConfirmModal(message, yesLabel, onYes) {
+    document.getElementById('confirm-message').textContent = message;
+    document.getElementById('confirm-yes-btn').textContent = yesLabel || 'Hapus';
+    confirmCallback = onYes;
+    document.getElementById('confirm-modal').classList.remove('hidden');
+}
+function closeConfirmModal() {
+    document.getElementById('confirm-modal').classList.add('hidden');
+    confirmCallback = null;
+}
+document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+    const cb = confirmCallback;
+    closeConfirmModal();
+    if (cb) cb();
+});
+
 function renderRoom() {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -353,6 +371,19 @@ function renderRoom() {
             </div>
         </div>
 
+        <!-- Generic Confirm Modal (pengganti confirm) -->
+        <div id="confirm-modal" class="hidden fixed inset-0 bg-ink/50 z-[70] flex items-center justify-center p-4" onclick="if(event.target===this)closeConfirmModal()">
+            <div class="bg-white rounded-2xl shadow-pop max-w-sm w-full p-6 text-center">
+                <div class="w-14 h-14 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span class="material-symbols-outlined text-3xl text-red-500">warning</span>
+                </div>
+                <p id="confirm-message" class="text-ink text-sm font-medium mb-6" style="white-space:pre-line"></p>
+                <div class="flex gap-2">
+                    <button onclick="closeConfirmModal()" class="flex-1 py-3 border border-line rounded-lg font-semibold hover:border-ink transition-colors">Batal</button>
+                    <button id="confirm-yes-btn" class="flex-1 py-3 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors">Hapus</button>
+                </div>
+            </div>
+        </div>
         <!-- Generic Info Modal (pengganti alert) -->
         <div id="info-modal" class="hidden fixed inset-0 bg-ink/50 z-[70] flex items-center justify-center p-4" onclick="if(event.target===this)closeInfoModal()">
             <div class="bg-white rounded-2xl shadow-pop max-w-sm w-full p-6 text-center">
@@ -1002,7 +1033,7 @@ function formatSpeed(bytesPerSecond) {
 }
 
 async function deleteFile(fileId) {
-    if (!confirm('Yakin ingin menghapus file ini?')) return;
+    showConfirmModal('Yakin ingin menghapus file ini?', 'Hapus', async () => {
     
     try {
         const response = await fetch(`/api/file/${fileId}`, {
@@ -1020,6 +1051,7 @@ async function deleteFile(fileId) {
         console.error('Delete error:', error);
         showInfoModal('Gagal menghapus file');
     }
+    });
 }
 
 function generateUUID() {
@@ -1384,9 +1416,7 @@ function renderBreadcrumb() {
 }
 
 async function deleteFolder(folderId) {
-    if (!confirm('Hapus folder ini? Semua file dan subfolder di dalamnya akan ikut terhapus.')) {
-        return;
-    }
+    showConfirmModal('Hapus folder ini? Semua file dan subfolder di dalamnya akan ikut terhapus.', 'Hapus', async () => {
     
     try {
         const response = await fetch(`/api/folder/${folderId}`, {
@@ -1406,6 +1436,7 @@ async function deleteFolder(folderId) {
         console.error('Delete folder error:', error);
         showInfoModal('Gagal menghapus folder');
     }
+    });
 }
 
 async function copyRoomLink() {

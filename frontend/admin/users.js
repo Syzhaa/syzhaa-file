@@ -17,6 +17,46 @@ function closeInfoModal() {
     document.getElementById('infoModal').classList.add('hidden');
 }
 
+// Generic confirm modal — pengganti confirm()
+let confirmCallback = null;
+function showConfirmModal(message, yesLabel, onYes) {
+    document.getElementById('confirmModalMsg').textContent = message;
+    document.getElementById('confirmModalYes').textContent = yesLabel || 'Ya';
+    confirmCallback = onYes;
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    confirmCallback = null;
+}
+document.getElementById('confirmModalYes').addEventListener('click', () => {
+    const cb = confirmCallback;
+    closeConfirmModal();
+    if (cb) cb();
+});
+
+// Generic prompt modal — pengganti prompt()
+let promptCallback = null;
+function showPromptModal(message, placeholder, onOk) {
+    document.getElementById('promptModalMsg').textContent = message;
+    const input = document.getElementById('promptModalInput');
+    input.value = '';
+    input.placeholder = placeholder || '';
+    promptCallback = onOk;
+    document.getElementById('promptModal').classList.remove('hidden');
+    setTimeout(() => input.focus(), 50);
+}
+function closePromptModal() {
+    document.getElementById('promptModal').classList.add('hidden');
+    promptCallback = null;
+}
+document.getElementById('promptModalYes').addEventListener('click', () => {
+    const cb = promptCallback;
+    const val = document.getElementById('promptModalInput').value;
+    closePromptModal();
+    if (cb) cb(val);
+});
+
 let allUsers = [];
 let currentFilter = 'all';
 
@@ -180,18 +220,19 @@ async function confirmReject() {
 }
 
 async function suspendUser(userId) {
-    if (!confirm('Are you sure you want to suspend this user?')) return;
-    
-    const reason = prompt('Suspension reason (optional):');
-    const data = await apiCall(`/admin/users/${userId}/suspend`, { 
-        method: 'POST', 
-        body: JSON.stringify({ reason: reason || 'Account suspended by admin' })
+    showConfirmModal('Suspend user ini? Dia tidak akan bisa login sampai diaktifkan lagi.', 'Suspend', () => {
+        showPromptModal('Alasan suspend (opsional):', 'Mis. pelanggaran ketentuan', async (reason) => {
+            const data = await apiCall(`/admin/users/${userId}/suspend`, {
+                method: 'POST',
+                body: JSON.stringify({ reason: reason || 'Akun di-suspend oleh admin' })
+            });
+
+            if (data && data.success) {
+                await loadUsers();
+                showInfoModal('User di-suspend.', true);
+            }
+        });
     });
-    
-    if (data && data.success) {
-        await loadUsers();
-        showInfoModal('User di-suspend.', true);
-    }
 }
 
 async function loadSettings() {

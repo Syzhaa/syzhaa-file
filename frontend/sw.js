@@ -1,5 +1,5 @@
-const CACHE_NAME = 'syzhaa-file-v1.0.1';
-const RUNTIME_CACHE = 'syzhaa-runtime-v1.0.1';
+const CACHE_NAME = 'ambilfile-v1.0.1';
+const RUNTIME_CACHE = 'ambilfile-runtime-v1.0.1';
 
 // Assets to cache on install (ONLY static assets, NOT HTML/JS)
 const urlsToCache = [
@@ -109,7 +109,7 @@ self.addEventListener('push', event => {
   };
 
   event.waitUntil(
-    self.registration.showNotification('Syzhaa File', options)
+    self.registration.showNotification('AmbilFile', options)
   );
 });
 

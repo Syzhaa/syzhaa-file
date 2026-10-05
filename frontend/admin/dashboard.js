@@ -245,10 +245,12 @@ async function loadPendingUsers() {
     if (data && data.success && data.users) {
         const pendingUsers = data.users.filter(u => u.status === 'pending');
         document.getElementById('pending-count').textContent = pendingUsers.length;
-        
+        const dot = document.getElementById('notif-dot');
+        if (dot) dot.classList.toggle('hidden', pendingUsers.length === 0);
+
         const container = document.getElementById('pendingUsers');
         if (pendingUsers.length === 0) {
-            container.innerHTML = '<p class="text-center text-outline py-8">No pending approvals</p>';
+            container.innerHTML = '<p class="text-center text-outline py-8">Tidak ada yang menunggu persetujuan</p>';
             return;
         }
         
@@ -278,31 +280,36 @@ async function loadPendingUsers() {
 }
 
 async function loadRecentActivity() {
-    // Mock recent activity for now
     const container = document.getElementById('recentActivity');
-    container.innerHTML = `
+    const data = await apiCall('/admin/users');
+    if (!data || !data.success || !data.users) {
+        container.innerHTML = '<p class="text-center text-outline text-sm py-6">Belum ada data</p>';
+        return;
+    }
+    const latest = data.users.slice(0, 5);
+    if (!latest.length) {
+        container.innerHTML = '<p class="text-center text-outline text-sm py-6">Belum ada pendaftar</p>';
+        return;
+    }
+    const statusColor = { pending: 'text-amber-500', approved: 'text-green-500', rejected: 'text-red-500', suspended: 'text-gray-500' };
+    const statusLabel = { pending: 'Menunggu', approved: 'Disetujui', rejected: 'Ditolak', suspended: 'Suspend' };
+    container.innerHTML = latest.map(u => {
+        const when = u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-';
+        return `
         <div class="flex items-start gap-3 text-sm">
-            <span class="material-symbols-outlined text-primary">check_circle</span>
-            <div class="flex-1">
-                <p class="font-medium">New user approved</p>
-                <p class="text-xs text-outline">2 minutes ago</p>
+            <span class="material-symbols-outlined ${statusColor[u.status] || 'text-outline'}">account_circle</span>
+            <div class="flex-1 min-w-0">
+                <p class="font-medium truncate">${escHtml(u.name)}</p>
+                <p class="text-xs text-outline">${escHtml(u.email)} · ${when} · ${statusLabel[u.status] || u.status}</p>
             </div>
-        </div>
-        <div class="flex items-start gap-3 text-sm">
-            <span class="material-symbols-outlined text-secondary">upload_file</span>
-            <div class="flex-1">
-                <p class="font-medium">Large file uploaded</p>
-                <p class="text-xs text-outline">15 minutes ago</p>
-            </div>
-        </div>
-        <div class="flex items-start gap-3 text-sm">
-            <span class="material-symbols-outlined text-tertiary">key</span>
-            <div class="flex-1">
-                <p class="font-medium">API key created</p>
-                <p class="text-xs text-outline">1 hour ago</p>
-            </div>
-        </div>
-    `;
+        </div>`;
+    }).join('');
+}
+
+function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
 }
 
 // ============================================
