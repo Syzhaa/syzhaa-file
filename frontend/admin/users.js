@@ -128,6 +128,18 @@ function renderUsers() {
         const storageLimit = user.storage_limit_mb || '<span class="text-slate-500">default</span>';
         const durationLimit = user.max_file_duration_days || '<span class="text-slate-500">default</span>';
         
+        // API key access approval
+        const apiApproved = !!user.api_approved;
+        const apiRequested = !!user.api_requested_at;
+        const apiBadge = apiApproved
+            ? '<span class="px-2 py-1 rounded text-xs font-semibold text-white bg-green-600">API ✓</span>'
+            : apiRequested
+            ? '<span class="px-2 py-1 rounded text-xs font-semibold text-white bg-yellow-500">API ⏳</span>'
+            : '<span class="px-2 py-1 rounded text-xs font-semibold text-white bg-slate-400">API —</span>';
+        const apiAction = !apiApproved
+            ? `<button onclick="approveUserAPI('${user.id}')" class="px-3 py-2 bg-blue-500 text-white font-semibold rounded brutal-border-thin hover:bg-blue-600 text-sm">Setujui API</button>`
+            : `<button onclick="revokeUserAPI('${user.id}')" class="px-3 py-2 bg-slate-500 text-white font-semibold rounded brutal-border-thin hover:bg-slate-600 text-sm">Cabut API</button>`;
+        
         const actions = user.status === 'pending' 
             ? `<button onclick="showApproveModal('${user.id}')" class="px-3 py-2 bg-green-500 text-white font-semibold rounded brutal-border-thin hover:bg-green-600 text-sm">Approve</button>
                <button onclick="showRejectModal('${user.id}')" class="px-3 py-2 bg-red-500 text-white font-semibold rounded brutal-border-thin hover:bg-red-600 text-sm">Reject</button>`
@@ -144,6 +156,7 @@ function renderUsers() {
                             <div class="flex items-center gap-3 mb-2">
                                 <span class="font-bold text-slate-900">${user.name}</span>
                                 <span class="px-2 py-1 rounded text-xs font-semibold text-white ${statusColor}">${user.status}</span>
+                                ${apiBadge}
                             </div>
                             <p class="text-sm text-slate-600">${user.email}</p>
                             <div class="text-xs text-slate-500 mt-1">
@@ -157,6 +170,7 @@ function renderUsers() {
                         <p class="text-sm text-slate-600">Duration: ${durationLimit} days</p>
                     </div>
                     <div class="flex gap-2">
+                        ${apiAction}
                         ${actions}
                     </div>
                 </div>
@@ -217,6 +231,24 @@ async function confirmReject() {
         await loadUsers();
         showInfoModal('User ditolak.', true);
     }
+}
+
+async function approveUserAPI(userId) {
+    const data = await apiCall(`/admin/users/${userId}/api-approve`, { method: 'PUT' });
+    if (data && data.success) {
+        await loadUsers();
+        showInfoModal('Akses API key disetujui.', true);
+    }
+}
+
+async function revokeUserAPI(userId) {
+    showConfirmModal('Cabut akses API key user ini? Key yang sudah dibuat tetap aktif.', 'Cabut', async () => {
+        const data = await apiCall(`/admin/users/${userId}/api-revoke`, { method: 'PUT' });
+        if (data && data.success) {
+            await loadUsers();
+            showInfoModal('Akses API key dicabut.', true);
+        }
+    });
 }
 
 async function suspendUser(userId) {

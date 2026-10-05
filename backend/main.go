@@ -948,6 +948,7 @@ func main() {
 	}
 	defer db.Close()
 
+	initGoogleOAuth()
 	// Initialize admin password (use ADMIN_PASSWORD env or default)
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 	if adminPassword == "" {
@@ -1002,6 +1003,8 @@ func main() {
 	adminRouter.HandleFunc("/users/{id}/reject", handleAdminRejectUser).Methods("POST")
 	adminRouter.HandleFunc("/users/{id}/suspend", handleAdminSuspendUser).Methods("POST")
 	adminRouter.HandleFunc("/users/{id}/quotas", handleAdminUpdateUserQuotas).Methods("PUT")
+	adminRouter.HandleFunc("/users/{id}/api-approve", handleAdminApproveUserAPI).Methods("PUT")
+	adminRouter.HandleFunc("/users/{id}/api-revoke", handleAdminRevokeUserAPI).Methods("PUT")
 	adminRouter.HandleFunc("/users/{id}/stats", handleAdminGetUserStats).Methods("GET")
 	adminRouter.HandleFunc("/settings", handleAdminSystemSettings).Methods("GET", "POST")
 	adminRouter.HandleFunc("/account", handleAdminUpdateAccount).Methods("POST", "PUT")
@@ -1013,12 +1016,15 @@ func main() {
 	userRouter.HandleFunc("/rooms", handleUserRooms).Methods("GET")
 	userRouter.HandleFunc("/api-keys", handleUserListAPIKeys).Methods("GET")
 	userRouter.HandleFunc("/api-keys", handleUserCreateAPIKey).Methods("POST")
+	userRouter.HandleFunc("/api-keys/request", handleUserRequestAPIAccess).Methods("POST")
 	userRouter.HandleFunc("/api-keys/{id}", handleUserDeleteAPIKey).Methods("DELETE")
 
 	// User auth (public)
 	r.HandleFunc("/auth/user/register", handleUserRegister).Methods("POST", "OPTIONS")
 	r.HandleFunc("/auth/user/login", handleUserLogin).Methods("POST", "OPTIONS")
 	r.HandleFunc("/auth/user/logout", handleUserLogout).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/user/google", handleUserGoogleLogin).Methods("GET")
+	r.HandleFunc("/auth/user/google/callback", handleUserGoogleCallback).Methods("GET")
 
 	// API v1 routes (require API key)
 	apiRouter := r.PathPrefix("/api/v1").Subrouter()

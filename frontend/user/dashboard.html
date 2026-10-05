@@ -113,17 +113,23 @@
         <div class="card" id="keys-card">
             <h3><span class="material-symbols-outlined">key</span> API Keys</h3>
             <p class="desc">Buat API key untuk mengakses AmbilFile lewat API. Key hanya ditampilkan sekali saat dibuat.</p>
-            <div id="keys-list"><div class="empty">Memuat…</div></div>
-            <div class="newkey" id="newkey-box">
-                <p>API key baru berhasil dibuat. Salin sekarang — tidak akan ditampilkan lagi.</p>
-                <div class="keyval">
-                    <code id="newkey-val"></code>
-                    <button class="copybtn" onclick="copyNewKey()">Salin</button>
-                </div>
+            <div id="api-locked" style="display:none">
+                <div class="empty" id="api-locked-msg">Untuk membuat API key, kamu perlu persetujuan admin dulu.</div>
+                <button class="btn" id="request-api-btn" onclick="requestApiAccess()">Minta Persetujuan</button>
             </div>
-            <div class="formrow">
-                <input type="text" id="key-name" placeholder="Nama key, mis. Aplikasi saya" maxlength="60">
-                <button class="btn" id="create-key-btn" onclick="createKey()">Buat API Key</button>
+            <div id="api-unlocked" style="display:none">
+                <div id="keys-list"><div class="empty">Memuat…</div></div>
+                <div class="newkey" id="newkey-box">
+                    <p>API key baru berhasil dibuat. Salin sekarang — tidak akan ditampilkan lagi.</p>
+                    <div class="keyval">
+                        <code id="newkey-val"></code>
+                        <button class="copybtn" onclick="copyNewKey()">Salin</button>
+                    </div>
+                </div>
+                <div class="formrow">
+                    <input type="text" id="key-name" placeholder="Nama key, mis. Aplikasi saya" maxlength="60">
+                    <button class="btn" id="create-key-btn" onclick="createKey()">Buat API Key</button>
+                </div>
             </div>
         </div>
 
@@ -253,6 +259,19 @@
                 const pct = limitBytes > 0 ? Math.min(100, Math.round(usedBytes / limitBytes * 100)) : 0;
                 document.getElementById('storage-fill').style.width = pct + '%';
                 document.getElementById('storage-label').textContent = (me.storage_used_label || '0 MB') + ' / ' + limitMB + ' MB';
+                // API key approval gate
+                const apiApproved = !!me.api_approved;
+                const apiRequested = !!me.api_requested;
+                document.getElementById('api-locked').style.display = apiApproved ? 'none' : 'block';
+                document.getElementById('api-unlocked').style.display = apiApproved ? 'block' : 'none';
+                if (!apiApproved) {
+                    document.getElementById('stat-keys').textContent = '—';
+                    if (apiRequested) {
+                        document.getElementById('api-locked-msg').textContent = 'Permintaanmu sedang ditinjau admin. Kamu akan bisa membuat API key setelah disetujui.';
+                        document.getElementById('request-api-btn').style.display = 'none';
+                    }
+                    return;
+                }
             } catch { return; }
 
             const keys = await api('/user/api-keys');
@@ -293,6 +312,26 @@
             }
         }
 
+        async function requestApiAccess() {
+            const btn = document.getElementById('request-api-btn');
+            btn.disabled = true;
+            btn.textContent = 'Mengirim...';
+            try {
+                const res = await api('/user/api-keys/request', { method: 'POST' });
+                if (res.success) {
+                    document.getElementById('api-locked-msg').textContent = 'Permintaan terkirim! Tunggu persetujuan admin ya.';
+                    btn.style.display = 'none';
+                } else {
+                    showInfoModal(res.error || 'Gagal mengirim permintaan');
+                    btn.disabled = false;
+                    btn.textContent = 'Minta Persetujuan';
+                }
+            } catch {
+                showInfoModal('Tidak bisa terhubung ke server');
+                btn.disabled = false;
+                btn.textContent = 'Minta Persetujuan';
+            }
+        }
         async function createKey() {
             const btn = document.getElementById('create-key-btn');
             const name = document.getElementById('key-name').value.trim();

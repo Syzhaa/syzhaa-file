@@ -14,6 +14,7 @@ type User struct {
 	ID                   string     `json:"id"`
 	Email                string     `json:"email"`
 	Name                 string     `json:"name"`
+	AvatarURL            string     `json:"avatar_url,omitempty"`
 	Status               string     `json:"status"` // pending, approved, rejected, suspended
 	ApprovedBy           *string    `json:"approved_by,omitempty"`
 	ApprovedAt           *time.Time `json:"approved_at,omitempty"`
@@ -225,6 +226,42 @@ func handleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Quotas updated successfully",
+	})
+}
+
+// Handler: Approve user's API key access
+func handleAdminApproveUserAPI(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["id"]
+
+	_, err := db.Exec(`UPDATE users SET api_approved = 1, api_requested_at = NULL WHERE id = ?`, userID)
+	if err != nil {
+		http.Error(w, `{"error":"Failed to approve API access"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Akses API key disetujui",
+	})
+}
+
+// Handler: Revoke user's API key access
+func handleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["id"]
+
+	_, err := db.Exec(`UPDATE users SET api_approved = 0 WHERE id = ?`, userID)
+	if err != nil {
+		http.Error(w, `{"error":"Failed to revoke API access"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Akses API key dicabut",
 	})
 }
 

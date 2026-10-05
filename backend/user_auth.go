@@ -125,7 +125,7 @@ func validateUserSession(r *http.Request) (*User, error) {
 		v := int(maxDuration.Int64)
 		u.MaxFileDurationDays = &v
 	}
-	if u.Status != "approved" {
+	if u.Status != "approved" && u.Status != "active" {
 		return nil, sql.ErrNoRows
 	}
 
@@ -207,10 +207,12 @@ func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 		defaultLimit = 2048
 	}
 
+	// google_id uses a unique placeholder for password users (column is UNIQUE NOT NULL)
+	// New users are active immediately; API key creation needs admin approval separately.
 	_, err = db.Exec(`
-		INSERT INTO users (id, google_id, email, name, password_hash, status, storage_limit_mb, created_at)
-		VALUES (?, '', ?, ?, ?, 'pending', ?, ?)
-	`, userID, req.Email, req.Name, hashPassword(req.Password), defaultLimit, time.Now().Format(time.RFC3339))
+		INSERT INTO users (id, google_id, email, name, password_hash, status, storage_limit_mb, api_approved, created_at)
+		VALUES (?, ?, ?, ?, ?, 'active', ?, 0, ?)
+	`, userID, "pwd_"+userID, req.Email, req.Name, hashPassword(req.Password), defaultLimit, time.Now().Format(time.RFC3339))
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal mendaftar, coba lagi"})
 		return
@@ -218,7 +220,7 @@ func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Pendaftaran berhasil! Akunmu sedang menunggu persetujuan admin.",
+		"message": "Pendaftaran berhasil! Silakan masuk.",
 	})
 }
 
@@ -245,17 +247,14 @@ func handleUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch status {
-	case "pending":
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Akunmu masih menunggu persetujuan admin"})
-		return
 	case "rejected":
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Pendaftaranmu ditolak admin"})
 		return
 	case "suspended":
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Akunmu dinonaktifkan"})
 		return
-	case "approved":
-		// ok
+	case "approved", "active", "pending":
+		// ok — login allowed; API keys need separate approval
 	default:
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Status akun tidak valid"})
 		return
@@ -318,11 +317,19 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 		JOIN rooms r ON r.id = f.room_id
 		WHERE r.user_id = ?`, user.ID).Scan(&usedBytes)
 
+	// API key approval state
+	var apiApproved int
+	var apiRequestedAt sql.NullString
+	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0), api_requested_at FROM users WHERE id = ?`,
+		user.ID).Scan(&apiApproved, &apiRequestedAt)
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":             true,
 		"user":                user,
 		"storage_used_bytes":  usedBytes,
 		"storage_used_label":  formatBytesID(usedBytes),
+		"api_approved":        apiApproved == 1,
+		"api_requested":       apiRequestedAt.Valid,
 	})
 }
 
@@ -422,6 +429,15 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// API key creation requires admin approval
+	var apiApproved int
+	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&apiApproved)
+	if apiApproved != 1 {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Pembuatan API key perlu persetujuan admin. Minta persetujuan dulu ya."})
+		return
+	}
+
 	var req struct {
 		Name string `json:"name"`
 	}
@@ -457,6 +473,33 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		"api_key": map[string]string{"id": keyID, "key": rawKey, "name": strings.TrimSpace(req.Name)},
 		"warning": "Simpan key ini baik-baik, tidak akan ditampilkan lagi.",
 	})
+}
+
+// POST /user/api-keys/request — request admin approval for API key access
+func handleUserRequestAPIAccess(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	user := userFromContext(r.Context())
+	if user == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		return
+	}
+
+	var already int
+	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&already)
+	if already == 1 {
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "Sudah disetujui"})
+		return
+	}
+
+	_, err := db.Exec(`UPDATE users SET api_requested_at = ? WHERE id = ?`,
+		time.Now().Format(time.RFC3339), user.ID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal mengirim permintaan"})
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "Permintaan terkirim"})
 }
 
 // DELETE /user/api-keys/{id}
