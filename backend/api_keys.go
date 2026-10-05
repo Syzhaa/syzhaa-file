@@ -16,6 +16,7 @@ type APIKey struct {
 	ID         string     `json:"id"`
 	Key        string     `json:"key,omitempty"` // Only shown once on creation
 	AdminID    string     `json:"admin_id"`
+	UserID     string     `json:"user_id,omitempty"`
 	Name       string     `json:"name"`
 	ExpiresAt  *time.Time `json:"expires_at"`
 	CreatedAt  time.Time  `json:"created_at"`
@@ -207,10 +208,11 @@ func validateAPIKey(keyString string) (*APIKey, error) {
 	var k APIKey
 	var expiresAt, lastUsedAt sql.NullString
 	var isActive int
+	var userID sql.NullString
 
-	err := db.QueryRow(`SELECT id, admin_id, name, expires_at, created_at, last_used_at, is_active
+	err := db.QueryRow(`SELECT id, admin_id, user_id, name, expires_at, created_at, last_used_at, is_active
 		FROM api_keys WHERE key_hash = ?`, keyHash).
-		Scan(&k.ID, &k.AdminID, &k.Name, &expiresAt, &k.CreatedAt, &lastUsedAt, &isActive)
+		Scan(&k.ID, &k.AdminID, &userID, &k.Name, &expiresAt, &k.CreatedAt, &lastUsedAt, &isActive)
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("invalid API key")
@@ -222,6 +224,9 @@ func validateAPIKey(keyString string) (*APIKey, error) {
 	k.IsActive = isActive == 1
 	if !k.IsActive {
 		return nil, fmt.Errorf("API key is disabled")
+	}
+	if userID.Valid {
+		k.UserID = userID.String
 	}
 
 	if expiresAt.Valid {

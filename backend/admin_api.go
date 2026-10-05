@@ -51,8 +51,18 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 
 	expiresAt := time.Now().Add(time.Duration(req.ExpiryMinutes) * time.Minute)
 
-	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at) VALUES (?, ?, ?)",
-		roomID, pin, expiresAt.Format(time.RFC3339))
+	// Admin-owned keys (not user keys) create quota-free rooms (full access).
+	// User-owned keys tag the room with the user for quota tracking.
+	noQuota := 0
+	roomUserID := ""
+	if apiKey.UserID == "" {
+		noQuota = 1
+	} else {
+		roomUserID = apiKey.UserID
+	}
+
+	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota) VALUES (?, ?, ?, ?, ?)",
+		roomID, pin, expiresAt.Format(time.RFC3339), roomUserID, noQuota)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to create room"}`, http.StatusInternalServerError)
 		return

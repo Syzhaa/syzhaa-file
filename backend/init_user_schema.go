@@ -77,6 +77,8 @@ func initUserSchema() error {
 
 	// Alter rooms table to add user_id if not exists
 	db.Exec("ALTER TABLE rooms ADD COLUMN user_id TEXT")
+	// no_quota: rooms created by admin bypass storage limits
+	db.Exec("ALTER TABLE rooms ADD COLUMN no_quota INTEGER DEFAULT 0")
 
 	return nil
 }

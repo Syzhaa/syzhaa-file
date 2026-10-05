@@ -274,14 +274,18 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 
 	expiresAt := time.Now().Add(time.Duration(req.ExpiryMinutes) * time.Minute)
 
-	// Tag room with logged-in user (if any) so it shows in their dashboard
+	// Tag room with logged-in user (if any) so it shows in their dashboard.
+	// Rooms created by an admin bypass storage quotas (full access).
 	var userID string
-	if u, err := validateUserSession(r); err == nil && u != nil {
+	noQuota := 0
+	if _, err := validateAdminSession(r); err == nil {
+		noQuota = 1
+	} else if u, err := validateUserSession(r); err == nil && u != nil {
 		userID = u.ID
 	}
 
-	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at, user_id) VALUES (?, ?, ?, ?)",
-		roomID, pin, expiresAt.Format(time.RFC3339), userID)
+	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota) VALUES (?, ?, ?, ?, ?)",
+		roomID, pin, expiresAt.Format(time.RFC3339), userID, noQuota)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to create room"}`, http.StatusInternalServerError)
 		return
@@ -390,6 +394,13 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 //     usage counted across all of the user's rooms.
 //   - Anonymous room: anonymous_storage_limit_mb (default 1GB) per room.
 func checkStorageQuota(roomID string, incomingBytes int64) string {
+	// Admin-created rooms have no quota limit (full access)
+	var noQuota int
+	_ = db.QueryRow(`SELECT COALESCE(no_quota, 0) FROM rooms WHERE id = ?`, roomID).Scan(&noQuota)
+	if noQuota == 1 {
+		return ""
+	}
+
 	var userID sql.NullString
 	_ = db.QueryRow(`SELECT user_id FROM rooms WHERE id = ?`, roomID).Scan(&userID)
 
