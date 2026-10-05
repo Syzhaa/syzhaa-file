@@ -177,12 +177,6 @@ function switchView(viewName) {
             item.classList.remove('text-primary');
         }
     });
-
-    // Close mobile sidebar after navigation
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar && window.innerWidth < 1024) {
-        sidebar.classList.add('-translate-x-full');
-    }
     
     // Load view-specific data
     if (viewName === 'users') {
@@ -209,15 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-    
-    // Mobile menu toggle
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.getElementById('sidebar');
-    if (menuToggle && sidebar) {
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('-translate-x-full');
-        });
-    }
 });
 
 // ============================================
