@@ -72,10 +72,14 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(async response => {
-        // Cache the fresh response for offline use
-        if (event.request.method === 'GET' && response.status === 200) {
-          const cache = await caches.open(RUNTIME_CACHE);
-          await cache.put(event.request, response.clone());
+        // Cache the fresh response for offline use (clone before returning)
+        if (event.request.method === 'GET' && response.status === 200 && response.type === 'basic') {
+          try {
+            const cache = await caches.open(RUNTIME_CACHE);
+            await cache.put(event.request, response.clone());
+          } catch (e) {
+            // Clone failed, ignore caching
+          }
         }
         return response;
       })

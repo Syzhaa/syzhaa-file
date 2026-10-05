@@ -67,43 +67,21 @@
             main { padding-bottom: 90px !important; }
         }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#F6821F",
-                        "primary-fixed": "#FFF7ED",
-                        "secondary": "#565e74",
-                        "secondary-fixed": "#dae2fd",
-                        "tertiary": "#006242",
-                        "surface": "#f7f9fb",
-                        "surface-variant": "#e0e3e5",
-                        "surface-container": "#eceef0",
-                        "surface-container-low": "#f2f4f6",
-                        "surface-container-high": "#e6e8ea",
-                        "on-surface": "#191c1e",
-                        "on-primary": "#ffffff",
-                        "on-secondary": "#ffffff",
-                        "outline": "#737686",
-                        "outline-variant": "#c3c6d7"
-                    },
-                    fontFamily: {
-                        "headline": ["Sora"],
-                        "body": ["Inter"]
-                    }
-                }
-            }
-        }
-    </script>
+    
 </head>
 <body class="bg-surface-container-low font-body text-on-surface">
     
     <!-- Loading Overlay -->
-    <div id="loading" class="fixed inset-0 bg-surface/80 backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center gap-4">
-            <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-on-surface font-medium">Loading...</p>
+    <div id="loading" class="fixed inset-0 bg-surface flex items-start justify-center z-50 overflow-y-auto">
+        <div class="w-full max-w-6xl p-6 space-y-6 pt-20">
+            <div class="skeleton skeleton-title"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+            </div>
+            <div class="skeleton" style="height:200px"></div>
         </div>
     </div>
 
