@@ -165,7 +165,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 		allowedOrigins := []string{
-			"https://file.syzhaa.my.id",
+			"https://ambilfile.web.id",
 			"http://localhost:3000",
 			"http://localhost:4006",
 		}

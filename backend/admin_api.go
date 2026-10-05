@@ -20,7 +20,7 @@ func getBaseURL() string {
 	if v := os.Getenv("BASE_URL"); v != "" {
 		return v
 	}
-	return "https://file.syzhaa.my.id"
+	return "https://ambilfile.web.id"
 }
 
 // Handler: Create Room via API
@@ -166,7 +166,7 @@ func handleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Stream zip
-	zipFilename := fmt.Sprintf("syzhaa_files_%s.zip", roomID[:8])
+	zipFilename := fmt.Sprintf("ambilfile_files_%s.zip", roomID[:8])
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", zipFilename))
 
