@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar — AmbilFile</title>
+    <link rel="icon" href="/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #f7f8fa; color: #1a1a2e; min-height: 100vh; display: flex; flex-direction: column; }
+        .top { padding: 20px 24px; }
+        .top a { text-decoration: none; font-weight: 800; font-size: 20px; color: #1a1a2e; }
+        .top a span { color: #F6821F; }
+        .wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .card { background: #fff; border: 1px solid #e8eaf0; border-radius: 16px; padding: 36px; width: 100%; max-width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,.06); }
+        h1 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+        .sub { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        input { width: 100%; padding: 12px 14px; border: 1.5px solid #e8eaf0; border-radius: 10px; font-size: 15px; font-family: inherit; margin-bottom: 16px; transition: border-color .2s; }
+        input:focus { outline: none; border-color: #F6821F; }
+        .btn { width: 100%; padding: 13px; background: #F6821F; color: #fff; border: 0; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .2s; }
+        .btn:hover { background: #e06f0e; }
+        .btn:disabled { opacity: .6; cursor: not-allowed; }
+        .err { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 13px; padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; }
+        .ok { display: none; background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; font-size: 13px; padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; line-height: 1.5; }
+        .foot { text-align: center; margin-top: 20px; font-size: 14px; color: #6b7280; }
+        .foot a { color: #F6821F; font-weight: 600; text-decoration: none; }
+        .note { font-size: 12px; color: #9ca3af; margin-top: 16px; text-align: center; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="top"><a href="/">Ambil<span>File</span></a></div>
+    <div class="wrap">
+        <div class="card">
+            <h1>Buat akun AmbilFile</h1>
+            <p class="sub">Daftar gratis untuk mendapatkan API key.</p>
+            <div class="err" id="err"></div>
+            <div class="ok" id="ok"></div>
+            <form id="reg-form">
+                <label for="name">Nama</label>
+                <input type="text" id="name" placeholder="Nama kamu" required autocomplete="name">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="kamu@email.com" required autocomplete="email">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Minimal 6 karakter" required autocomplete="new-password" minlength="6">
+                <button type="submit" class="btn" id="submit-btn">Daftar</button>
+            </form>
+            <p class="note">Setelah mendaftar, akunmu menunggu persetujuan admin sebelum bisa dipakai.</p>
+            <p class="foot">Sudah punya akun? <a href="/user-login.html">Masuk</a></p>
+        </div>
+    </div>
+    <script>
+        document.getElementById('reg-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const err = document.getElementById('err');
+            const ok = document.getElementById('ok');
+            err.style.display = 'none';
+            ok.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Mendaftar...';
+            try {
+                const res = await fetch('/auth/user/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('name').value.trim(),
+                        email: document.getElementById('email').value.trim(),
+                        password: document.getElementById('password').value
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('reg-form').style.display = 'none';
+                    ok.textContent = 'Pendaftaran berhasil! Akunmu sedang menunggu persetujuan admin. Kamu akan bisa masuk setelah disetujui.';
+                    ok.style.display = 'block';
+                } else {
+                    err.textContent = data.error || 'Pendaftaran gagal';
+                    err.style.display = 'block';
+                }
+            } catch {
+                err.textContent = 'Tidak bisa terhubung ke server';
+                err.style.display = 'block';
+            }
+            btn.disabled = false;
+            btn.textContent = 'Daftar';
+        });
+    </script>
+</body>
+</html>

@@ -3,397 +3,204 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Syzhaa File</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap" rel="stylesheet">
+    <title>Dashboard — AmbilFile</title>
+    <link rel="icon" href="/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
     <style>
-        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #f7f8fa; color: #1a1a2e; min-height: 100vh; }
+        .material-symbols-outlined { display: block; }
+        header { background: #fff; border-bottom: 1px solid #e8eaf0; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+        .logo { text-decoration: none; font-weight: 800; font-size: 20px; color: #1a1a2e; }
+        .logo span { color: #F6821F; }
+        .userbox { display: flex; align-items: center; gap: 12px; }
+        .userbox .name { font-size: 14px; font-weight: 600; }
+        .logout { font-size: 13px; color: #dc2626; font-weight: 600; background: none; border: 0; cursor: pointer; font-family: inherit; }
+        main { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+        h2 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+        .hello-sub { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
+        .card { background: #fff; border: 1px solid #e8eaf0; border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+        .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .card .desc { font-size: 13px; color: #6b7280; margin-bottom: 18px; }
+        .keyrow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #e8eaf0; border-radius: 10px; margin-bottom: 10px; }
+        .keyrow .kname { font-weight: 600; font-size: 14px; flex: 1; }
+        .keyrow .kdate { font-size: 12px; color: #9ca3af; }
+        .iconbtn { background: none; border: 1px solid #e8eaf0; border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6b7280; }
+        .iconbtn:hover { border-color: #1a1a2e; color: #1a1a2e; }
+        .iconbtn.danger:hover { border-color: #dc2626; color: #dc2626; }
+        .empty { text-align: center; color: #9ca3af; font-size: 14px; padding: 24px 0; }
+        .formrow { display: flex; gap: 10px; margin-top: 14px; }
+        .formrow input { flex: 1; padding: 11px 14px; border: 1.5px solid #e8eaf0; border-radius: 10px; font-size: 14px; font-family: inherit; }
+        .formrow input:focus { outline: none; border-color: #F6821F; }
+        .btn { padding: 11px 20px; background: #F6821F; color: #fff; border: 0; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+        .btn:hover { background: #e06f0e; }
+        .btn:disabled { opacity: .6; cursor: not-allowed; }
+        .newkey { display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px; margin-top: 14px; }
+        .newkey p { font-size: 13px; color: #15803d; font-weight: 600; margin-bottom: 8px; }
+        .keyval { display: flex; gap: 8px; align-items: center; }
+        .keyval code { flex: 1; background: #fff; border: 1px dashed #bbf7d0; border-radius: 8px; padding: 10px 12px; font-size: 13px; word-break: break-all; font-family: ui-monospace, monospace; }
+        .copybtn { background: #15803d; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .roomrow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #e8eaf0; border-radius: 10px; margin-bottom: 10px; }
+        .roomrow .pin { font-family: ui-monospace, monospace; font-weight: 700; font-size: 15px; letter-spacing: 2px; }
+        .roomrow .meta { font-size: 12px; color: #9ca3af; flex: 1; }
+        .roomrow a { font-size: 13px; color: #F6821F; font-weight: 600; text-decoration: none; }
+        .info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .info div { background: #f7f8fa; border-radius: 10px; padding: 12px 14px; }
+        .info .lbl { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+        .info .val { font-size: 14px; font-weight: 600; word-break: break-all; }
+        .badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #dcfce7; color: #15803d; }
+        @media (max-width: 560px) { .info { grid-template-columns: 1fr; } .formrow { flex-direction: column; } }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#004ac6",
-                        "primary-fixed": "#dbe1ff"
-                    },
-                    fontFamily: {
-                        "headline": ["Sora"],
-                        "body": ["Inter"]
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body class="bg-gray-50 font-body">
-
-<!-- Header -->
-<header class="bg-white border-b border-gray-200 shadow-sm">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-        <h1 class="text-2xl font-headline font-bold text-primary">Syzhaa File</h1>
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-                <img id="user-avatar" class="w-8 h-8 rounded-full" alt="Avatar">
-                <span id="user-name" class="text-sm font-semibold"></span>
-            </div>
-            <button onclick="logout()" class="text-sm text-red-600 hover:underline font-semibold">
-                Logout
-            </button>
+<body>
+    <header>
+        <a class="logo" href="/">Ambil<span>File</span></a>
+        <div class="userbox">
+            <span class="name" id="user-name">…</span>
+            <button class="logout" onclick="logout()">Keluar</button>
         </div>
-    </div>
-</header>
+    </header>
+    <main>
+        <h2>Dashboard</h2>
+        <p class="hello-sub">Kelola API key dan ruanganmu di sini.</p>
 
-<!-- Main Content -->
-<main class="max-w-6xl mx-auto px-6 py-8">
-    <!-- Welcome -->
-    <div class="mb-8">
-        <h2 class="text-3xl font-headline font-bold mb-2">Dashboard</h2>
-        <p class="text-gray-600">Kelola ruangan dan file Anda</p>
-    </div>
+        <div class="card">
+            <h3><span class="material-symbols-outlined">person</span> Akun</h3>
+            <p class="desc">Informasi akunmu.</p>
+            <div class="info">
+                <div><div class="lbl">Nama</div><div class="val" id="acc-name">—</div></div>
+                <div><div class="lbl">Email</div><div class="val" id="acc-email">—</div></div>
+                <div><div class="lbl">Status</div><div class="val"><span class="badge">Disetujui</span></div></div>
+                <div><div class="lbl">Terdaftar</div><div class="val" id="acc-since">—</div></div>
+            </div>
+        </div>
 
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div onclick="window.location.href='/'" 
-             class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-8 rounded-2xl hover:shadow-lg transition-all cursor-pointer">
-            <div class="flex items-center gap-4 mb-4">
-                <span class="material-symbols-outlined text-5xl">add_circle</span>
-                <div>
-                    <h3 class="text-2xl font-headline font-semibold">Buat Ruang Baru</h3>
-                    <p class="text-blue-100 mt-1">Mulai berbagi file dalam hitungan detik</p>
+        <div class="card">
+            <h3><span class="material-symbols-outlined">key</span> API Keys</h3>
+            <p class="desc">Buat API key untuk mengakses AmbilFile lewat API. Key hanya ditampilkan sekali saat dibuat.</p>
+            <div id="keys-list"><div class="empty">Memuat…</div></div>
+            <div class="newkey" id="newkey-box">
+                <p>API key baru berhasil dibuat. Salin sekarang — tidak akan ditampilkan lagi.</p>
+                <div class="keyval">
+                    <code id="newkey-val"></code>
+                    <button class="copybtn" onclick="copyNewKey()">Salin</button>
                 </div>
             </div>
-        </div>
-        <div onclick="window.location.href='/'" 
-             class="bg-white border-2 border-gray-200 p-8 rounded-2xl hover:shadow-md transition-all cursor-pointer">
-            <div class="flex items-center gap-4 mb-4">
-                <span class="material-symbols-outlined text-5xl text-primary">dialpad</span>
-                <div>
-                    <h3 class="text-2xl font-headline font-semibold">Masuk dengan PIN</h3>
-                    <p class="text-gray-600 mt-1">Akses ruangan dengan kode 6-digit</p>
-                </div>
+            <div class="formrow">
+                <input type="text" id="key-name" placeholder="Nama key, mis. Aplikasi saya" maxlength="60">
+                <button class="btn" id="create-key-btn" onclick="createKey()">Buat API Key</button>
             </div>
         </div>
-    </div>
 
-    <!-- Stats -->
-    <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
-        <h3 class="text-xl font-headline font-semibold mb-4">Statistik Anda</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-                <span class="material-symbols-outlined text-4xl text-primary mb-2 block">folder</span>
-                <p class="text-3xl font-bold text-primary" id="stat-rooms">-</p>
-                <p class="text-sm text-gray-600 mt-1">Ruangan Dibuat</p>
-            </div>
-            <div class="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-                <span class="material-symbols-outlined text-4xl text-green-600 mb-2 block">insert_drive_file</span>
-                <p class="text-3xl font-bold text-green-600" id="stat-files">-</p>
-                <p class="text-sm text-gray-600 mt-1">File Diupload</p>
-            </div>
-            <div class="text-center p-6 bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl">
-                <span class="material-symbols-outlined text-4xl text-purple-600 mb-2 block">database</span>
-                <p class="text-3xl font-bold text-purple-600" id="stat-storage">-</p>
-                <p class="text-sm text-gray-600 mt-1">Storage Digunakan</p>
-            </div>
+        <div class="card">
+            <h3><span class="material-symbols-outlined">folder</span> Ruangan Saya</h3>
+            <p class="desc">Ruangan yang kamu buat saat sedang login.</p>
+            <div id="rooms-list"><div class="empty">Memuat…</div></div>
         </div>
-    </div>
+    </main>
 
-    <!-- Account Info -->
-    <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
-        <h3 class="text-xl font-headline font-semibold mb-4">Informasi Akun</h3>
-        <div class="space-y-3">
-            <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                <span class="material-symbols-outlined text-gray-600">person</span>
-                <div class="flex-1">
-                    <p class="text-xs text-gray-500">Nama</p>
-                    <p class="font-semibold" id="account-name">-</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                <span class="material-symbols-outlined text-gray-600">email</span>
-                <div class="flex-1">
-                    <p class="text-xs text-gray-500">Email</p>
-                    <p class="font-semibold" id="account-email">-</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                <span class="material-symbols-outlined text-gray-600">verified</span>
-                <div class="flex-1">
-                    <p class="text-xs text-gray-500">Status</p>
-                    <p class="font-semibold text-green-600" id="account-status">Active</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Active Rooms -->
-    <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-headline font-semibold">Ruangan Aktif</h3>
-            <span id="rooms-count" class="text-sm text-gray-500">0 ruangan</span>
-        </div>
-        <div id="rooms-list" class="space-y-3">
-            <div class="text-center text-gray-500 py-8">
-                <span class="material-symbols-outlined text-6xl text-gray-300 mb-3 block">folder_off</span>
-                <p>Belum ada ruangan aktif</p>
-                <a href="/" class="text-primary hover:underline text-sm">Buat ruangan pertama Anda</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Activity -->
-    <div class="bg-white rounded-2xl border border-gray-200 p-6">
-        <h3 class="text-xl font-headline font-semibold mb-4">Aktivitas Terbaru</h3>
-        <div id="activity-list" class="space-y-3">
-            <p class="text-center text-gray-500 py-8">
-                Belum ada aktivitas.<br>
-                <a href="/" class="text-primary hover:underline">Buat ruangan pertama Anda</a>
-            </p>
-        </div>
-    </div>
-</main>
-
-<!-- Alert Modal -->
-<div id="alertModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
-        <div class="flex items-start gap-4 mb-4">
-            <div id="alertIcon" class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center">
-                <span class="material-symbols-outlined text-2xl"></span>
-            </div>
-            <div class="flex-1">
-                <h3 id="alertTitle" class="text-lg font-headline font-bold mb-2"></h3>
-                <p id="alertMessage" class="text-gray-600 text-sm"></p>
-            </div>
-        </div>
-        <div class="flex justify-end">
-            <button onclick="closeAlertModal()" 
-                    class="px-6 py-2 bg-primary text-white rounded-lg hover:brightness-110 font-semibold text-sm">
-                OK
-            </button>
-        </div>
-    </div>
-</div>
-
-<script>
-// Load user info
-async function loadUserInfo() {
-    try {
-        const response = await fetch('/user/me');
-        const user = await response.json();
-        
-        if (user.error) {
-            showAlertModal('Session expired. Please login again.', 'warning');
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 2000);
-            return;
+    <script>
+        async function api(path, opts = {}) {
+            const res = await fetch(path, opts);
+            if (res.status === 401) { window.location.href = '/user-login.html'; throw new Error('unauth'); }
+            return res.json();
         }
-        
-        // Update profile
-        document.getElementById('user-name').textContent = user.name;
-        document.getElementById('user-avatar').src = user.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name);
-        document.getElementById('account-name').textContent = user.name;
-        document.getElementById('account-email').textContent = user.email;
-        
-        // Update stats (placeholder - needs backend implementation)
-        document.getElementById('stat-rooms').textContent = '0';
-        document.getElementById('stat-files').textContent = '0';
-        document.getElementById('stat-storage').textContent = '0 MB';
-        
-        // Update status
-        const statusEl = document.getElementById('account-status');
-        if (user.status === 'approved') {
-            statusEl.textContent = 'Active';
-            statusEl.classList.add('text-green-600');
-        } else if (user.status === 'pending') {
-            statusEl.textContent = 'Pending Approval';
-            statusEl.classList.add('text-yellow-600');
-        } else if (user.status === 'suspended') {
-            statusEl.textContent = 'Suspended';
-            statusEl.classList.add('text-red-600');
-        }
-        
-    } catch (error) {
-        console.error('Error loading user info:', error);
-        showAlertModal('Gagal memuat info user. Please login again.', 'error');
-        setTimeout(() => {
-            window.location.href = '/';
-        }, 2000);
-    }
-}
 
-async function logout() {
-    try {
-        await fetch('/auth/user/logout', { method: 'POST' });
-        window.location.href = '/';
-    } catch (error) {
-        console.error('Logout error:', error);
-        window.location.href = '/';
-    }
-}
+        function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-// Fetch active rooms
-async function fetchActiveRooms() {
-    try {
-        const response = await fetch('/user/rooms');
-        const data = await response.json();
-        
-        if (data.success && data.rooms) {
-            displayRooms(data.rooms);
-            if (data.rooms.length > 0) {
-                setInterval(updateCountdowns, 1000);
+        async function load() {
+            try {
+                const me = await api('/user/me');
+                const u = me.user;
+                document.getElementById('user-name').textContent = u.name;
+                document.getElementById('acc-name').textContent = u.name;
+                document.getElementById('acc-email').textContent = u.email;
+                document.getElementById('acc-since').textContent = new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            } catch { return; }
+
+            const keys = await api('/user/api-keys');
+            const kl = document.getElementById('keys-list');
+            if (!keys.api_keys || !keys.api_keys.length) {
+                kl.innerHTML = '<div class="empty">Belum ada API key. Buat satu di bawah.</div>';
+            } else {
+                kl.innerHTML = keys.api_keys.map(k =>
+                    `<div class="keyrow">
+                        <div style="flex:1">
+                            <div class="kname">${esc(k.name)}</div>
+                            <div class="kdate">Dibuat ${new Date(k.created_at).toLocaleDateString('id-ID')}</div>
+                        </div>
+                        <button class="iconbtn danger" title="Hapus" onclick="deleteKey('${k.id}','${esc(k.name)}')">
+                            <span class="material-symbols-outlined" style="font-size:20px">delete</span>
+                        </button>
+                    </div>`
+                ).join('');
+            }
+
+            const rooms = await api('/user/rooms');
+            const rl = document.getElementById('rooms-list');
+            if (!rooms.rooms || !rooms.rooms.length) {
+                rl.innerHTML = '<div class="empty">Belum ada ruangan. <a href="/" style="color:#F6821F;font-weight:600">Buat ruangan</a> dulu.</div>';
+            } else {
+                rl.innerHTML = rooms.rooms.map(rm =>
+                    `<div class="roomrow">
+                        <span class="material-symbols-outlined" style="color:#9ca3af">folder</span>
+                        <div style="flex:1">
+                            <div class="pin">${esc(rm.pin)}</div>
+                            <div class="meta">Kadaluarsa ${new Date(rm.expires_at).toLocaleString('id-ID')}</div>
+                        </div>
+                        <a href="/room/${esc(rm.id)}">Buka</a>
+                    </div>`
+                ).join('');
             }
         }
-    } catch (error) {
-        console.error('Error fetching rooms:', error);
-    }
-}
 
-// Display rooms
-function displayRooms(rooms) {
-    const roomsList = document.getElementById('rooms-list');
-    const roomsCount = document.getElementById('rooms-count');
-    
-    if (!rooms || rooms.length === 0) {
-        roomsList.innerHTML = `
-            <div class="text-center text-gray-500 py-8">
-                <span class="material-symbols-outlined text-6xl text-gray-300 mb-3 block">folder_off</span>
-                <p>Belum ada ruangan aktif</p>
-                <a href="/" class="text-primary hover:underline text-sm">Buat ruangan pertama Anda</a>
-            </div>
-        `;
-        roomsCount.textContent = '0 ruangan';
-        return;
-    }
-    
-    roomsCount.textContent = `${rooms.length} ruangan`;
-    
-    roomsList.innerHTML = rooms.map(room => `
-        <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
-            <div class="flex-shrink-0">
-                <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                    <span class="material-symbols-outlined text-primary">folder</span>
-                </div>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="font-mono font-bold text-primary text-lg">${room.pin}</span>
-                    <span class="countdown text-sm font-semibold px-2 py-1 rounded-lg" data-expires="${room.expires_at}">
-                        Calculating...
-                    </span>
-                </div>
-                <p class="text-xs text-gray-500">Created: ${new Date(room.created_at).toLocaleString('id-ID')}</p>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="window.location.href='/room.html?id=${room.id}'" 
-                        class="px-4 py-2 bg-primary text-white rounded-lg hover:brightness-110 text-sm font-semibold">
-                    Open
-                </button>
-                <button onclick="copyRoomLink('${room.id}')" 
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-semibold">
-                    Copy Link
-                </button>
-            </div>
-        </div>
-    `).join('');
-    
-    updateCountdowns();
-}
+        async function createKey() {
+            const btn = document.getElementById('create-key-btn');
+            const name = document.getElementById('key-name').value.trim();
+            btn.disabled = true;
+            try {
+                const data = await api('/user/api-keys', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name || 'API Key' })
+                });
+                if (data.success) {
+                    document.getElementById('newkey-val').textContent = data.api_key.key;
+                    document.getElementById('newkey-box').style.display = 'block';
+                    document.getElementById('key-name').value = '';
+                    load();
+                } else {
+                    alert(data.error || 'Gagal membuat API key');
+                }
+            } catch (e) { if (e.message !== 'unauth') alert('Tidak bisa terhubung ke server'); }
+            btn.disabled = false;
+        }
 
-// Update countdowns
-function updateCountdowns() {
-    document.querySelectorAll('.countdown').forEach(el => {
-        const expiresAt = el.getAttribute('data-expires');
-        const remaining = formatTimeRemaining(expiresAt);
-        el.textContent = remaining.text;
-        el.className = `countdown text-sm font-semibold px-2 py-1 rounded-lg ${remaining.class}`;
-    });
-}
+        async function deleteKey(id, name) {
+            if (!confirm(`Hapus API key "${name}"? Aplikasi yang memakainya akan berhenti bekerja.`)) return;
+            try {
+                const data = await api('/user/api-keys/' + id, { method: 'DELETE' });
+                if (data.success) load();
+                else alert(data.error || 'Gagal menghapus');
+            } catch (e) { if (e.message !== 'unauth') alert('Tidak bisa terhubung ke server'); }
+        }
 
-// Format time remaining
-function formatTimeRemaining(expiresAt) {
-    const now = new Date();
-    const expires = new Date(expiresAt);
-    const diff = expires - now;
-    
-    if (diff <= 0) {
-        return { text: 'Expired', class: 'bg-red-100 text-red-700' };
-    }
-    
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    if (days > 0) {
-        return { text: `${days}D ${hours}H`, class: 'bg-green-100 text-green-700' };
-    } else if (hours > 1) {
-        return { text: `${hours}H ${minutes}M`, class: 'bg-blue-100 text-blue-700' };
-    } else if (hours === 1 || minutes > 5) {
-        return { text: `${hours > 0 ? hours + 'H ' : ''}${minutes}M`, class: 'bg-yellow-100 text-yellow-700' };
-    } else {
-        return { text: `${minutes}M ${seconds}S`, class: 'bg-orange-100 text-orange-700 animate-pulse' };
-    }
-}
+        function copyNewKey() {
+            const v = document.getElementById('newkey-val').textContent;
+            navigator.clipboard.writeText(v).then(() => {
+                const b = document.querySelector('#newkey-box .copybtn');
+                b.textContent = 'Tersalin!';
+                setTimeout(() => b.textContent = 'Salin', 1500);
+            });
+        }
 
-// Copy room link
-function copyRoomLink(roomId) {
-    const link = `${window.location.origin}/room.html?id=${roomId}`;
-    navigator.clipboard.writeText(link).then(() => {
-        showAlertModal('Link copied to clipboard!', 'success');
-    }).catch(() => {
-        showAlertModal('Failed to copy link', 'error');
-    });
-}
+        async function logout() {
+            await fetch('/auth/user/logout', { method: 'POST' });
+            window.location.href = '/';
+        }
 
-// Alert Modal Functions
-function showAlertModal(message, type = 'info') {
-    const modal = document.getElementById('alertModal');
-    const icon = document.getElementById('alertIcon');
-    const iconSpan = icon.querySelector('.material-symbols-outlined');
-    const title = document.getElementById('alertTitle');
-    const messageEl = document.getElementById('alertMessage');
-    
-    // Configure based on type
-    if (type === 'error') {
-        icon.className = 'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-red-100';
-        iconSpan.className = 'material-symbols-outlined text-2xl text-red-600';
-        iconSpan.textContent = 'error';
-        title.textContent = 'Error';
-        title.className = 'text-lg font-headline font-bold mb-2 text-red-600';
-    } else if (type === 'success') {
-        icon.className = 'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-green-100';
-        iconSpan.className = 'material-symbols-outlined text-2xl text-green-600';
-        iconSpan.textContent = 'check_circle';
-        title.textContent = 'Success';
-        title.className = 'text-lg font-headline font-bold mb-2 text-green-600';
-    } else if (type === 'warning') {
-        icon.className = 'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100';
-        iconSpan.className = 'material-symbols-outlined text-2xl text-yellow-600';
-        iconSpan.textContent = 'warning';
-        title.textContent = 'Warning';
-        title.className = 'text-lg font-headline font-bold mb-2 text-yellow-600';
-    } else {
-        icon.className = 'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-blue-100';
-        iconSpan.className = 'material-symbols-outlined text-2xl text-blue-600';
-        iconSpan.textContent = 'info';
-        title.textContent = 'Information';
-        title.className = 'text-lg font-headline font-bold mb-2 text-blue-600';
-    }
-    
-    messageEl.textContent = message;
-    modal.classList.remove('hidden');
-}
-
-function closeAlertModal() {
-    document.getElementById('alertModal').classList.add('hidden');
-}
-
-// Load on page load
-loadUserInfo();
-fetchActiveRooms();
-</script>
-
+        load();
+    </script>
 </body>
 </html>

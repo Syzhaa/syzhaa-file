@@ -169,6 +169,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 			"http://localhost:3000",
 			"http://localhost:4006",
 		}
+		// Also allow the configured public base URL (for the user's own domain).
+		if baseURL := os.Getenv("BASE_URL"); baseURL != "" {
+			allowedOrigins = append(allowedOrigins, baseURL)
+		}
 		
 		// Check if origin is allowed
 		isAllowed := false
@@ -270,8 +274,14 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 
 	expiresAt := time.Now().Add(time.Duration(req.ExpiryMinutes) * time.Minute)
 
-	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at) VALUES (?, ?, ?)", 
-		roomID, pin, expiresAt.Format(time.RFC3339))
+	// Tag room with logged-in user (if any) so it shows in their dashboard
+	var userID string
+	if u, err := validateUserSession(r); err == nil && u != nil {
+		userID = u.ID
+	}
+
+	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at, user_id) VALUES (?, ?, ?, ?)",
+		roomID, pin, expiresAt.Format(time.RFC3339), userID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to create room"}`, http.StatusInternalServerError)
 		return
@@ -861,6 +871,9 @@ func main() {
 	if err := initUserSchema(); err != nil {
 		log.Fatal("Failed to initialize user schema:", err)
 	}
+	if err := initUserAuthSchema(); err != nil {
+		log.Fatal("Failed to initialize user auth schema:", err)
+	}
 	defer db.Close()
 
 	// Initialize admin password (use ADMIN_PASSWORD env or default)
@@ -925,6 +938,14 @@ func main() {
 	userRouter.Use(requireUserSession)
 	userRouter.HandleFunc("/me", handleUserMe).Methods("GET")
 	userRouter.HandleFunc("/rooms", handleUserRooms).Methods("GET")
+	userRouter.HandleFunc("/api-keys", handleUserListAPIKeys).Methods("GET")
+	userRouter.HandleFunc("/api-keys", handleUserCreateAPIKey).Methods("POST")
+	userRouter.HandleFunc("/api-keys/{id}", handleUserDeleteAPIKey).Methods("DELETE")
+
+	// User auth (public)
+	r.HandleFunc("/auth/user/register", handleUserRegister).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/user/login", handleUserLogin).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/user/logout", handleUserLogout).Methods("POST", "OPTIONS")
 
 	// API v1 routes (require API key)
 	apiRouter := r.PathPrefix("/api/v1").Subrouter()
@@ -937,6 +958,6 @@ func main() {
 	r.PathPrefix("/").Handler(cleanURLMiddleware(http.FileServer(http.Dir("./frontend"))))
 
 	addr := fmt.Sprintf(":%d", Port)
-	log.Printf("🚀 Syzhaa File Server (Go) running on port %d", Port)
+	log.Printf("🚀 AmbilFile Server (Go) running on port %d", Port)
 	log.Fatal(http.ListenAndServe(addr, r))
 }

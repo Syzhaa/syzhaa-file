@@ -32,23 +32,8 @@ type UserStats struct {
 	LastUploadAt      *time.Time `json:"last_upload_at,omitempty"`
 }
 
-// Handler: Get current user info (if implemented in future)
-func handleUserMe(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": false,
-		"error":   "User authentication not implemented",
-	})
-}
-
-// Handler: List user rooms (if implemented in future)
-func handleUserRooms(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": false,
-		"error":   "User authentication not implemented",
-	})
-}
+// NOTE: handleUserMe, handleUserRooms, and requireUserSession are now
+// implemented in user_auth.go (email/password user auth).
 
 // Handler: List all users (admin only)
 func handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
@@ -243,12 +228,7 @@ func handleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Stub middleware for user sessions (not implemented yet)
-func requireUserSession(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, `{"error":"User authentication not implemented"}`, http.StatusUnauthorized)
-	})
-}
+// NOTE: requireUserSession is now implemented in user_auth.go.
 
 // Handler: Admin system settings
 func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
