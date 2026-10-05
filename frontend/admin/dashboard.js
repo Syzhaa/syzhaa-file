@@ -167,14 +167,12 @@ function switchView(viewName) {
         }
     });
 
-    // Update bottom nav active state (mobile)
+    // Update bottom nav active state (mobile) - uses explicit CSS class
     document.querySelectorAll('.bnav-item').forEach(item => {
         if (item.dataset.bnav === viewName) {
-            item.classList.remove('text-outline');
-            item.classList.add('text-primary');
+            item.classList.add('bnav-active');
         } else {
-            item.classList.add('text-outline');
-            item.classList.remove('text-primary');
+            item.classList.remove('bnav-active');
         }
     });
     
@@ -444,6 +442,50 @@ function renderUsersTable() {
             </td>
         </tr>
     `).join('');
+
+    // Mobile cards
+    renderUsersCards();
+}
+
+function renderUsersCards() {
+    const container = document.getElementById('usersCards');
+    if (!container) return;
+
+    if (users.length === 0) {
+        container.innerHTML = '<div class="bg-white p-8 rounded-2xl border border-outline-variant text-center text-outline">Belum ada pengguna</div>';
+        return;
+    }
+
+    container.innerHTML = users.map(user => {
+        const statusColor = user.status === 'approved' || user.status === 'active' ? 'bg-green-100 text-green-700' :
+            user.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+            user.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700';
+        const avatar = user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=F6821F&color=fff`;
+        return `
+        <div class="bg-white p-4 rounded-2xl border border-outline-variant">
+            <div class="flex items-center gap-3 mb-3">
+                <img src="${avatar}" class="w-11 h-11 rounded-full">
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-sm truncate">${user.name}</p>
+                    <p class="text-xs text-outline truncate">${user.email}</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${statusColor}">${user.status}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-outline mb-3">
+                <span>Bergabung ${new Date(user.created_at).toLocaleDateString('id-ID')}</span>
+                <span>${user.storage_limit_mb || 2048} MB</span>
+            </div>
+            <div class="flex gap-2">
+                ${user.status === 'pending' ? `
+                    <button onclick="approveUser('${user.id}')" class="flex-1 px-3 py-2 bg-green-500 text-white text-sm font-semibold rounded-xl">Setujui</button>
+                    <button onclick="rejectUser('${user.id}')" class="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-xl">Tolak</button>
+                ` : ''}
+                ${user.api_requested_at && !user.api_approved ? `
+                    <button onclick="approveUserAPI('${user.id}')" class="flex-1 px-3 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl">Setujui API</button>
+                ` : ''}
+            </div>
+        </div>`;
+    }).join('');
 }
 
 function approveUser(userId) {
@@ -523,11 +565,17 @@ function suspendUser(userId) {
 // ============================================
 
 async function loadAPIKeys() {
-    const data = await apiCall('/admin/api-keys');
-    if (data && data.success && data.api_keys) {
-        apiKeys = data.api_keys;
-        renderAPIKeys();
+    try {
+        const data = await apiCall('/admin/api-keys');
+        if (data && data.success && data.api_keys) {
+            apiKeys = data.api_keys;
+        } else {
+            apiKeys = [];
+        }
+    } catch {
+        apiKeys = [];
     }
+    renderAPIKeys();
 }
 
 function renderAPIKeys() {
@@ -548,41 +596,27 @@ function renderAPIKeys() {
     }
     
     container.innerHTML = apiKeys.map(key => `
-        <div class="bg-white p-6 rounded-2xl border border-outline-variant">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h4 class="font-semibold text-lg mb-1">${key.name || 'Unnamed Key'}</h4>
-                    <p class="text-sm text-outline mb-3">Created: ${formatDate(key.created_at)}</p>
-                    <div class="flex items-center gap-2">
-                        <code class="px-3 py-2 bg-surface-container rounded-lg text-xs font-mono">${key.key_prefix}...${key.key_suffix || '****'}</code>
+        <div class="bg-white p-5 rounded-2xl border border-outline-variant">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-semibold text-base mb-1 truncate">${key.name || 'Unnamed Key'}</h4>
+                    <p class="text-xs text-outline mb-2">Dibuat: ${formatDate(key.created_at)}</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <code class="px-3 py-1.5 bg-surface-container rounded-lg text-xs font-mono">sfa_...${key.key_suffix || '****'}</code>
                         <span class="px-3 py-1 rounded-full text-xs font-semibold ${key.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">
-                            ${key.is_active ? 'Active' : 'Inactive'}
+                            ${key.is_active ? 'Aktif' : 'Nonaktif'}
                         </span>
                     </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 shrink-0">
                     <button onclick="toggleAPIKey('${key.id}', ${!key.is_active})" 
-                            class="px-3 py-1.5 ${key.is_active ? 'bg-orange-500' : 'bg-green-500'} text-white text-xs font-semibold rounded-lg hover:brightness-110">
-                        ${key.is_active ? 'Disable' : 'Enable'}
+                            class="px-3 py-1.5 ${key.is_active ? 'bg-orange-500' : 'bg-green-500'} text-white text-xs font-semibold rounded-lg">
+                        ${key.is_active ? 'Matikan' : 'Aktifkan'}
                     </button>
                     <button onclick="deleteAPIKey('${key.id}')" 
-                            class="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600">
-                        Delete
+                            class="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg">
+                        Hapus
                     </button>
-                </div>
-            </div>
-            <div class="grid grid-cols-3 gap-4 pt-4 border-t border-outline-variant">
-                <div>
-                    <p class="text-xs text-outline">Rooms Created</p>
-                    <p class="text-lg font-bold">${key.rooms_created || 0}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-outline">Files Uploaded</p>
-                    <p class="text-lg font-bold">${key.files_uploaded || 0}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-outline">Last Used</p>
-                    <p class="text-sm font-medium">${key.last_used_at ? formatDate(key.last_used_at) : 'Never'}</p>
                 </div>
             </div>
         </div>

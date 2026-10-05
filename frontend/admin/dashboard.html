@@ -42,6 +42,13 @@
         .modal.active {
             display: flex;
         }
+        /* Bottom nav active state (explicit, not Tailwind-dependent) */
+        .bnav-item { color: #737686; }
+        .bnav-item.bnav-active { color: #F6821F; }
+        /* Main content padding for mobile bottom nav */
+        @media (max-width: 1023px) {
+            main { padding-bottom: 90px !important; }
+        }
     </style>
     <script>
         tailwind.config = {
@@ -150,8 +157,7 @@
                             <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                                 <span class="material-symbols-outlined text-primary text-2xl">folder_open</span>
                             </div>
-                            <span class="text-xs text-outline">Total</span>
-                        </div>
+                            </div>
                         <h3 id="stat-rooms" class="text-3xl font-bold text-on-surface mb-1">0</h3>
                         <p class="text-sm text-outline">Total Ruangan</p>
                     </div>
@@ -161,8 +167,7 @@
                             <div class="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center">
                                 <span class="material-symbols-outlined text-secondary text-2xl">description</span>
                             </div>
-                            <span class="text-xs text-outline">Total</span>
-                        </div>
+                            </div>
                         <h3 id="stat-files" class="text-3xl font-bold text-on-surface mb-1">0</h3>
                         <p class="text-sm text-outline">Total File</p>
                     </div>
@@ -172,8 +177,7 @@
                             <div class="w-12 h-12 bg-tertiary/10 rounded-xl flex items-center justify-center">
                                 <span class="material-symbols-outlined text-tertiary text-2xl">group</span>
                             </div>
-                            <span class="text-xs text-outline">Active</span>
-                        </div>
+                            </div>
                         <h3 id="stat-users" class="text-3xl font-bold text-on-surface mb-1">0</h3>
                         <p class="text-sm text-outline">User Terdaftar</p>
                     </div>
@@ -183,8 +187,7 @@
                             <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                                 <span class="material-symbols-outlined text-primary text-2xl">storage</span>
                             </div>
-                            <span class="text-xs text-outline">Used</span>
-                        </div>
+                            </div>
                         <h3 id="stat-storage" class="text-3xl font-bold text-on-surface mb-1">0 GB</h3>
                         <p class="text-sm text-outline">Storage Terpakai</p>
                     </div>
@@ -235,7 +238,7 @@
                         Refresh
                     </button>
                 </div>
-                <div class="bg-white rounded-2xl border border-outline-variant overflow-hidden">
+                <div class="bg-white rounded-2xl border border-outline-variant overflow-hidden hidden lg:block">
                     <div class="overflow-x-auto">
                     <table id="usersTable" class="w-full min-w-[640px]">
                         <thead class="bg-surface-container">
@@ -252,6 +255,10 @@
                         </tbody>
                     </table>
                     </div>
+                </div>
+                <!-- Mobile cards -->
+                <div id="usersCards" class="lg:hidden space-y-3">
+                    <!-- User cards for mobile -->
                 </div>
             </div>
 
@@ -305,19 +312,19 @@
         <!-- Bottom Navigation (mobile) -->
         <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-outline-variant z-40" style="padding-bottom: env(safe-area-inset-bottom);">
             <div class="flex items-center justify-around px-2 py-1">
-                <button data-bnav="dashboard" onclick="switchView('dashboard')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium text-primary">
+                <button data-bnav="dashboard" onclick="switchView('dashboard')" class="bnav-item bnav-active flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium">
                     <span class="material-symbols-outlined text-2xl">dashboard</span>
                     <span>Dashboard</span>
                 </button>
-                <button data-bnav="users" onclick="switchView('users')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium text-outline">
+                <button data-bnav="users" onclick="switchView('users')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium">
                     <span class="material-symbols-outlined text-2xl">group</span>
                     <span>Users</span>
                 </button>
-                <button data-bnav="api-keys" onclick="switchView('api-keys')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium text-outline">
+                <button data-bnav="api-keys" onclick="switchView('api-keys')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium">
                     <span class="material-symbols-outlined text-2xl">key</span>
                     <span>API Key</span>
                 </button>
-                <button data-bnav="settings" onclick="switchView('settings')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium text-outline">
+                <button data-bnav="settings" onclick="switchView('settings')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium">
                     <span class="material-symbols-outlined text-2xl">settings</span>
                     <span>Settings</span>
                 </button>
