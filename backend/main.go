@@ -339,8 +339,10 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	roomID := vars["id"]
 
 	var room Room
-	err := db.QueryRow("SELECT id, pin, created_at, expires_at FROM rooms WHERE id = ?", roomID).
-		Scan(&room.ID, &room.Pin, &room.CreatedAt, &room.ExpiresAt)
+	var permission sql.NullString
+	var allowDelete sql.NullInt64
+	err := db.QueryRow(`SELECT id, pin, created_at, expires_at, COALESCE(permission, 'both'), COALESCE(allow_delete, 1) FROM rooms WHERE id = ?`, roomID).
+		Scan(&room.ID, &room.Pin, &room.CreatedAt, &room.ExpiresAt, &permission, &allowDelete)
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"Room not found"}`, http.StatusNotFound)
 		return
@@ -383,10 +385,54 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"room":       room,
-		"files":      files,
-		"quota_info": getRoomQuotaInfo(roomID),
+		"room":        room,
+		"files":       files,
+		"quota_info":  getRoomQuotaInfo(roomID),
+		"permission":  permission.String,
+		"allow_delete": allowDelete.Int64 == 1,
 	})
+}
+
+// PUT /api/room/{id}/settings — update room permission settings (owner)
+func updateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	roomID := vars["id"]
+
+	var req struct {
+		Permission  string `json:"permission"`   // 'both', 'view', 'download'
+		AllowDelete *bool  `json:"allow_delete"` // nil = no change
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Data tidak valid"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Permission != "" && req.Permission != "both" && req.Permission != "view" && req.Permission != "download" {
+		http.Error(w, `{"error":"Permission tidak valid"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Verify room exists
+	var exists bool
+	_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)`, roomID).Scan(&exists)
+	if !exists {
+		http.Error(w, `{"error":"Room tidak ditemukan"}`, http.StatusNotFound)
+		return
+	}
+
+	if req.Permission != "" {
+		db.Exec(`UPDATE rooms SET permission = ? WHERE id = ?`, req.Permission, roomID)
+	}
+	if req.AllowDelete != nil {
+		val := 0
+		if *req.AllowDelete {
+			val = 1
+		}
+		db.Exec(`UPDATE rooms SET allow_delete = ? WHERE id = ?`, val, roomID)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
 }
 
 // getRoomQuotaInfo returns quota display info for a room
@@ -700,13 +746,20 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	fileID := vars["id"]
 
 	var filename string
-	err := db.QueryRow("SELECT filename FROM files WHERE id = ?", fileID).Scan(&filename)
+	var allowDelete int
+	err := db.QueryRow(`SELECT f.filename, COALESCE(r.allow_delete, 1) FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).Scan(&filename, &allowDelete)
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"File not found"}`, http.StatusNotFound)
 		return
 	}
 	if err != nil {
 		http.Error(w, `{"error":"Server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Owner can disable delete
+	if allowDelete == 0 {
+		http.Error(w, `{"error":"Hapus dinonaktifkan oleh pemilik room"}`, http.StatusForbidden)
 		return
 	}
 
@@ -1011,6 +1064,7 @@ func main() {
 	r.HandleFunc("/api/room/create", createRoomHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/pin", accessRoomByPinHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/{id}", getRoomInfoHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/room/{id}/settings", updateRoomSettingsHandler).Methods("PUT", "OPTIONS")
 	r.HandleFunc("/api/upload/{roomId}", uploadChunkHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/file/{id}", deleteFileHandler).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/folder/create/{roomId}", createFolderHandler).Methods("POST", "OPTIONS")

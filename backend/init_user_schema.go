@@ -82,6 +82,8 @@ func initUserSchema() error {
 
 	// permission: 'both' (default), 'view' (lihat saja), 'download' (download saja)
 	db.Exec("ALTER TABLE rooms ADD COLUMN permission TEXT DEFAULT 'both'")
+	// allow_delete: 1 (default) owner mengizinkan hapus, 0 = tombol hapus disembunyikan
+	db.Exec("ALTER TABLE rooms ADD COLUMN allow_delete INTEGER DEFAULT 1")
 
 	// API key approval: users login immediately, but need admin approval for API keys
 	db.Exec("ALTER TABLE users ADD COLUMN api_approved INTEGER DEFAULT 0")

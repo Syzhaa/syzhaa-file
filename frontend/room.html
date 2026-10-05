@@ -63,6 +63,8 @@
     </div>
 </main>
 
+<div class="max-w-6xl mx-auto px-4 sm:px-6 pb-8" id="room-settings"></div>
+
 <script>
 let roomId = null;
 let currentRoom = null;
@@ -102,6 +104,8 @@ async function loadRoom(roomId) {
         }
         
         currentRoom = data.room;
+        currentRoom.permission = data.permission || 'both';
+        currentRoom.allow_delete = data.allow_delete !== false;
         // Update quota label
         if (data.quota_info && data.quota_info.label) {
             const ql = document.getElementById('quota-label');
@@ -110,6 +114,7 @@ async function loadRoom(roomId) {
         await loadTotalFileCount();
         renderRoom();
         await loadRoomContent();
+        renderRoomSettings();
     } catch (error) {
         console.error('Error loading room:', error);
         showErrorModal(
@@ -437,6 +442,76 @@ function renderRoom() {
     startCountdownTimer();
 }
 
+// Render room permission settings (owner controls)
+function renderRoomSettings() {
+    let container = document.getElementById('room-settings');
+    if (!container) return;
+    
+    const perm = currentRoom.permission || 'both';
+    const allowDel = currentRoom.allow_delete !== false;
+    
+    container.innerHTML = `
+        <div class="bg-white border border-line rounded-2xl shadow-card p-5 sm:p-6 mb-6">
+            <h3 class="text-base font-bold text-ink mb-4">Pengaturan Room</h3>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-ink mb-2">Izin akses file</label>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="setRoomPermission('both')" class="perm-btn px-4 py-2 rounded-lg text-sm font-medium transition-colors ${perm === 'both' ? 'bg-brand-500 text-white' : 'bg-slate-100 text-ink hover:bg-slate-200'}">Lihat + Download</button>
+                    <button onclick="setRoomPermission('view')" class="perm-btn px-4 py-2 rounded-lg text-sm font-medium transition-colors ${perm === 'view' ? 'bg-brand-500 text-white' : 'bg-slate-100 text-ink hover:bg-slate-200'}">Lihat saja</button>
+                    <button onclick="setRoomPermission('download')" class="perm-btn px-4 py-2 rounded-lg text-sm font-medium transition-colors ${perm === 'download' ? 'bg-brand-500 text-white' : 'bg-slate-100 text-ink hover:bg-slate-200'}">Download saja</button>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-ink">Izinkan hapus file</p>
+                    <p class="text-xs text-slate-500">Kalau dimatikan, tombol hapus disembunyikan</p>
+                </div>
+                <button onclick="toggleAllowDelete()" class="w-12 h-7 rounded-full transition-colors ${allowDel ? 'bg-brand-500' : 'bg-slate-300'} relative">
+                    <span class="absolute top-1 ${allowDel ? 'right-1' : 'left-1'} w-5 h-5 bg-white rounded-full shadow transition-all"></span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function setRoomPermission(perm) {
+    try {
+        const res = await fetch(`/api/room/${currentRoom.id}/settings`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({permission: perm})
+        });
+        if (res.ok) {
+            currentRoom.permission = perm;
+            renderRoomSettings();
+            await loadRoomContent();
+            showInfoModal('Izin room diperbarui', true);
+        }
+    } catch (e) {
+        showInfoModal('Gagal memperbarui izin');
+    }
+}
+
+async function toggleAllowDelete() {
+    try {
+        const newVal = !(currentRoom.allow_delete !== false);
+        const res = await fetch(`/api/room/${currentRoom.id}/settings`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({allow_delete: newVal})
+        });
+        if (res.ok) {
+            currentRoom.allow_delete = newVal;
+            renderRoomSettings();
+            await loadRoomContent();
+        }
+    } catch (e) {
+        showInfoModal('Gagal memperbarui pengaturan');
+    }
+}
+
 function createFileCard(file) {
     if (currentView === 'card') {
         return createFileCardView(file);
@@ -448,6 +523,8 @@ function createFileCard(file) {
 function createFileListView(file) {
     const fileSize = formatFileSize(file.size);
     const icon = getFileIcon(file.original_name);
+    const canDownload = !currentRoom || (currentRoom.permission || 'both') !== 'view';
+    const canDelete = !currentRoom || currentRoom.allow_delete !== false;
 
     return `
         <div class="file-item flex items-center gap-3.5 p-3.5 bg-white border border-line rounded-xl hover:border-muted transition-colors" data-file-id="${file.id}">
@@ -460,16 +537,18 @@ function createFileListView(file) {
                 <p class="text-[13px] text-muted mt-0.5">${fileSize} &middot; ${file.downloads} unduhan</p>
             </div>
             <div class="flex gap-2 shrink-0">
+                ${canDownload ? `
                 <a href="/d/${file.id}"
                    class="px-3.5 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-[13px] font-semibold transition-colors"
                    download>
                     Unduh
-                </a>
+                </a>` : ''}
+                ${canDelete ? `
                 <button onclick="deleteFile('${file.id}')"
                         class="p-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         aria-label="Hapus">
                     <span class="material-symbols-outlined text-[20px] block">delete</span>
-                </button>
+                </button>` : ''}
             </div>
         </div>
     `;
@@ -480,6 +559,8 @@ function createFileCardView(file) {
     const icon = getFileIcon(file.original_name);
     const isImage = isImageFile(file.original_name);
     const thumbnailUrl = isImage ? `/d/${file.id}` : null;
+    const canDownload = !currentRoom || (currentRoom.permission || 'both') !== 'view';
+    const canDelete = !currentRoom || currentRoom.allow_delete !== false;
 
     return `
         <div class="file-item bg-white border border-line rounded-xl overflow-hidden hover:shadow-card hover:border-muted transition-all" data-file-id="${file.id}">
@@ -502,16 +583,18 @@ function createFileCardView(file) {
                 <h4 class="font-semibold text-ink text-[14px] truncate mb-0.5">${file.original_name}</h4>
                 <p class="text-xs text-muted mb-3">${fileSize} &middot; ${file.downloads} unduhan</p>
                 <div class="flex gap-2">
+                    ${canDownload ? `
                     <a href="/d/${file.id}"
                        class="flex-1 text-center px-3 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-[13px] font-semibold transition-colors"
                        download>
                         Unduh
-                    </a>
+                    </a>` : ''}
+                    ${canDelete ? `
                     <button onclick="deleteFile('${file.id}')"
                             class="px-2.5 py-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             aria-label="Hapus">
                         <span class="material-symbols-outlined text-[20px] block">delete</span>
-                    </button>
+                    </button>` : ''}
                 </div>
             </div>
         </div>
