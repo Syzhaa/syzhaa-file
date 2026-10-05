@@ -156,131 +156,24 @@ func requireUserSession(next http.Handler) http.Handler {
 // ---------------------------------------------------------------------------
 
 // POST /auth/user/register
+// POST /auth/user/register — DISABLED: user signup is Google-only now
 func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
-	var req struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Data tidak valid"})
-		return
-	}
-
-	req.Name = strings.TrimSpace(req.Name)
-	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
-
-	if req.Name == "" || req.Email == "" || req.Password == "" {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Nama, email, dan password wajib diisi"})
-		return
-	}
-	if !strings.Contains(req.Email, "@") {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Format email tidak valid"})
-		return
-	}
-	if len(req.Password) < 6 {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Password minimal 6 karakter"})
-		return
-	}
-
-	var exists bool
-	err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)`, req.Email).Scan(&exists)
-	if err == nil && exists {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Email sudah terdaftar"})
-		return
-	}
-	var adminExists bool
-	_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ?)`, req.Email).Scan(&adminExists)
-	if adminExists {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Email sudah terdaftar"})
-		return
-	}
-
-	userID := uuid.New().String()
-
-	// Default storage quota for new users (2GB, from system settings)
-	var defaultLimit int = 2048
-	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'default_storage_limit_mb'`).Scan(&defaultLimit)
-	if defaultLimit <= 0 {
-		defaultLimit = 2048
-	}
-
-	// google_id uses a unique placeholder for password users (column is UNIQUE NOT NULL)
-	// New users are active immediately; API key creation needs admin approval separately.
-	_, err = db.Exec(`
-		INSERT INTO users (id, google_id, email, name, password_hash, status, storage_limit_mb, api_approved, created_at)
-		VALUES (?, ?, ?, ?, ?, 'active', ?, 0, ?)
-	`, userID, "pwd_"+userID, req.Email, req.Name, hashPassword(req.Password), defaultLimit, time.Now().Format(time.RFC3339))
-	if err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal mendaftar, coba lagi"})
-		return
-	}
-
+	w.WriteHeader(http.StatusGone)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Pendaftaran berhasil! Silakan masuk.",
+		"success": false,
+		"error":   "Pendaftaran via email dinonaktifkan. Silakan daftar dengan Google.",
 	})
 }
 
-// POST /auth/user/login
+
+// POST /auth/user/login — DISABLED: user login is Google-only now
 func handleUserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Data tidak valid"})
-		return
-	}
-	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
-
-	var userID, storedHash, status, name string
-	err := db.QueryRow(`SELECT id, password_hash, status, name FROM users WHERE email = ?`,
-		req.Email).Scan(&userID, &storedHash, &status, &name)
-	if err != nil || storedHash == "" || hashPassword(req.Password) != storedHash {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Email atau password salah"})
-		return
-	}
-
-	switch status {
-	case "rejected":
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Pendaftaranmu ditolak admin"})
-		return
-	case "suspended":
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Akunmu dinonaktifkan"})
-		return
-	case "approved", "active", "pending":
-		// ok — login allowed; API keys need separate approval
-	default:
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Status akun tidak valid"})
-		return
-	}
-
-	sess, err := createUserSession(userID)
-	if err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal membuat sesi"})
-		return
-	}
-
-	db.Exec(`UPDATE users SET last_login = ? WHERE id = ?`, time.Now().Format(time.RFC3339), userID)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "user_session",
-		Value:    sess.Token,
-		Path:     "/",
-		MaxAge:   7 * 24 * 3600,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-
+	w.WriteHeader(http.StatusGone)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"user":    map[string]string{"id": userID, "email": req.Email, "name": name},
-		"token":   sess.Token,
+		"success": false,
+		"error":   "Login via email dinonaktifkan. Silakan masuk dengan Google.",
 	})
 }
 
