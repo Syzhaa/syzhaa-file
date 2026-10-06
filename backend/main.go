@@ -334,6 +334,38 @@ func accessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GET /api/stats — public statistics (total rooms created, total files uploaded)
+func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
+	var totalRooms, totalFiles, totalUsers int
+	var totalBytes int64
+	_ = db.QueryRow(`SELECT COUNT(*) FROM rooms`).Scan(&totalRooms)
+	_ = db.QueryRow(`SELECT COUNT(*) FROM files`).Scan(&totalFiles)
+	_ = db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&totalUsers)
+	_ = db.QueryRow(`SELECT COALESCE(SUM(size), 0) FROM files`).Scan(&totalBytes)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"total_rooms":       totalRooms,
+		"total_files":       totalFiles,
+		"total_users":       totalUsers,
+		"total_bytes":       totalBytes,
+		"total_size_label":  formatBytes(totalBytes),
+	})
+}
+
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
 func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
@@ -1061,6 +1093,7 @@ func main() {
 	r.Use(rateLimitMiddleware(generalLimiter))
 
 	// Public routes (existing)
+	r.HandleFunc("/api/stats", getPublicStatsHandler).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/room/create", createRoomHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/pin", accessRoomByPinHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/{id}", getRoomInfoHandler).Methods("GET", "OPTIONS")
