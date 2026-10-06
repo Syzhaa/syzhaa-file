@@ -60,17 +60,13 @@ document.getElementById('promptModalYes').addEventListener('click', () => {
 let allUsers = [];
 let currentFilter = 'all';
 
+// Wrapper around global api() (from /js/api.js) preserving legacy null-on-error behavior.
 async function apiCall(endpoint, options = {}) {
-    const response = await fetch(endpoint, {
-        ...options,
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...options.headers }
-    });
-    if (response.status === 401) {
-        window.location.href = '/admin/login.html';
+    try {
+        return await api(endpoint, options);
+    } catch (e) {
         return null;
     }
-    return response.json();
 }
 
 async function loadAdmin() {

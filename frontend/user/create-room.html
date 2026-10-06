@@ -122,6 +122,7 @@
         }
 
     </style>
+    <script src="/js/api.js"></script>
 </head>
 <body>
     <aside class="sidebar">
@@ -258,12 +259,6 @@
             if (cb) cb();
         });
 
-        async function api(path, opts = {}) {
-            const res = await fetch(path, opts);
-            if (res.status === 401) { window.location.href = '/user-login.html'; throw new Error('unauth'); }
-            return res.json();
-        }
-
         function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
         function setText(id, val) {
@@ -295,13 +290,7 @@
             btn.disabled = true;
             btn.textContent = 'Membuat...';
             try {
-                const response = await fetch('/api/room/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ expiry_minutes: expiryMinutes })
-                });
-                const data = await response.json();
+                const data = await api.post('/api/room/create', { expiry_minutes: expiryMinutes });
                 if (data.room_id) {
                     window.location.href = '/room.html?id=' + data.room_id;
                 } else {
@@ -378,7 +367,7 @@
         }
 
         async function logout() {
-            await fetch('/auth/user/logout', { method: 'POST' });
+            await api.post('/auth/user/logout');
             window.location.href = '/';
         }
 

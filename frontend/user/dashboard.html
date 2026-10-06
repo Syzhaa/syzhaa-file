@@ -122,6 +122,7 @@
         }
 
     </style>
+    <script src="/js/api.js"></script>
 </head>
 <body>
     <aside class="sidebar">
@@ -280,12 +281,6 @@
             closeConfirmModal();
             if (cb) cb();
         });
-
-        async function api(path, opts = {}) {
-            const res = await fetch(path, opts);
-            if (res.status === 401) { window.location.href = '/user-login.html'; throw new Error('unauth'); }
-            return res.json();
-        }
 
         function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 

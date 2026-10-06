@@ -11,27 +11,11 @@ let apiKeys = [];
 // API HELPER FUNCTIONS
 // ============================================
 
+// Wrapper around global api() (from /js/api.js) preserving legacy null-on-error behavior.
 async function apiCall(endpoint, options = {}) {
     try {
-        const response = await fetch(endpoint, {
-            ...options,
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
-        });
-        
-        if (response.status === 401) {
-            window.location.href = '/admin/login.html';
-            return null;
-        }
-        
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('API call failed:', error);
-        showToast('Network error occurred', 'error');
+        return await api(endpoint, options);
+    } catch (e) {
         return null;
     }
 }
