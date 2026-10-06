@@ -1142,6 +1142,7 @@ func main() {
 	
 	// Admin user management routes
 	adminRouter.HandleFunc("/users", handleAdminListUsers).Methods("GET")
+	adminRouter.HandleFunc("/rooms", handleAdminListRooms).Methods("GET")
 	adminRouter.HandleFunc("/users/{id}/approve", handleAdminApproveUser).Methods("POST")
 	adminRouter.HandleFunc("/users/{id}/reject", handleAdminRejectUser).Methods("POST")
 	adminRouter.HandleFunc("/users/{id}/suspend", handleAdminSuspendUser).Methods("POST")

@@ -126,6 +126,10 @@
                     <span class="material-symbols-outlined">key</span>
                     API Key
                 </a>
+                <a href="#" data-view="rooms" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
+                    <span class="material-symbols-outlined">folder</span>
+                    Ruangan
+                </a>
                 <a href="#" data-view="create-room" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
                     <span class="material-symbols-outlined">add_circle</span>
                     Buat Room
@@ -285,6 +289,19 @@
             </div>
 
             <!-- Settings View -->
+            <div id="view-rooms" class="p-6 space-y-6 hidden">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <h2 class="text-2xl font-headline font-bold">Daftar Ruangan</h2>
+                    <div class="flex gap-2" id="admin-room-filter">
+                        <button onclick="filterAdminRooms('all')" data-filter="all" class="px-4 py-2 rounded-full text-sm font-semibold" style="background:#1a1a2e;color:#fff;">Semua</button>
+                        <button onclick="filterAdminRooms('active')" data-filter="active" class="px-4 py-2 rounded-full text-sm font-semibold" style="background:#fff;color:#6b7280;border:1.5px solid #e8eaf0;">Aktif</button>
+                        <button onclick="filterAdminRooms('expired')" data-filter="expired" class="px-4 py-2 rounded-full text-sm font-semibold" style="background:#fff;color:#6b7280;border:1.5px solid #e8eaf0;">Kadaluarsa</button>
+                        <button onclick="filterAdminRooms('mine')" data-filter="mine" class="px-4 py-2 rounded-full text-sm font-semibold" style="background:#fff;color:#6b7280;border:1.5px solid #e8eaf0;">Milik Saya</button>
+                    </div>
+                </div>
+                <div id="admin-rooms-list" class="space-y-3"><p class="text-outline">Memuat...</p></div>
+            </div>
+
             <div id="view-create-room" class="p-6 space-y-6 hidden">
                 <h2 class="text-2xl font-headline font-bold">Buat Room Baru</h2>
                 <div class="bg-white p-6 rounded-2xl border border-outline-variant max-w-xl">
@@ -630,6 +647,6 @@
     }
     </script>
 
-    <script src="dashboard.js?v=20261006b"></script>
+    <script src="dashboard.js?v=20261006c"></script>
 </body>
 </html>

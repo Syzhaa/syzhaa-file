@@ -285,3 +285,38 @@ func handleAdminStats(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
+
+// GET /admin/rooms — list all rooms (admin)
+func handleAdminListRooms(w http.ResponseWriter, r *http.Request) {
+	rows, err := db.Query(`
+		SELECT r.id, r.pin, r.created_at, r.expires_at, COALESCE(r.no_quota, 0),
+		       (SELECT COUNT(*) FROM files f WHERE f.room_id = r.id) as file_count,
+		       u.email as owner_email
+		FROM rooms r LEFT JOIN users u ON r.user_id = u.id
+		ORDER BY r.created_at DESC LIMIT 100
+	`)
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "rooms": []interface{}{}})
+		return
+	}
+	defer rows.Close()
+
+	rooms := []map[string]interface{}{}
+	for rows.Next() {
+		var id, pin, createdAt, expiresAt string
+		var noQuota, fileCount int
+		var ownerEmail sql.NullString
+		rows.Scan(&id, &pin, &createdAt, &expiresAt, &noQuota, &fileCount, &ownerEmail)
+		rooms = append(rooms, map[string]interface{}{
+			"id":          id,
+			"pin":         pin,
+			"created_at":  createdAt,
+			"expires_at":  expiresAt,
+			"is_admin":    noQuota == 1,
+			"file_count":  fileCount,
+			"owner_email": ownerEmail.String,
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "rooms": rooms})
+}

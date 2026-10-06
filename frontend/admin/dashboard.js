@@ -824,3 +824,64 @@ async function createAdminRoom() {
         btn.textContent = 'Buat Ruangan';
     }
 }
+
+let _adminRooms = [];
+let _adminRoomFilter = 'all';
+
+async function loadAdminRooms() {
+    try {
+        const data = await apiCall('/admin/rooms');
+        _adminRooms = (data && data.rooms) || [];
+        renderAdminRooms();
+    } catch {
+        document.getElementById('admin-rooms-list').innerHTML = '<p class="text-outline">Gagal memuat.</p>';
+    }
+}
+
+function renderAdminRooms() {
+    const now = new Date();
+    let list = _adminRooms;
+    const f = _adminRoomFilter;
+    if (f === 'active') list = list.filter(r => new Date(r.expires_at) > now);
+    if (f === 'expired') list = list.filter(r => new Date(r.expires_at) <= now);
+    if (f === 'mine') list = list.filter(r => r.is_admin);
+    
+    document.querySelectorAll('#admin-room-filter button').forEach(b => {
+        const on = b.dataset.filter === f;
+        b.style.background = on ? '#1a1a2e' : '#fff';
+        b.style.color = on ? '#fff' : '#6b7280';
+    });
+    
+    const el = document.getElementById('admin-rooms-list');
+    if (!list.length) {
+        el.innerHTML = '<p class="text-outline">Tidak ada ruangan.</p>';
+        return;
+    }
+    el.innerHTML = list.map(r => {
+        const active = new Date(r.expires_at) > now;
+        const badge = active
+            ? '<span class="text-xs font-bold px-2 py-1 rounded-full" style="background:#dcfce7;color:#15803d;">Aktif</span>'
+            : '<span class="text-xs font-bold px-2 py-1 rounded-full" style="background:#f1f2f6;color:#9ca3af;">Kadaluarsa</span>';
+        const owner = r.is_admin ? '<span class="text-xs font-bold px-2 py-1 rounded-full" style="background:#fff4e8;color:#F6821F;">Admin</span>' : '';
+        return `<div class="bg-white p-4 rounded-2xl border border-outline-variant flex items-center gap-4">
+            <span class="material-symbols-outlined" style="color:#9ca3af">folder</span>
+            <div class="flex-1">
+                <div class="font-mono font-bold" style="letter-spacing:2px">${r.pin} ${badge} ${owner}</div>
+                <div class="text-xs text-outline">${r.file_count} file &middot; ${r.owner_email || 'Anonim'} &middot; Kadaluarsa ${new Date(r.expires_at).toLocaleString('id-ID')}</div>
+            </div>
+            ${active ? `<a href="/room.html?id=${r.id}" class="text-sm font-semibold" style="color:#F6821F">Buka</a>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function filterAdminRooms(f) {
+    _adminRoomFilter = f;
+    renderAdminRooms();
+}
+
+// Load rooms when switching to rooms view
+const _origSwitchView = switchView;
+switchView = function(viewName) {
+    _origSwitchView(viewName);
+    if (viewName === 'rooms') loadAdminRooms();
+};
