@@ -1,9 +1,61 @@
 // Auto-split from room.html inline script. Shared globals via window scope.
+
+// Dialog pilihan: unduh satu per satu atau sebagai ZIP
+function chooseDownloadMode(count) {
+    return new Promise((resolve) => {
+        const bd = document.createElement('div');
+        bd.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px';
+        bd.innerHTML = `
+            <div style="background:#fff;border-radius:16px;padding:20px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+                <h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:#1f2937">Unduh ${count} file</h3>
+                <p style="margin:0 0 16px;font-size:13px;color:#6b7280">Pilih cara mengunduh:</p>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                    <button id="dl-onebyone" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer;text-align:left">
+                        <span class="material-symbols-outlined" style="color:#F6821F;font-size:24px">download</span>
+                        <span><b style="font-size:14px;color:#1f2937">Satu per satu</b><br><small style="color:#6b7280">Tiap file diunduh terpisah</small></span>
+                    </button>
+                    <button id="dl-zip" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:none;border-radius:12px;background:#1a1a2e;color:#fff;cursor:pointer;text-align:left">
+                        <span class="material-symbols-outlined" style="font-size:24px">folder_zip</span>
+                        <span><b style="font-size:14px">Sebagai ZIP</b><br><small style="opacity:.7">Digabung jadi satu file zip</small></span>
+                    </button>
+                    <button id="dl-cancel" style="padding:10px;border:none;border-radius:12px;background:#f3f4f6;color:#374151;font-weight:600;cursor:pointer">Batal</button>
+                </div>
+            </div>`;
+        document.body.appendChild(bd);
+        const close = (v) => { bd.remove(); resolve(v); };
+        bd.querySelector('#dl-onebyone').onclick = () => close('onebyone');
+        bd.querySelector('#dl-zip').onclick = () => close('zip');
+        bd.querySelector('#dl-cancel').onclick = () => close(null);
+        bd.onclick = (e) => { if (e.target === bd) close(null); };
+    });
+}
+
+// Unduh banyak file satu per satu (trigger download browser berurutan)
+async function downloadOneByOne(files) {
+    for (const file of files) {
+        const a = document.createElement('a');
+        a.href = `/d/${file.id}`;
+        a.download = file.original_name || '';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        // jeda biar browser tidak memblokir multi-download
+        await new Promise(r => setTimeout(r, 600));
+    }
+}
+
 async function downloadAllAsZip() {
     if (currentFiles.length === 0) {
         showInfoModal('Tidak ada file untuk didownload');
         return;
     }
+
+    const mode = await chooseDownloadMode(currentFiles.length);
+    if (mode === 'onebyone') {
+        downloadOneByOne(currentFiles);
+        return;
+    }
+    if (mode !== 'zip') return;
     
     const progressEl = document.getElementById('download-progress');
     const queueList = document.getElementById('download-queue-list');
@@ -164,6 +216,13 @@ async function downloadSelected() {
         window.location.href = `/d/${selected[0].id}`;
         return;
     }
+
+    const mode = await chooseDownloadMode(selected.length);
+    if (mode === 'onebyone') {
+        downloadOneByOne(selected);
+        return;
+    }
+    if (mode !== 'zip') return;
     
     // Multiple files - download as ZIP
     try {
