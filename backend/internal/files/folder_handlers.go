@@ -1,4 +1,4 @@
-package main
+package files
 
 import (
 	"github.com/syzhaa/file-server/internal/db"
@@ -12,7 +12,7 @@ import (
 )
 
 
-func createFolderHandler(w http.ResponseWriter, r *http.Request) {
+func CreateFolderHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["roomId"]
 	
@@ -65,7 +65,7 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func listFoldersHandler(w http.ResponseWriter, r *http.Request) {
+func ListFoldersHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["roomId"]
 	parentID := r.URL.Query().Get("parent_id")
@@ -113,7 +113,7 @@ func listFoldersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func deleteFolderHandler(w http.ResponseWriter, r *http.Request) {
+func DeleteFolderHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	folderID := vars["id"]
 	

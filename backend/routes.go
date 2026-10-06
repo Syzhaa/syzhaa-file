@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/files"
 	"github.com/syzhaa/file-server/internal/rooms"
 	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
@@ -25,12 +26,12 @@ func setupRoutes() *mux.Router {
 	r.HandleFunc("/api/room/{id}", rooms.GetRoomInfoHandler).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/room/{id}", rooms.HandleDeleteRoom).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/room/{id}/settings", rooms.UpdateRoomSettingsHandler).Methods("PUT", "OPTIONS")
-	r.HandleFunc("/api/upload/{roomId}", uploadChunkHandler).Methods("POST", "OPTIONS")
-	r.HandleFunc("/api/file/{id}", deleteFileHandler).Methods("DELETE", "OPTIONS")
-	r.HandleFunc("/api/folder/create/{roomId}", createFolderHandler).Methods("POST", "OPTIONS")
-	r.HandleFunc("/api/folders/{roomId}", listFoldersHandler).Methods("GET", "OPTIONS")
-	r.HandleFunc("/api/folder/{id}", deleteFolderHandler).Methods("DELETE", "OPTIONS")
-	r.HandleFunc("/d/{id}", downloadFileHandler).Methods("GET")
+	r.HandleFunc("/api/upload/{roomId}", files.UploadChunkHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/file/{id}", files.DeleteFileHandler).Methods("DELETE", "OPTIONS")
+	r.HandleFunc("/api/folder/create/{roomId}", files.CreateFolderHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/folders/{roomId}", files.ListFoldersHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/folder/{id}", files.DeleteFolderHandler).Methods("DELETE", "OPTIONS")
+	r.HandleFunc("/d/{id}", files.DownloadFileHandler).Methods("GET")
 
 	// Admin email/password auth routes
 	r.HandleFunc("/auth/login", auth.HandleAdminLogin).Methods("POST", "OPTIONS")

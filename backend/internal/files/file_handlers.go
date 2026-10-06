@@ -1,4 +1,4 @@
-package main
+package files
 
 import (
 	"github.com/syzhaa/file-server/internal/rooms"
@@ -19,8 +19,16 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Directory and limit constants (relative to working dir).
+const (
+	ChunkDir  = "./chunks"
+	UploadDir = "./uploads"
+	MaxMemory = 100 << 20 // 100MB untuk buffer upload
+)
 
-func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
+
+
+func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["roomId"]
 
@@ -141,7 +149,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
+func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	fileID := vars["id"]
 
@@ -241,7 +249,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
+func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	fileID := vars["id"]
 
