@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/rooms"
 	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
@@ -46,7 +47,7 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	roomID := uuid.New().String()
-	pin, err := generatePin()
+	pin, err := rooms.GeneratePin()
 	if err != nil {
 		http.Error(w, `{"error":"Failed to generate PIN"}`, http.StatusInternalServerError)
 		return

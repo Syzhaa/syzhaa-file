@@ -1,4 +1,4 @@
-package main
+package rooms
 
 import (
 	"github.com/syzhaa/file-server/internal/db"
@@ -8,8 +8,11 @@ import (
 	"time"
 )
 
+// UploadDir is the file upload directory (relative to working dir).
+const UploadDir = "./uploads"
 
-func autoCleanupWorker() {
+
+func AutoCleanupWorker() {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
@@ -91,7 +94,7 @@ func autoCleanupWorker() {
 }
 
 
-func cleanOrphanedFiles() {
+func CleanOrphanedFiles() {
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 

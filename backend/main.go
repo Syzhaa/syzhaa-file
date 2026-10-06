@@ -5,11 +5,11 @@ import (
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"github.com/syzhaa/file-server/internal/middleware"
+	"github.com/syzhaa/file-server/internal/rooms"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -21,23 +21,7 @@ const (
 	MaxMemory   = 100 << 20 // 100MB untuk buffer upload
 )
 
-type Room struct {
-	ID        string    `json:"id"`
-	Pin       string    `json:"pin"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
-}
 
-type File struct {
-	ID           string    `json:"id"`
-	RoomID       string    `json:"room_id"`
-	Filename     string    `json:"filename"`
-	OriginalName string    `json:"original_name"`
-	MimeType     string    `json:"mimetype"`
-	Size         int64     `json:"size"`
-	CreatedAt    time.Time `json:"created_at"`
-	Downloads    int       `json:"downloads"`
-}
 
 func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
 	var totalRooms, totalFiles, totalUsers int
@@ -59,11 +43,11 @@ func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
 		"total_files":        totalFiles,
 		"total_users":        totalUsers,
 		"total_bytes":        totalBytes,
-		"total_size_label":   formatBytes(totalBytes),
+		"total_size_label":   httpx.FormatBytes(totalBytes),
 		"deleted_rooms":      deletedRooms,
 		"deleted_files":      deletedFiles,
 		"deleted_bytes":      deletedBytes,
-		"deleted_size_label": formatBytes(deletedBytes),
+		"deleted_size_label": httpx.FormatBytes(deletedBytes),
 	})
 }
 
@@ -92,8 +76,8 @@ func main() {
 	// Initialize rate limiters
 	middleware.InitRateLimiters()
 
-	go autoCleanupWorker()
-	go cleanOrphanedFiles()
+	go rooms.AutoCleanupWorker()
+	go rooms.CleanOrphanedFiles()
 
 	r := setupRoutes()
 	addr := fmt.Sprintf(":%d", Port)

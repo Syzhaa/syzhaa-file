@@ -1,4 +1,4 @@
-package main
+package rooms
 
 import (
 	"github.com/syzhaa/file-server/internal/auth"
@@ -17,8 +17,26 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type File struct {
+	ID           string    `json:"id"`
+	RoomID       string    `json:"room_id"`
+	Filename     string    `json:"filename"`
+	OriginalName string    `json:"original_name"`
+	MimeType     string    `json:"mimetype"`
+	Size         int64     `json:"size"`
+	CreatedAt    time.Time `json:"created_at"`
+	Downloads    int       `json:"downloads"`
+}
 
-func generatePin() (string, error) {
+type Room struct {
+	ID        string    `json:"id"`
+	Pin       string    `json:"pin"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+
+func GeneratePin() (string, error) {
 	for {
 		n, err := rand.Int(rand.Reader, big.NewInt(900000))
 		if err != nil {
@@ -38,7 +56,7 @@ func generatePin() (string, error) {
 }
 
 
-func createRoomHandler(w http.ResponseWriter, r *http.Request) {
+func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ExpiryMinutes int `json:"expiry_minutes"`
 	}
@@ -55,7 +73,7 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	roomID := uuid.New().String()
-	pin, err := generatePin()
+	pin, err := GeneratePin()
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "Failed to generate PIN")
 		return
@@ -88,7 +106,7 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func accessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
+func AccessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Pin string `json:"pin"`
 	}
@@ -125,7 +143,7 @@ func accessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
 // GET /api/stats — public statistics (total rooms created, total files uploaded)
 
 
-func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
+func GetRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
 
@@ -177,7 +195,7 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"room":        room,
 		"files":       files,
-		"quota_info":  getRoomQuotaInfo(roomID),
+		"quota_info":  GetRoomQuotaInfo(roomID),
 		"permission":  permission.String,
 		"allow_delete": allowDelete.Int64 == 1,
 	})
@@ -186,7 +204,7 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 // PUT /api/room/{id}/settings — update room permission settings (owner)
 
 
-func updateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
+func UpdateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
 
@@ -230,7 +248,7 @@ func updateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 
 
 // DELETE /api/room/{id} — delete a room (owner or admin only)
-func handleDeleteRoom(w http.ResponseWriter, r *http.Request) {
+func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
 

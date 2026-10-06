@@ -1,4 +1,4 @@
-package main
+package rooms
 
 import (
 	"github.com/syzhaa/file-server/internal/db"
@@ -32,7 +32,7 @@ func formatBytesID(b int64) string {
 }
 
 
-func getRoomQuotaInfo(roomID string) map[string]interface{} {
+func GetRoomQuotaInfo(roomID string) map[string]interface{} {
 	var noQuota int
 	var userID sql.NullString
 	_ = db.DB.QueryRow(`SELECT COALESCE(no_quota, 0), user_id FROM rooms WHERE id = ?`, roomID).Scan(&noQuota, &userID)
@@ -64,7 +64,7 @@ func getRoomQuotaInfo(roomID string) map[string]interface{} {
 //   - Anonymous room: anonymous_storage_limit_mb (default 1GB) per room.
 
 
-func checkStorageQuota(roomID string, incomingBytes int64) string {
+func CheckStorageQuota(roomID string, incomingBytes int64) string {
 	// Admin-created rooms have no quota limit (full access)
 	var noQuota int
 	_ = db.DB.QueryRow(`SELECT COALESCE(no_quota, 0) FROM rooms WHERE id = ?`, roomID).Scan(&noQuota)

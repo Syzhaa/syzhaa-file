@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/rooms"
 	"github.com/syzhaa/file-server/internal/crypto"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
@@ -64,7 +65,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	if chunkIdx == totalChunk-1 {
 		// Enforce storage quota before assembling the file
 		totalBytes, _ := strconv.ParseInt(totalSize, 10, 64)
-		if qErr := checkStorageQuota(roomID, totalBytes); qErr != "" {
+		if qErr := rooms.CheckStorageQuota(roomID, totalBytes); qErr != "" {
 			os.RemoveAll(fileChunkDir)
 			w.Header().Set("Content-Type", "application/json")
 			httpx.WriteJSON(w, http.StatusRequestEntityTooLarge, map[string]interface{}{"success": false, "error": qErr})
@@ -112,7 +113,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 			nonceB64 = base64.StdEncoding.EncodeToString(meta.Nonce)
 			isEncrypted = 1
 			size = meta.EncryptedSize
-			log.Printf("🔒 File encrypted: %s (original: %d bytes, encrypted: %d bytes)", finalFileName, originalSize, size)
+			log.Printf("🔒 rooms.File encrypted: %s (original: %d bytes, encrypted: %d bytes)", finalFileName, originalSize, size)
 		}
 
 		_, err = db.DB.Exec(`INSERT INTO files (id, room_id, folder_id, filename, original_name, mimetype, size, salt, nonce, is_encrypted, original_size) 
@@ -144,7 +145,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	fileID := vars["id"]
 
-	var f File
+	var f rooms.File
 	var expiresAt time.Time
 	var saltB64, nonceB64 sql.NullString
 	var isEncrypted sql.NullInt64
@@ -159,7 +160,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, "<h1>File tidak ditemukan 💔</h1>")
+		fmt.Fprint(w, "<h1>rooms.File tidak ditemukan 💔</h1>")
 		return
 	}
 	if err != nil {
@@ -184,7 +185,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	filePath := filepath.Join(UploadDir, f.Filename)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, "<h1>File hilang 💔</h1>")
+		fmt.Fprint(w, "<h1>rooms.File hilang 💔</h1>")
 		return
 	}
 
@@ -192,7 +193,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Check if file is encrypted
 	if isEncrypted.Valid && isEncrypted.Int64 == 1 {
-		// File is encrypted, need passphrase to decrypt
+		// rooms.File is encrypted, need passphrase to decrypt
 		passphrase := r.URL.Query().Get("passphrase")
 		if passphrase == "" {
 			passphrase = r.Header.Get("X-Decrypt-Passphrase")
@@ -200,7 +201,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		
 		if passphrase == "" {
 			w.WriteHeader(http.StatusForbidden)
-			fmt.Fprint(w, "<h1>🔒 File Terenkripsi</h1><p>Passphrase diperlukan untuk download</p>")
+			fmt.Fprint(w, "<h1>🔒 rooms.File Terenkripsi</h1><p>Passphrase diperlukan untuk download</p>")
 			return
 		}
 
@@ -224,7 +225,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("🔓 File decrypted successfully: %s (%d bytes)", f.Filename, len(decryptedData))
+		log.Printf("🔓 rooms.File decrypted successfully: %s (%d bytes)", f.Filename, len(decryptedData))
 		
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", f.OriginalName))
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -233,7 +234,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// File not encrypted, serve directly
+	// rooms.File not encrypted, serve directly
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", f.OriginalName))
 	w.Header().Set("Content-Type", "application/octet-stream")
 	http.ServeFile(w, r, filePath)
@@ -248,7 +249,7 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	var allowDelete int
 	err := db.DB.QueryRow(`SELECT f.filename, COALESCE(r.allow_delete, 1) FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).Scan(&filename, &allowDelete)
 	if err == sql.ErrNoRows {
-		httpx.WriteError(w, http.StatusNotFound, "File not found")
+		httpx.WriteError(w, http.StatusNotFound, "rooms.File not found")
 		return
 	}
 	if err != nil {
@@ -272,7 +273,7 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("🗑️  Deleted file from disk: %s", filename)
 		}
 	} else {
-		log.Printf("⚠️  File not found on disk (already deleted?): %s", filename)
+		log.Printf("⚠️  rooms.File not found on disk (already deleted?): %s", filename)
 	}
 
 	// Delete from database
@@ -282,7 +283,7 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✅ File deleted successfully: %s (ID: %s)", filename, fileID)
+	log.Printf("✅ rooms.File deleted successfully: %s (ID: %s)", filename, fileID)
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
 
