@@ -151,7 +151,7 @@ func HandleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 			Name:     "user_session",
 			Value:    sess.Token,
 			Path:     "/",
-			MaxAge:   7 * 24 * 3600,
+			MaxAge:   30 * 24 * 3600,
 			HttpOnly: true,
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,

@@ -32,7 +32,7 @@ var userSessionCfg = sessionConfig{
 	table:      "user_sessions",
 	idColumn:   "user_id",
 	cookieName: "user_session",
-	expiry:     7 * 24 * time.Hour,
+	expiry:     30 * 24 * time.Hour,
 	sameSite:   http.SameSiteLaxMode,
 }
 

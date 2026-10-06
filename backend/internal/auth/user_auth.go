@@ -63,7 +63,7 @@ func CreateUserSession(userID string) (*UserSession, error) {
 	sessionID := uuid.New().String()
 	token := GenerateRandomString(48)
 	tokenHash := HashPassword(token)
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	expiresAt := time.Now().Add(30 * 24 * time.Hour)
 
 	_, err := db.DB.Exec(`
 		INSERT INTO user_sessions (id, user_id, token_hash, expires_at)
