@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"context"
 	"database/sql"
@@ -30,15 +31,6 @@ func userFromContext(ctx context.Context) *User {
 // Schema migration for email/password user auth + user-owned API keys.
 // Safe to run on every startup (IF NOT EXISTS / guarded ALTERs).
 // ---------------------------------------------------------------------------
-func initUserAuthSchema() error {
-	// password_hash for email/password login (users table predates it)
-	_, _ = db.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT`)
-
-	// user_id on api_keys so approved users can own keys (admin keys use admin_id)
-	_, _ = db.Exec(`ALTER TABLE api_keys ADD COLUMN user_id TEXT`)
-
-	return nil
-}
 
 // ---------------------------------------------------------------------------
 // Session helpers (mirror the admin session pattern)
@@ -56,7 +48,7 @@ func createUserSession(userID string) (*UserSession, error) {
 	tokenHash := hashPassword(token)
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 
-	_, err := db.Exec(`
+	_, err := db.DB.Exec(`
 		INSERT INTO user_sessions (id, user_id, token_hash, expires_at)
 		VALUES (?, ?, ?, ?)
 	`, sessionID, userID, tokenHash, expiresAt.Format(time.RFC3339))
@@ -77,7 +69,7 @@ func validateUserSession(r *http.Request) (*User, error) {
 	var approvedBy, rejectedReason sql.NullString
 	var approvedAt, lastLogin sql.NullString
 	var storageLimit, maxDuration sql.NullInt64
-	err = db.QueryRow(`
+	err = db.DB.QueryRow(`
 		SELECT id, email, name, status, approved_by, approved_at,
 		       rejected_reason, storage_limit_mb, max_file_duration_days,
 		       created_at, last_login
@@ -171,7 +163,7 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 
 	// Current storage usage across user's rooms
 	var usedBytes int64
-	_ = db.QueryRow(`
+	_ = db.DB.QueryRow(`
 		SELECT COALESCE(SUM(f.size), 0) FROM files f
 		JOIN rooms r ON r.id = f.room_id
 		WHERE r.user_id = ?`, user.ID).Scan(&usedBytes)
@@ -179,7 +171,7 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 	// API key approval state
 	var apiApproved int
 	var apiRequestedAt sql.NullString
-	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0), api_requested_at FROM users WHERE id = ?`,
+	_ = db.DB.QueryRow(`SELECT COALESCE(api_approved, 0), api_requested_at FROM users WHERE id = ?`,
 		user.ID).Scan(&apiApproved, &apiRequestedAt)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
@@ -218,7 +210,7 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query(`
+	rows, err := db.DB.Query(`
 		SELECT id, pin, created_at, expires_at FROM rooms
 		WHERE user_id = ? ORDER BY created_at DESC LIMIT 50
 	`, user.ID)
@@ -254,7 +246,7 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	// API key creation requires admin approval
 	var apiApproved int
-	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&apiApproved)
+	_ = db.DB.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&apiApproved)
 	if apiApproved != 1 {
 		httpx.WriteJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "error": "Pembuatan API key perlu persetujuan admin. Minta persetujuan dulu ya."})
 		return
@@ -278,10 +270,10 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	if user.ApprovedBy != nil && *user.ApprovedBy != "" {
 		ownerAdminID = *user.ApprovedBy
 	} else {
-		_ = db.QueryRow(`SELECT id FROM admin_users ORDER BY created_at LIMIT 1`).Scan(&ownerAdminID)
+		_ = db.DB.QueryRow(`SELECT id FROM admin_users ORDER BY created_at LIMIT 1`).Scan(&ownerAdminID)
 	}
 
-	_, err := db.Exec(`
+	_, err := db.DB.Exec(`
 		INSERT INTO api_keys (id, key_hash, admin_id, user_id, name, created_at, is_active)
 		VALUES (?, ?, ?, ?, ?, ?, 1)
 	`, keyID, hashPassword(rawKey), ownerAdminID, user.ID, strings.TrimSpace(req.Name), time.Now().Format(time.RFC3339))
@@ -307,13 +299,13 @@ func handleUserRequestAPIAccess(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var already int
-	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&already)
+	_ = db.DB.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&already)
 	if already == 1 {
 		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Sudah disetujui"})
 		return
 	}
 
-	_, err := db.Exec(`UPDATE users SET api_requested_at = ? WHERE id = ?`,
+	_, err := db.DB.Exec(`UPDATE users SET api_requested_at = ? WHERE id = ?`,
 		time.Now().Format(time.RFC3339), user.ID)
 	if err != nil {
 		httpx.WriteJSON(w, http.StatusInternalServerError, map[string]interface{}{"success": false, "error": "Gagal mengirim permintaan"})

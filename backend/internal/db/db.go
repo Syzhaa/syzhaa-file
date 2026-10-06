@@ -1,20 +1,26 @@
-package main
+package db
 
 import (
 	"database/sql"
 	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
-func initDB() error {
-	var err error
+// DB is the shared database connection.
+var DB *sql.DB
+
+// Init opens the database and creates the schema.
+func Init() error {
 	os.MkdirAll("./data", 0755)
-	db, err = sql.Open("sqlite3", DBPath)
+	var err error
+	DB, err = sql.Open("sqlite3", "./data/files.db")
 	if err != nil {
 		return err
 	}
 
 	// Enable foreign key constraints
-	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	_, err = DB.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
 		return err
 	}
@@ -86,15 +92,23 @@ func initDB() error {
 		FOREIGN KEY(admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
 	);
 	`
-	_, err = db.Exec(schema)
+	_, err = DB.Exec(schema)
 	if err != nil {
 		return err
 	}
 
 	// Create indexes
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_api_keys_admin ON api_keys(admin_id)")
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_admin ON admin_sessions(admin_id)")
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active, expires_at)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_api_keys_admin ON api_keys(admin_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_admin ON admin_sessions(admin_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active, expires_at)")
 
+	return nil
+}
+
+// Close closes the database connection.
+func Close() error {
+	if DB != nil {
+		return DB.Close()
+	}
 	return nil
 }

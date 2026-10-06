@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,11 +16,8 @@ const (
 	Port        = 4006
 	ChunkDir    = "./chunks"
 	UploadDir   = "./uploads"
-	DBPath      = "./data/files.db"
 	MaxMemory   = 100 << 20 // 100MB untuk buffer upload
 )
-
-var db *sql.DB
 
 type Room struct {
 	ID        string    `json:"id"`
@@ -43,17 +40,17 @@ type File struct {
 func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
 	var totalRooms, totalFiles, totalUsers int
 	var totalBytes int64
-	_ = db.QueryRow(`SELECT COUNT(*) FROM rooms`).Scan(&totalRooms)
-	_ = db.QueryRow(`SELECT COUNT(*) FROM files`).Scan(&totalFiles)
-	_ = db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&totalUsers)
-	_ = db.QueryRow(`SELECT COALESCE(SUM(size), 0) FROM files`).Scan(&totalBytes)
+	_ = db.DB.QueryRow(`SELECT COUNT(*) FROM rooms`).Scan(&totalRooms)
+	_ = db.DB.QueryRow(`SELECT COUNT(*) FROM files`).Scan(&totalFiles)
+	_ = db.DB.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&totalUsers)
+	_ = db.DB.QueryRow(`SELECT COALESCE(SUM(size), 0) FROM files`).Scan(&totalBytes)
 
 	// Cumulative deleted stats
 	var deletedRooms, deletedFiles int
 	var deletedBytes int64
-	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_rooms'`).Scan(&deletedRooms)
-	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_files'`).Scan(&deletedFiles)
-	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_bytes'`).Scan(&deletedBytes)
+	_ = db.DB.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_rooms'`).Scan(&deletedRooms)
+	_ = db.DB.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_files'`).Scan(&deletedFiles)
+	_ = db.DB.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_bytes'`).Scan(&deletedBytes)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"total_rooms":        totalRooms,
@@ -73,14 +70,8 @@ func main() {
 	os.MkdirAll(ChunkDir, 0755)
 	os.MkdirAll(UploadDir, 0755)
 
-	if err := initDB(); err != nil {
+	if err := db.Init(); err != nil {
 		log.Fatal("Failed to initialize database:", err)
-	}
-	if err := initUserSchema(); err != nil {
-		log.Fatal("Failed to initialize user schema:", err)
-	}
-	if err := initUserAuthSchema(); err != nil {
-		log.Fatal("Failed to initialize user auth schema:", err)
 	}
 	defer db.Close()
 

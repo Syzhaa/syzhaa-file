@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"crypto/rand"
 	"database/sql"
@@ -25,7 +26,7 @@ func generatePin() (string, error) {
 		pin := fmt.Sprintf("%06d", n.Int64()+100000)
 		
 		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE pin = ?)", pin).Scan(&exists)
+		err = db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE pin = ?)", pin).Scan(&exists)
 		if err != nil {
 			return "", err
 		}
@@ -71,7 +72,7 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 		userID = u.ID
 	}
 
-	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota) VALUES (?, ?, ?, ?, ?)",
+	_, err = db.DB.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota) VALUES (?, ?, ?, ?, ?)",
 		roomID, pin, expiresAt.Format(time.RFC3339), userID, noQuota)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "Failed to create room")
@@ -98,7 +99,7 @@ func accessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var room Room
-	err := db.QueryRow("SELECT id, expires_at FROM rooms WHERE pin = ?", req.Pin).
+	err := db.DB.QueryRow("SELECT id, expires_at FROM rooms WHERE pin = ?", req.Pin).
 		Scan(&room.ID, &room.ExpiresAt)
 	if err == sql.ErrNoRows {
 		httpx.WriteError(w, http.StatusNotFound, "Invalid PIN or room expired")
@@ -130,7 +131,7 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	var room Room
 	var permission sql.NullString
 	var allowDelete sql.NullInt64
-	err := db.QueryRow(`SELECT id, pin, created_at, expires_at, COALESCE(permission, 'both'), COALESCE(allow_delete, 1) FROM rooms WHERE id = ?`, roomID).
+	err := db.DB.QueryRow(`SELECT id, pin, created_at, expires_at, COALESCE(permission, 'both'), COALESCE(allow_delete, 1) FROM rooms WHERE id = ?`, roomID).
 		Scan(&room.ID, &room.Pin, &room.CreatedAt, &room.ExpiresAt, &permission, &allowDelete)
 	if err == sql.ErrNoRows {
 		httpx.WriteError(w, http.StatusNotFound, "Room not found")
@@ -152,11 +153,11 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	var rows *sql.Rows
 	if folderID != "" {
 		// Get files in specific folder
-		rows, err = db.Query(`SELECT id, original_name, size, downloads, created_at 
+		rows, err = db.DB.Query(`SELECT id, original_name, size, downloads, created_at 
 			FROM files WHERE room_id = ? AND folder_id = ? ORDER BY created_at DESC`, roomID, folderID)
 	} else {
 		// Get files in root (no folder or NULL folder_id)
-		rows, err = db.Query(`SELECT id, original_name, size, downloads, created_at 
+		rows, err = db.DB.Query(`SELECT id, original_name, size, downloads, created_at 
 			FROM files WHERE room_id = ? AND (folder_id IS NULL OR folder_id = '') ORDER BY created_at DESC`, roomID)
 	}
 	if err != nil {
@@ -204,21 +205,21 @@ func updateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Verify room exists
 	var exists bool
-	_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)`, roomID).Scan(&exists)
+	_ = db.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)`, roomID).Scan(&exists)
 	if !exists {
 		httpx.WriteError(w, http.StatusNotFound, "Room tidak ditemukan")
 		return
 	}
 
 	if req.Permission != "" {
-		db.Exec(`UPDATE rooms SET permission = ? WHERE id = ?`, req.Permission, roomID)
+		db.DB.Exec(`UPDATE rooms SET permission = ? WHERE id = ?`, req.Permission, roomID)
 	}
 	if req.AllowDelete != nil {
 		val := 0
 		if *req.AllowDelete {
 			val = 1
 		}
-		db.Exec(`UPDATE rooms SET allow_delete = ? WHERE id = ?`, val, roomID)
+		db.DB.Exec(`UPDATE rooms SET allow_delete = ? WHERE id = ?`, val, roomID)
 	}
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
@@ -234,7 +235,7 @@ func handleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 
 	var userID sql.NullString
 	var noQuota int
-	err := db.QueryRow(`SELECT user_id, COALESCE(no_quota, 0) FROM rooms WHERE id = ?`, roomID).Scan(&userID, &noQuota)
+	err := db.DB.QueryRow(`SELECT user_id, COALESCE(no_quota, 0) FROM rooms WHERE id = ?`, roomID).Scan(&userID, &noQuota)
 	if err != nil {
 		httpx.WriteError(w, http.StatusNotFound, "Room tidak ditemukan")
 		return
@@ -254,7 +255,7 @@ func handleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete physical files
-	fileRows, _ := db.Query(`SELECT stored_filename, size FROM files WHERE room_id = ?`, roomID)
+	fileRows, _ := db.DB.Query(`SELECT stored_filename, size FROM files WHERE room_id = ?`, roomID)
 	if fileRows != nil {
 		for fileRows.Next() {
 			var filename string
@@ -266,11 +267,11 @@ func handleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete from DB
-	db.Exec(`DELETE FROM files WHERE room_id = ?`, roomID)
-	db.Exec(`DELETE FROM rooms WHERE id = ?`, roomID)
+	db.DB.Exec(`DELETE FROM files WHERE room_id = ?`, roomID)
+	db.DB.Exec(`DELETE FROM rooms WHERE id = ?`, roomID)
 
 	// Update stats
-	db.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + 1 WHERE key = 'stats_deleted_rooms'`)
+	db.DB.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + 1 WHERE key = 'stats_deleted_rooms'`)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }

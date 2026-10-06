@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"crypto/sha256"
 	"database/sql"
@@ -59,7 +60,7 @@ func initAdminDefaults(email, name, password string) {
 
 	// Check if admin already exists
 	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ?)", email).Scan(&exists)
+	err := db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ?)", email).Scan(&exists)
 	
 	if err != nil {
 		log.Printf("❌ Failed to check admin existence: %v", err)
@@ -69,7 +70,7 @@ func initAdminDefaults(email, name, password string) {
 	if !exists {
 		// Create default admin user
 		adminID := uuid.New().String()
-		_, err := db.Exec(`
+		_, err := db.DB.Exec(`
 			INSERT INTO admin_users (id, email, name, password_hash, created_at, is_super_admin)
 			VALUES (?, ?, ?, ?, ?, 1)
 		`, adminID, email, name, passwordHash, time.Now().Format(time.RFC3339))
@@ -131,7 +132,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if !isWhitelisted {
 		var inDB bool
-		_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ?)`, req.Email).Scan(&inDB)
+		_ = db.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ?)`, req.Email).Scan(&inDB)
 		isWhitelisted = inDB
 	}
 
@@ -147,7 +148,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	// Verify password
 	passwordHash := hashPassword(req.Password)
 	var admin AdminUser
-	err := db.QueryRow(`
+	err := db.DB.QueryRow(`
 		SELECT id, email, name, created_at, last_login, is_super_admin
 		FROM admin_users
 		WHERE email = ? AND password_hash = ?
@@ -178,7 +179,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update last login
-	db.Exec("UPDATE admin_users SET last_login = ? WHERE id = ?",
+	db.DB.Exec("UPDATE admin_users SET last_login = ? WHERE id = ?",
 		time.Now().Format(time.RFC3339), admin.ID)
 
 	// Set secure cookie
@@ -239,7 +240,7 @@ func validateAdminSession(r *http.Request) (*AdminUser, error) {
 
 	// Get admin user
 	var admin AdminUser
-	err = db.QueryRow(`
+	err = db.DB.QueryRow(`
 		SELECT id, email, name, created_at, last_login, is_super_admin
 		FROM admin_users
 		WHERE id = ?
@@ -284,7 +285,7 @@ func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 	// Verify current password
 	var storedHash string
-	err := db.QueryRow(`SELECT password_hash FROM admin_users WHERE id = ?`, admin.ID).Scan(&storedHash)
+	err := db.DB.QueryRow(`SELECT password_hash FROM admin_users WHERE id = ?`, admin.ID).Scan(&storedHash)
 	if err != nil || hashPassword(req.CurrentPassword) != storedHash {
 		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Password saat ini salah"})
 		return
@@ -297,12 +298,12 @@ func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var taken bool
-		_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ? AND id != ?)`, req.Email, admin.ID).Scan(&taken)
+		_ = db.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ? AND id != ?)`, req.Email, admin.ID).Scan(&taken)
 		if taken {
 			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Email sudah dipakai admin lain"})
 			return
 		}
-		if _, err := db.Exec(`UPDATE admin_users SET email = ? WHERE id = ?`, req.Email, admin.ID); err != nil {
+		if _, err := db.DB.Exec(`UPDATE admin_users SET email = ? WHERE id = ?`, req.Email, admin.ID); err != nil {
 			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal mengganti email"})
 			return
 		}
@@ -315,7 +316,7 @@ func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Password baru minimal 8 karakter"})
 			return
 		}
-		if _, err := db.Exec(`UPDATE admin_users SET password_hash = ? WHERE id = ?`, hashPassword(req.NewPassword), admin.ID); err != nil {
+		if _, err := db.DB.Exec(`UPDATE admin_users SET password_hash = ? WHERE id = ?`, hashPassword(req.NewPassword), admin.ID); err != nil {
 			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal mengganti password"})
 			return
 		}

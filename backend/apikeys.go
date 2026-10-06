@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"net/http"
@@ -15,7 +16,7 @@ import (
 
 // listKeysByOwner returns API keys owned by the given ID.
 func listKeysByOwner(ownerColumn, ownerID string) ([]map[string]interface{}, error) {
-	rows, err := db.Query(
+	rows, err := db.DB.Query(
 		`SELECT id, name, expires_at, created_at, last_used_at, is_active
 		 FROM api_keys WHERE `+ownerColumn+` = ? ORDER BY created_at DESC`, ownerID)
 	if err != nil {
@@ -46,7 +47,7 @@ func listKeysByOwner(ownerColumn, ownerID string) ([]map[string]interface{}, err
 
 // deleteKeyByOwner deletes a key if owned by the given ID. Returns true if deleted.
 func deleteKeyByOwner(ownerColumn, ownerID, keyID string) (bool, error) {
-	res, err := db.Exec(
+	res, err := db.DB.Exec(
 		`DELETE FROM api_keys WHERE id = ? AND `+ownerColumn+` = ?`, keyID, ownerID)
 	if err != nil {
 		return false, err
@@ -74,7 +75,7 @@ func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	// Check existence first (preserve 404 behavior)
 	var ownerID string
-	err := db.QueryRow("SELECT admin_id FROM api_keys WHERE id = ?", keyID).Scan(&ownerID)
+	err := db.DB.QueryRow("SELECT admin_id FROM api_keys WHERE id = ?", keyID).Scan(&ownerID)
 	if err == sql.ErrNoRows {
 		httpx.WriteError(w, http.StatusNotFound, "API key not found")
 		return
@@ -147,7 +148,7 @@ func validateAPIKey(keyString string) (*APIKey, error) {
 	var k APIKey
 	var expiresAt sql.NullString
 	var isActive int
-	err := db.QueryRow(`
+	err := db.DB.QueryRow(`
 		SELECT id, admin_id, user_id, name, expires_at, created_at, is_active
 		FROM api_keys WHERE key_hash = ?`, hashString(keyString)).Scan(
 		&k.ID, &k.AdminID, &k.UserID, &k.Name, &expiresAt, &k.CreatedAt, &isActive)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"encoding/base64"
@@ -22,7 +23,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	roomID := vars["roomId"]
 
 	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
+	err := db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
 	if err != nil || !exists {
 		httpx.WriteError(w, http.StatusNotFound, "Invalid room")
 		return
@@ -113,7 +114,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("🔒 File encrypted: %s (original: %d bytes, encrypted: %d bytes)", finalFileName, originalSize, size)
 		}
 
-		_, err = db.Exec(`INSERT INTO files (id, room_id, folder_id, filename, original_name, mimetype, size, salt, nonce, is_encrypted, original_size) 
+		_, err = db.DB.Exec(`INSERT INTO files (id, room_id, folder_id, filename, original_name, mimetype, size, salt, nonce, is_encrypted, original_size) 
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
 			fileID, roomID, sql.NullString{String: folderID, Valid: folderID != ""}, finalFileName, originalName, mimeType, size, saltB64, nonceB64, isEncrypted, originalSize)
 		if err != nil {
@@ -149,7 +150,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	var originalSize sql.NullInt64
 	
 	var permission string
-	err := db.QueryRow(`SELECT f.id, f.filename, f.original_name, f.size, r.expires_at, 
+	err := db.DB.QueryRow(`SELECT f.id, f.filename, f.original_name, f.size, r.expires_at, 
 		f.salt, f.nonce, f.is_encrypted, f.original_size, COALESCE(r.permission, 'both')
 		FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).
 		Scan(&f.ID, &f.Filename, &f.OriginalName, &f.Size, &expiresAt, 
@@ -186,7 +187,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.Exec("UPDATE files SET downloads = downloads + 1 WHERE id = ?", fileID)
+	db.DB.Exec("UPDATE files SET downloads = downloads + 1 WHERE id = ?", fileID)
 
 	// Check if file is encrypted
 	if isEncrypted.Valid && isEncrypted.Int64 == 1 {
@@ -244,7 +245,7 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	var filename string
 	var allowDelete int
-	err := db.QueryRow(`SELECT f.filename, COALESCE(r.allow_delete, 1) FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).Scan(&filename, &allowDelete)
+	err := db.DB.QueryRow(`SELECT f.filename, COALESCE(r.allow_delete, 1) FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).Scan(&filename, &allowDelete)
 	if err == sql.ErrNoRows {
 		httpx.WriteError(w, http.StatusNotFound, "File not found")
 		return
@@ -274,7 +275,7 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete from database
-	if _, err := db.Exec("DELETE FROM files WHERE id = ?", fileID); err != nil {
+	if _, err := db.DB.Exec("DELETE FROM files WHERE id = ?", fileID); err != nil {
 		log.Printf("❌ Failed to delete file from database: %v", err)
 		httpx.WriteError(w, http.StatusInternalServerError, "Failed to delete file from database")
 		return

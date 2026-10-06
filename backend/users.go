@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"log"
@@ -51,7 +52,7 @@ func handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	query += " ORDER BY created_at DESC"
 
-	rows, err := db.Query(query, args...)
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch users"}`, http.StatusInternalServerError)
 		return
@@ -88,7 +89,7 @@ func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
 
 	// Check user exists
 	var currentStatus string
-	err := db.QueryRow("SELECT status FROM users WHERE id = ?", userID).Scan(&currentStatus)
+	err := db.DB.QueryRow("SELECT status FROM users WHERE id = ?", userID).Scan(&currentStatus)
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
 		return
@@ -99,7 +100,7 @@ func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now().Format(time.RFC3339)
-	_, err = db.Exec(`UPDATE users 
+	_, err = db.DB.Exec(`UPDATE users 
 		SET status = 'approved', approved_by = ?, approved_at = ?, 
 		    storage_limit_mb = ?, max_file_duration_days = ?
 		WHERE id = ?`,
@@ -130,7 +131,7 @@ func handleAdminRejectUser(w http.ResponseWriter, r *http.Request) {
 		req.Reason = "Registration rejected by admin"
 	}
 
-	_, err := db.Exec(`UPDATE users 
+	_, err := db.DB.Exec(`UPDATE users 
 		SET status = 'rejected', rejected_reason = ?
 		WHERE id = ?`, req.Reason, userID)
 
@@ -155,7 +156,7 @@ func handleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.ReadJSON(r, &req)
 
-	_, err := db.Exec(`UPDATE users 
+	_, err := db.DB.Exec(`UPDATE users 
 		SET status = 'suspended', rejected_reason = ?
 		WHERE id = ?`, req.Reason, userID)
 
@@ -165,7 +166,7 @@ func handleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete all user sessions
-	db.Exec("DELETE FROM user_sessions WHERE user_id = ?", userID)
+	db.DB.Exec("DELETE FROM user_sessions WHERE user_id = ?", userID)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
@@ -182,13 +183,13 @@ func handleAdminGetUserStats(w http.ResponseWriter, r *http.Request) {
 	stats.UserID = userID
 
 	// Get total rooms created by user
-	db.QueryRow(`SELECT COUNT(*) FROM rooms WHERE created_by = ?`, userID).Scan(&stats.TotalRooms)
+	db.DB.QueryRow(`SELECT COUNT(*) FROM rooms WHERE created_by = ?`, userID).Scan(&stats.TotalRooms)
 
 	// Get total files uploaded by user
-	db.QueryRow(`SELECT COUNT(*) FROM files WHERE created_by = ?`, userID).Scan(&stats.TotalFiles)
+	db.DB.QueryRow(`SELECT COUNT(*) FROM files WHERE created_by = ?`, userID).Scan(&stats.TotalFiles)
 
 	// Get total storage used
-	db.QueryRow(`SELECT COALESCE(SUM(size), 0) / 1024 / 1024 FROM files WHERE created_by = ?`, userID).Scan(&stats.StorageUsedMB)
+	db.DB.QueryRow(`SELECT COALESCE(SUM(size), 0) / 1024 / 1024 FROM files WHERE created_by = ?`, userID).Scan(&stats.StorageUsedMB)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
@@ -207,7 +208,7 @@ func handleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.ReadJSON(r, &req)
 
-	_, err := db.Exec(`UPDATE users 
+	_, err := db.DB.Exec(`UPDATE users 
 		SET storage_limit_mb = ?, max_file_duration_days = ?
 		WHERE id = ?`,
 		req.StorageLimitMB, req.MaxFileDurationDays, userID)
@@ -228,7 +229,7 @@ func handleAdminApproveUserAPI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
-	_, err := db.Exec(`UPDATE users SET api_approved = 1, api_requested_at = NULL WHERE id = ?`, userID)
+	_, err := db.DB.Exec(`UPDATE users SET api_approved = 1, api_requested_at = NULL WHERE id = ?`, userID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to approve API access"}`, http.StatusInternalServerError)
 		return
@@ -245,7 +246,7 @@ func handleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
-	_, err := db.Exec(`UPDATE users SET api_approved = 0 WHERE id = ?`, userID)
+	_, err := db.DB.Exec(`UPDATE users SET api_approved = 0 WHERE id = ?`, userID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to revoke API access"}`, http.StatusInternalServerError)
 		return
@@ -264,7 +265,7 @@ func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == "GET" {
-		rows, err := db.Query(`SELECT key, value FROM system_settings`)
+		rows, err := db.DB.Query(`SELECT key, value FROM system_settings`)
 		if err != nil {
 			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 				"success": false,
@@ -298,7 +299,7 @@ func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 		httpx.ReadJSON(r, &req)
 
 		now := time.Now().Format(time.RFC3339)
-		_, err := db.Exec(`UPDATE system_settings 
+		_, err := db.DB.Exec(`UPDATE system_settings 
 			SET value = ?, updated_at = ?
 			WHERE key = ?`,
 			req.Value, now, req.Key)

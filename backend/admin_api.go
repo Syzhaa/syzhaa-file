@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"archive/zip"
 	"database/sql"
@@ -61,7 +62,7 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 		roomUserID = apiKey.UserID
 	}
 
-	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota) VALUES (?, ?, ?, ?, ?)",
+	_, err = db.DB.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota) VALUES (?, ?, ?, ?, ?)",
 		roomID, pin, expiresAt.Format(time.RFC3339), roomUserID, noQuota)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to create room"}`, http.StatusInternalServerError)
@@ -85,7 +86,7 @@ func handleAPIGetRoomLink(w http.ResponseWriter, r *http.Request) {
 
 	var pin string
 	var expiresAt time.Time
-	err := db.QueryRow("SELECT pin, expires_at FROM rooms WHERE id = ?", roomID).Scan(&pin, &expiresAt)
+	err := db.DB.QueryRow("SELECT pin, expires_at FROM rooms WHERE id = ?", roomID).Scan(&pin, &expiresAt)
 
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"Room not found"}`, http.StatusNotFound)
@@ -122,7 +123,7 @@ func handleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
 	roomID := vars["id"]
 
 	var expiresAt time.Time
-	err := db.QueryRow("SELECT expires_at FROM rooms WHERE id = ?", roomID).Scan(&expiresAt)
+	err := db.DB.QueryRow("SELECT expires_at FROM rooms WHERE id = ?", roomID).Scan(&expiresAt)
 
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"Room not found"}`, http.StatusNotFound)
@@ -138,7 +139,7 @@ func handleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT id, filename, original_name FROM files WHERE room_id = ?", roomID)
+	rows, err := db.DB.Query("SELECT id, filename, original_name FROM files WHERE room_id = ?", roomID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch files"}`, http.StatusInternalServerError)
 		return
@@ -192,7 +193,7 @@ func handleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
 		fileToZip.Close()
 
 		// Update download counter
-		db.Exec("UPDATE files SET downloads = downloads + 1 WHERE id = ?", f.ID)
+		db.DB.Exec("UPDATE files SET downloads = downloads + 1 WHERE id = ?", f.ID)
 	}
 }
 
@@ -202,7 +203,7 @@ func handleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 	roomID := vars["id"]
 
 	var expiresAt time.Time
-	err := db.QueryRow("SELECT expires_at FROM rooms WHERE id = ?", roomID).Scan(&expiresAt)
+	err := db.DB.QueryRow("SELECT expires_at FROM rooms WHERE id = ?", roomID).Scan(&expiresAt)
 
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"Room not found"}`, http.StatusNotFound)
@@ -218,7 +219,7 @@ func handleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query(`SELECT id, original_name, mimetype, size, downloads, created_at 
+	rows, err := db.DB.Query(`SELECT id, original_name, mimetype, size, downloads, created_at 
 		FROM files WHERE room_id = ? ORDER BY created_at DESC`, roomID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch files"}`, http.StatusInternalServerError)
@@ -261,13 +262,13 @@ func handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	var totalSize int64
 	var adminRooms int64
 
-	db.QueryRow("SELECT COUNT(*) FROM rooms WHERE expires_at > ?", time.Now().Format(time.RFC3339)).Scan(&totalRooms)
-	db.QueryRow("SELECT COUNT(*) FROM rooms WHERE expires_at > ?", time.Now().Format(time.RFC3339)).Scan(&activeRooms)
-	db.QueryRow("SELECT COUNT(*), COALESCE(SUM(size), 0) FROM files").Scan(&totalFiles, &totalSize)
-	db.QueryRow("SELECT COUNT(*) FROM rooms WHERE COALESCE(no_quota, 0) = 1").Scan(&adminRooms)
+	db.DB.QueryRow("SELECT COUNT(*) FROM rooms WHERE expires_at > ?", time.Now().Format(time.RFC3339)).Scan(&totalRooms)
+	db.DB.QueryRow("SELECT COUNT(*) FROM rooms WHERE expires_at > ?", time.Now().Format(time.RFC3339)).Scan(&activeRooms)
+	db.DB.QueryRow("SELECT COUNT(*), COALESCE(SUM(size), 0) FROM files").Scan(&totalFiles, &totalSize)
+	db.DB.QueryRow("SELECT COUNT(*) FROM rooms WHERE COALESCE(no_quota, 0) = 1").Scan(&adminRooms)
 
 	var apiKeyCount int64
-	db.QueryRow("SELECT COUNT(*) FROM api_keys WHERE admin_id = ? AND is_active = 1", admin.ID).Scan(&apiKeyCount)
+	db.DB.QueryRow("SELECT COUNT(*) FROM api_keys WHERE admin_id = ? AND is_active = 1", admin.ID).Scan(&apiKeyCount)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
@@ -284,7 +285,7 @@ func handleAdminStats(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/rooms — list all rooms (admin)
 func handleAdminListRooms(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query(`
+	rows, err := db.DB.Query(`
 		SELECT r.id, r.pin, r.created_at, r.expires_at, COALESCE(r.no_quota, 0),
 		       (SELECT COUNT(*) FROM files f WHERE f.room_id = r.id) as file_count,
 		       u.email as owner_email

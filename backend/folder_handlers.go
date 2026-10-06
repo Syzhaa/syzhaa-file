@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"log"
@@ -17,7 +18,7 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 	
 	// Verify room exists
 	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
+	err := db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
 	if err != nil || !exists {
 		httpx.WriteError(w, http.StatusNotFound, "Invalid room")
 		return
@@ -43,7 +44,7 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 	folderID := uuid.New().String()
 	
 	// Insert folder
-	_, err = db.Exec(`INSERT INTO folders (id, room_id, parent_id, name) VALUES (?, ?, ?, ?)`,
+	_, err = db.DB.Exec(`INSERT INTO folders (id, room_id, parent_id, name) VALUES (?, ?, ?, ?)`,
 		folderID, roomID, sql.NullString{String: req.ParentID, Valid: req.ParentID != ""}, req.Name)
 	if err != nil {
 		log.Printf("❌ Failed to create folder: %v", err)
@@ -75,12 +76,12 @@ func listFoldersHandler(w http.ResponseWriter, r *http.Request) {
 	
 	if parentID == "" {
 		// Get root folders (no parent)
-		rows, err = db.Query(`SELECT id, name, created_at FROM folders 
+		rows, err = db.DB.Query(`SELECT id, name, created_at FROM folders 
 			WHERE room_id = ? AND parent_id IS NULL 
 			ORDER BY created_at DESC`, roomID)
 	} else {
 		// Get folders in specific parent
-		rows, err = db.Query(`SELECT id, name, created_at FROM folders 
+		rows, err = db.DB.Query(`SELECT id, name, created_at FROM folders 
 			WHERE room_id = ? AND parent_id = ? 
 			ORDER BY created_at DESC`, roomID, parentID)
 	}
@@ -118,7 +119,7 @@ func deleteFolderHandler(w http.ResponseWriter, r *http.Request) {
 	
 	// Verify folder exists
 	var name string
-	err := db.QueryRow("SELECT name FROM folders WHERE id = ?", folderID).Scan(&name)
+	err := db.DB.QueryRow("SELECT name FROM folders WHERE id = ?", folderID).Scan(&name)
 	if err == sql.ErrNoRows {
 		httpx.WriteError(w, http.StatusNotFound, "Folder not found")
 		return
@@ -129,7 +130,7 @@ func deleteFolderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Delete folder (CASCADE will delete child folders and files)
-	_, err = db.Exec("DELETE FROM folders WHERE id = ?", folderID)
+	_, err = db.DB.Exec("DELETE FROM folders WHERE id = ?", folderID)
 	if err != nil {
 		log.Printf("❌ Failed to delete folder: %v", err)
 		httpx.WriteError(w, http.StatusInternalServerError, "Failed to delete folder")

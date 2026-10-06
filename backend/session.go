@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"fmt"
@@ -42,7 +43,7 @@ func createSession(cfg sessionConfig, ownerID string) (token string, err error) 
 	tokenHash := hashPassword(token)
 	expiresAt := time.Now().Add(cfg.expiry)
 
-	_, err = db.Exec(
+	_, err = db.DB.Exec(
 		fmt.Sprintf("INSERT INTO %s (id, %s, token_hash, expires_at) VALUES (?, ?, ?, ?)",
 			cfg.table, cfg.idColumn),
 		sessionID, ownerID, tokenHash, expiresAt.Format(time.RFC3339))
@@ -69,7 +70,7 @@ func getSessionOwnerID(cfg sessionConfig, r *http.Request) (string, error) {
 
 	tokenHash := hashPassword(token)
 	var ownerID string
-	err := db.QueryRow(
+	err := db.DB.QueryRow(
 		fmt.Sprintf("SELECT %s FROM %s WHERE token_hash = ? AND expires_at > ?",
 			cfg.idColumn, cfg.table),
 		tokenHash, time.Now().Format(time.RFC3339)).Scan(&ownerID)
@@ -100,7 +101,7 @@ func clearSessionCookie(cfg sessionConfig, w http.ResponseWriter) {
 // logoutSession deletes the session from DB and clears the cookie.
 func logoutSession(cfg sessionConfig, w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(cfg.cookieName); err == nil && c.Value != "" {
-		db.Exec(fmt.Sprintf("DELETE FROM %s WHERE token_hash = ?",
+		db.DB.Exec(fmt.Sprintf("DELETE FROM %s WHERE token_hash = ?",
 			cfg.table), hashPassword(c.Value))
 	}
 	clearSessionCookie(cfg, w)

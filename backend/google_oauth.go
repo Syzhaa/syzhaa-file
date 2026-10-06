@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"context"
 	"crypto/rand"
 	"database/sql"
@@ -170,10 +171,10 @@ func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 func findOrCreateGoogleUser(g *GoogleUserInfo) *User {
 	// 1. Existing Google-linked account
 	var u User
-	err := db.QueryRow(`SELECT id, email, name, status FROM users WHERE google_id = ?`, g.ID).
+	err := db.DB.QueryRow(`SELECT id, email, name, status FROM users WHERE google_id = ?`, g.ID).
 		Scan(&u.ID, &u.Email, &u.Name, &u.Status)
 	if err == nil {
-		db.Exec(`UPDATE users SET last_login = ?, avatar_url = ? WHERE id = ?`,
+		db.DB.Exec(`UPDATE users SET last_login = ?, avatar_url = ? WHERE id = ?`,
 			time.Now().Format(time.RFC3339), g.Picture, u.ID)
 		u.AvatarURL = g.Picture
 		return &u
@@ -181,10 +182,10 @@ func findOrCreateGoogleUser(g *GoogleUserInfo) *User {
 
 	// 2. Existing email account (password signup) — link Google to it
 	var existingID, existingStatus string
-	err = db.QueryRow(`SELECT id, status FROM users WHERE email = ?`, g.Email).
+	err = db.DB.QueryRow(`SELECT id, status FROM users WHERE email = ?`, g.Email).
 		Scan(&existingID, &existingStatus)
 	if err == nil {
-		db.Exec(`UPDATE users SET google_id = ?, avatar_url = ?, last_login = ? WHERE id = ?`,
+		db.DB.Exec(`UPDATE users SET google_id = ?, avatar_url = ?, last_login = ? WHERE id = ?`,
 			g.ID, g.Picture, time.Now().Format(time.RFC3339), existingID)
 		return &User{ID: existingID, Email: g.Email, Status: existingStatus}
 	}
@@ -192,12 +193,12 @@ func findOrCreateGoogleUser(g *GoogleUserInfo) *User {
 	// 3. Brand new user — active immediately, default 2GB quota.
 	// API key creation needs admin approval separately.
 	var defaultLimit int = 2048
-	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'default_storage_limit_mb'`).Scan(&defaultLimit)
+	_ = db.DB.QueryRow(`SELECT value FROM system_settings WHERE key = 'default_storage_limit_mb'`).Scan(&defaultLimit)
 	if defaultLimit <= 0 {
 		defaultLimit = 2048
 	}
 	newID := uuid.New().String()
-	_, err = db.Exec(`
+	_, err = db.DB.Exec(`
 		INSERT INTO users (id, google_id, email, name, avatar_url, status, storage_limit_mb, api_approved, created_at)
 		VALUES (?, ?, ?, ?, ?, 'active', ?, 0, ?)
 	`, newID, g.ID, g.Email, g.Name, g.Picture, defaultLimit, time.Now().Format(time.RFC3339))

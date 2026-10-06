@@ -1,4 +1,4 @@
-package main
+package db
 
 // Initialize user management schema
 func initUserSchema() error {
@@ -51,19 +51,19 @@ func initUserSchema() error {
 	);
 	`
 
-	_, err := db.Exec(schema)
+	_, err := DB.Exec(schema)
 	if err != nil {
 		return err
 	}
 
 	// Create indexes
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)")
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id)")
-	db.Exec("CREATE INDEX IF NOT EXISTS idx_rooms_user ON rooms(user_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_rooms_user ON rooms(user_id)")
 
 	// Insert default settings
-	db.Exec(`INSERT OR IGNORE INTO system_settings (key, value, description) VALUES
+	DB.Exec(`INSERT OR IGNORE INTO system_settings (key, value, description) VALUES
 		('default_storage_limit_mb', '2048', 'Default storage limit per user (2GB)'),
 		('anonymous_storage_limit_mb', '1024', 'Storage limit per anonymous room (1GB)'),
 		('default_max_duration_days', '7', 'Default max file duration (7 days)'),
@@ -73,24 +73,35 @@ func initUserSchema() error {
 		('stats_deleted_bytes', '0', 'Total bytes auto-deleted after expiry')`)
 
 	// Migrate old 5GB default to 2GB (policy change 2026-10-05)
-	db.Exec(`UPDATE system_settings SET value = '2048', description = 'Default storage limit per user (2GB)'
+	DB.Exec(`UPDATE system_settings SET value = '2048', description = 'Default storage limit per user (2GB)'
 		WHERE key = 'default_storage_limit_mb' AND value = '5120'`)
-	db.Exec(`INSERT OR IGNORE INTO system_settings (key, value, description) VALUES
+	DB.Exec(`INSERT OR IGNORE INTO system_settings (key, value, description) VALUES
 		('anonymous_storage_limit_mb', '1024', 'Storage limit per anonymous room (1GB)')`)
 
 	// Alter rooms table to add user_id if not exists
-	db.Exec("ALTER TABLE rooms ADD COLUMN user_id TEXT")
+	DB.Exec("ALTER TABLE rooms ADD COLUMN user_id TEXT")
 	// no_quota: rooms created by admin bypass storage limits
-	db.Exec("ALTER TABLE rooms ADD COLUMN no_quota INTEGER DEFAULT 0")
+	DB.Exec("ALTER TABLE rooms ADD COLUMN no_quota INTEGER DEFAULT 0")
 
 	// permission: 'both' (default), 'view' (lihat saja), 'download' (download saja)
-	db.Exec("ALTER TABLE rooms ADD COLUMN permission TEXT DEFAULT 'both'")
+	DB.Exec("ALTER TABLE rooms ADD COLUMN permission TEXT DEFAULT 'both'")
 	// allow_delete: 1 (default) owner mengizinkan hapus, 0 = tombol hapus disembunyikan
-	db.Exec("ALTER TABLE rooms ADD COLUMN allow_delete INTEGER DEFAULT 1")
+	DB.Exec("ALTER TABLE rooms ADD COLUMN allow_delete INTEGER DEFAULT 1")
 
 	// API key approval: users login immediately, but need admin approval for API keys
-	db.Exec("ALTER TABLE users ADD COLUMN api_approved INTEGER DEFAULT 0")
-	db.Exec("ALTER TABLE users ADD COLUMN api_requested_at DATETIME")
+	DB.Exec("ALTER TABLE users ADD COLUMN api_approved INTEGER DEFAULT 0")
+	DB.Exec("ALTER TABLE users ADD COLUMN api_requested_at DATETIME")
+
+	return nil
+}
+
+
+func initUserAuthSchema() error {
+	// password_hash for email/password login (users table predates it)
+	_, _ = DB.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT`)
+
+	// user_id on api_keys so approved users can own keys (admin keys use admin_id)
+	_, _ = DB.Exec(`ALTER TABLE api_keys ADD COLUMN user_id TEXT`)
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,7 +15,7 @@ func autoCleanupWorker() {
 
 	for range ticker.C {
 		now := time.Now().Format(time.RFC3339)
-		rows, err := db.Query("SELECT id FROM rooms WHERE expires_at < ?", now)
+		rows, err := db.DB.Query("SELECT id FROM rooms WHERE expires_at < ?", now)
 		if err != nil {
 			log.Printf("⚠️  Auto-cleanup: Failed to query expired rooms: %v", err)
 			continue
@@ -39,7 +40,7 @@ func autoCleanupWorker() {
 		var totalBytesDeleted int64
 
 		for _, roomID := range expiredRooms {
-			fileRows, err := db.Query("SELECT filename, size FROM files WHERE room_id = ?", roomID)
+			fileRows, err := db.DB.Query("SELECT filename, size FROM files WHERE room_id = ?", roomID)
 			if err != nil {
 				log.Printf("⚠️  Auto-cleanup: Failed to query files for room %s: %v", roomID, err)
 				continue
@@ -65,12 +66,12 @@ func autoCleanupWorker() {
 			fileRows.Close()
 
 			// Delete files from database first
-			if _, err := db.Exec("DELETE FROM files WHERE room_id = ?", roomID); err != nil {
+			if _, err := db.DB.Exec("DELETE FROM files WHERE room_id = ?", roomID); err != nil {
 				log.Printf("⚠️  Auto-cleanup: Failed to delete files from DB for room %s: %v", roomID, err)
 			}
 			
 			// Then delete the room
-			if _, err := db.Exec("DELETE FROM rooms WHERE id = ?", roomID); err != nil {
+			if _, err := db.DB.Exec("DELETE FROM rooms WHERE id = ?", roomID); err != nil {
 				log.Printf("⚠️  Auto-cleanup: Failed to delete room %s: %v", roomID, err)
 			} else {
 				log.Printf("🧹 Auto-cleanup: Deleted room %s", roomID)
@@ -79,9 +80,9 @@ func autoCleanupWorker() {
 
 		// Update cumulative deletion stats
 		if len(expiredRooms) > 0 {
-			db.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_rooms'`, len(expiredRooms))
-			db.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_files'`, totalFilesDeleted)
-			db.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_bytes'`, totalBytesDeleted)
+			db.DB.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_rooms'`, len(expiredRooms))
+			db.DB.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_files'`, totalFilesDeleted)
+			db.DB.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_bytes'`, totalBytesDeleted)
 		}
 
 		log.Printf("✅ Auto-cleanup complete: %d rooms, %d files deleted, %d files failed", 
@@ -106,7 +107,7 @@ func cleanOrphanedFiles() {
 			}
 
 			var exists bool
-			db.QueryRow("SELECT EXISTS(SELECT 1 FROM files WHERE filename = ?)", file.Name()).Scan(&exists)
+			db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM files WHERE filename = ?)", file.Name()).Scan(&exists)
 			if !exists {
 				orphanPath := filepath.Join(UploadDir, file.Name())
 				info, _ := os.Stat(orphanPath)

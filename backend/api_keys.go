@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"net/http"
@@ -55,7 +56,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		expiresAt = &expiryStr
 	}
 
-	_, err := db.Exec(`INSERT INTO api_keys (id, key_hash, admin_id, name, expires_at, created_at, is_active)
+	_, err := db.DB.Exec(`INSERT INTO api_keys (id, key_hash, admin_id, name, expires_at, created_at, is_active)
 		VALUES (?, ?, ?, ?, ?, ?, 1)`,
 		keyID, keyHash, admin.ID, req.Name, expiresAt, time.Now().Format(time.RFC3339))
 
@@ -89,7 +90,7 @@ func handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	var ownerID string
 	var isActive int
-	err := db.QueryRow("SELECT admin_id, is_active FROM api_keys WHERE id = ?", keyID).Scan(&ownerID, &isActive)
+	err := db.DB.QueryRow("SELECT admin_id, is_active FROM api_keys WHERE id = ?", keyID).Scan(&ownerID, &isActive)
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"API key not found"}`, http.StatusNotFound)
 		return
@@ -109,7 +110,7 @@ func handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
 		newStatus = 1
 	}
 
-	_, err = db.Exec("UPDATE api_keys SET is_active = ? WHERE id = ?", newStatus, keyID)
+	_, err = db.DB.Exec("UPDATE api_keys SET is_active = ? WHERE id = ?", newStatus, keyID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to update API key"}`, http.StatusInternalServerError)
 		return
