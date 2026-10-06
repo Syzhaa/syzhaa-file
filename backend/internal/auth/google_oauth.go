@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/syzhaa/file-server/internal/db"
 	"log"
 	"net/http"
@@ -76,9 +77,13 @@ func HandleUserGoogleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"Gagal membuat sesi login"}`, http.StatusInternalServerError)
 		return
 	}
-	// Jalur aplikasi Android: tandai state agar callback redirect ke deep link,
-	// bukan ke halaman web. Alur web tidak berubah sama sekali.
-	if r.FormValue("app") == "1" {
+	// Jalur aplikasi: tandai state agar callback tidak ke halaman web.
+	// ?app=1 -> deep link ambilfile:// (Android/iOS)
+	// ?app=desktop -> halaman HTML berisi token untuk di-copy (Windows/Linux/macOS)
+	// Alur web tidak berubah sama sekali.
+	if r.FormValue("app") == "desktop" {
+		state += ".desktop"
+	} else if r.FormValue("app") == "1" {
 		state += ".mobile"
 	}
 	http.SetCookie(w, &http.Cookie{
@@ -151,6 +156,14 @@ func HandleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		sess, err := CreateUserSession(user.ID)
 		if err != nil {
 			http.Redirect(w, r, "/user-login.html?error=server", http.StatusTemporaryRedirect)
+			return
+		}
+		// Aplikasi desktop: tampilkan token untuk di-copy manual.
+		if strings.HasSuffix(r.FormValue("state"), ".desktop") {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login Berhasil</title>
+<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f9fafb}.box{background:#fff;border-radius:16px;padding:32px;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}h2{color:#1f2937;margin:0 0 8px}p{color:#6b7280;font-size:14px}.token{background:#1f2937;color:#fff;font-family:monospace;font-size:12px;padding:12px;border-radius:8px;word-break:break-all;user-select:all;margin:16px 0}</style></head>
+<body><div class="box"><h2>Login Berhasil ✅</h2><p>Copy token di bawah ini lalu paste di aplikasi AmbilFile Desktop:</p><div class="token">%s</div><p>Kamu bisa tutup halaman ini.</p></div></body></html>`, sess.Token)
 			return
 		}
 		// Aplikasi Android: kembalikan token lewat deep link, bukan cookie web.
