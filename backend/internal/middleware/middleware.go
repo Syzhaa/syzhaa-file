@@ -70,6 +70,24 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// StaticCacheMiddleware sets sane Cache-Control headers for static assets so
+// browsers always revalidate HTML/JS/CSS (no more stale-UI confusion) while
+// images/fonts can be cached long-term.
+func StaticCacheMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ext := strings.ToLower(filepath.Ext(r.URL.Path))
+		switch ext {
+		case ".html", ".js", ".css", ".json", "":
+			// Revalidate every time; server replies 304 when unchanged (cheap).
+			w.Header().Set("Cache-Control", "no-cache")
+		case ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico",
+			".woff", ".woff2", ".ttf", ".eot", ".mp4", ".webm":
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func CleanURLMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
@@ -79,12 +97,14 @@ func CleanURLMiddleware(next http.Handler) http.Handler {
 
 			htmlPath := filePath + ".html"
 			if _, err := os.Stat(htmlPath); err == nil {
+				w.Header().Set("Cache-Control", "no-cache")
 				http.ServeFile(w, r, htmlPath)
 				return
 			}
 
 			indexPath := filepath.Join(filePath, "index.html")
 			if _, err := os.Stat(indexPath); err == nil {
+				w.Header().Set("Cache-Control", "no-cache")
 				http.ServeFile(w, r, indexPath)
 				return
 			}

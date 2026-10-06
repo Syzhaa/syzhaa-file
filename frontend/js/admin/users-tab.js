@@ -45,14 +45,9 @@ function renderUsersTable() {
             <td class="px-6 py-4 text-sm text-outline">${formatDate(user.created_at)}</td>
             <td class="px-6 py-4 text-sm text-outline">${user.storage_used_mb ? formatBytes(user.storage_used_mb * 1024 * 1024) : '0 MB'}</td>
             <td class="px-6 py-4 text-right">
-                <div class="relative inline-block">
-                    <button onclick="toggleUserMenu('${user.id}', event)" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500" title="Aksi">
-                        <span class="material-symbols-outlined">more_vert</span>
-                    </button>
-                    <div id="umenu-${user.id}" class="hidden absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-outline-variant py-1.5 z-30 text-left">
-                        ${userMenuItems(user)}
-                    </div>
-                </div>
+                <button onclick="toggleUserMenu('${user.id}', event)" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500" title="Aksi">
+                    <span class="material-symbols-outlined">more_vert</span>
+                </button>
             </td>
         </tr>
     `).join('');
@@ -88,16 +83,44 @@ function userMenuItems(user) {
 
 function toggleUserMenu(userId, event) {
     event.stopPropagation();
-    const menu = document.getElementById('umenu-' + userId);
-    if (!menu) return;
+    const user = (typeof users !== 'undefined' ? users : []).find(u => u.id === userId);
+    if (!user) return;
+    let menu = document.getElementById('umenu-global');
+    if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'umenu-global';
+        menu.className = 'hidden fixed w-56 bg-white rounded-xl shadow-xl border border-outline-variant py-1.5 z-[100] text-left';
+        document.body.appendChild(menu);
+    }
     const wasHidden = menu.classList.contains('hidden');
-    document.querySelectorAll('[id^="umenu-"]').forEach(m => m.classList.add('hidden'));
-    if (wasHidden) menu.classList.remove('hidden');
+    menu.classList.add('hidden');
+    if (!wasHidden) return;
+    menu.innerHTML = userMenuItems(user);
+    // Posisikan di dekat tombol; fixed => kebal overflow tabel/card
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuW = 224;
+    const items = menu.querySelectorAll('button, p').length;
+    const menuH = Math.min(340, items * 46 + 12);
+    let left = rect.right - menuW;
+    if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    if (left < 8) left = 8;
+    let top = rect.bottom + 4;
+    if (top + menuH > window.innerHeight - 8) top = Math.max(8, rect.top - menuH - 4);
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    menu.classList.remove('hidden');
 }
 
-// Tutup semua menu saat klik di luar
-document.addEventListener('click', () => {
-    document.querySelectorAll('[id^="umenu-"]').forEach(m => m.classList.add('hidden'));
+// Tutup menu saat klik di luar / resize
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('umenu-global');
+    if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target)) {
+        menu.classList.add('hidden');
+    }
+});
+window.addEventListener('resize', () => {
+    const menu = document.getElementById('umenu-global');
+    if (menu) menu.classList.add('hidden');
 });
 
 function renderUsersCards() {
@@ -130,9 +153,6 @@ function renderUsersCards() {
                     <button onclick="toggleUserMenu('${user.id}', event)" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500" title="Aksi">
                         <span class="material-symbols-outlined">more_vert</span>
                     </button>
-                    <div id="umenu-${user.id}" class="hidden absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-outline-variant py-1.5 z-30 text-left">
-                        ${userMenuItems(user)}
-                    </div>
                 </div>
             </div>
             <div class="flex items-center justify-between text-xs text-outline mb-1">

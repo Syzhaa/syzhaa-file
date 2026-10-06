@@ -100,7 +100,7 @@ func setupRoutes() *mux.Router {
 		http.Redirect(w, r, "/admin/dashboard.html", http.StatusTemporaryRedirect)
 	}).Methods("GET")
 
-	r.PathPrefix("/").Handler(middleware.CleanURLMiddleware(http.FileServer(http.Dir("./frontend"))))
+	r.PathPrefix("/").Handler(middleware.StaticCacheMiddleware(middleware.CleanURLMiddleware(http.FileServer(http.Dir("./frontend")))))
 
 	log.Printf("🚀 AmbilFile Server (Go) running on port %d", Port)
 	return r
