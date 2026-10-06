@@ -76,3 +76,7 @@ file-server*
 backend/chunks/
 backend/data/
 backend/uploads/
+
+# Logs
+*.log
+server.log
