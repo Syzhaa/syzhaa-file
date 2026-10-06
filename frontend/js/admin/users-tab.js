@@ -31,7 +31,7 @@ function renderUsersTable() {
             </td>
             <td class="px-6 py-4">
                 <span class="px-3 py-1 rounded-full text-xs font-semibold ${
-                    user.status === 'approved' ? 'bg-green-100 text-green-700' :
+                    user.status === 'approved' || user.status === 'active' ? 'bg-green-100 text-green-700' :
                     user.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                     user.status === 'rejected' ? 'bg-red-100 text-red-700' :
                     'bg-gray-100 text-gray-700'
@@ -50,7 +50,7 @@ function renderUsersTable() {
                         <button onclick="rejectUser('${user.id}')" class="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600">
                             Reject
                         </button>
-                    ` : user.status === 'approved' ? `
+                    ` : (user.status === 'approved' || user.status === 'active') ? `
                         <button onclick="suspendUser('${user.id}')" class="px-3 py-1.5 bg-orange-500 text-white text-xs font-semibold rounded-lg hover:bg-orange-600">
                             Suspend
                         </button>
@@ -90,12 +90,15 @@ function renderUsersCards() {
             </div>
             <div class="flex items-center justify-between text-xs text-outline mb-3">
                 <span>Bergabung ${new Date(user.created_at).toLocaleDateString('id-ID')}</span>
-                <span>${user.storage_limit_mb || 2048} MB</span>
+                <span class="shrink-0 ml-2">· ${user.storage_limit_mb || 2048} MB</span>
             </div>
             <div class="flex gap-2">
                 ${user.status === 'pending' ? `
                     <button onclick="approveUser('${user.id}')" class="flex-1 px-3 py-2 bg-green-500 text-white text-sm font-semibold rounded-xl">Setujui</button>
                     <button onclick="rejectUser('${user.id}')" class="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-xl">Tolak</button>
+                ` : ''}
+                ${(user.status === 'approved' || user.status === 'active') ? `
+                    <button onclick="suspendUser('${user.id}')" class="flex-1 px-3 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl">Suspend</button>
                 ` : ''}
                 ${user.api_requested_at && !user.api_approved ? `
                     <button onclick="approveUserAPI('${user.id}')" class="flex-1 px-3 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl">Setujui API</button>

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-
 )
 
 // UploadDir is the file upload directory.
@@ -24,15 +23,11 @@ func getBaseURL() string {
 
 // Handler: Create Room via API
 
-
 // Handler: Get Room Link via API
-
 
 // Handler: Download All Files as Zip via API
 
-
 // Handler: Get Room Files List via API
-
 
 // Handler: Admin Stats
 func HandleAdminStats(w http.ResponseWriter, r *http.Request) {
@@ -50,6 +45,9 @@ func HandleAdminStats(w http.ResponseWriter, r *http.Request) {
 	var apiKeyCount int64
 	db.DB.QueryRow("SELECT COUNT(*) FROM api_keys WHERE admin_id = ? AND is_active = 1", admin.ID).Scan(&apiKeyCount)
 
+	var totalUsers int64
+	db.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&totalUsers)
+
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"stats": map[string]interface{}{
@@ -59,6 +57,7 @@ func HandleAdminStats(w http.ResponseWriter, r *http.Request) {
 			"total_files":     totalFiles,
 			"total_size":      totalSize,
 			"api_keys_active": apiKeyCount,
+			"total_users":     totalUsers,
 		},
 	})
 }

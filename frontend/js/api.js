@@ -32,7 +32,11 @@
         });
 
         if (res.status === 401) {
-            window.location.href = loginUrl(path);
+            // Session checks on public pages (e.g. landing) pass {noRedirect:true}
+            // so anonymous visitors aren't bounced to the login page.
+            if (!options.noRedirect) {
+                window.location.href = loginUrl(path);
+            }
             throw new Error('Unauthorized');
         }
 
@@ -47,7 +51,7 @@
         return data;
     }
 
-    api.get = function (path) { return api(path, { method: 'GET' }); };
+    api.get = function (path, opts) { return api(path, Object.assign({ method: 'GET' }, opts)); };
     api.post = function (path, body) {
         return api(path, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined });
     };

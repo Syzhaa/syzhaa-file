@@ -1,40 +1,7 @@
 // Admin dashboard module. Shared globals via window scope.
 
-async function createRoom() {
-    const expiryValue = parseInt(document.getElementById('expiryValue').value);
-    const expiryUnit = parseInt(document.getElementById('expiryUnit').value);
-    const expiryMinutes = expiryValue * expiryUnit;
-    
-    if (expiryMinutes < 10 || expiryMinutes > 10080) {
-        showToast('Invalid expiry duration (10 min - 7 days)', 'error');
-        return;
-    }
-    
-    const data = await apiCall('/api/v1/rooms', {
-        method: 'POST',
-        body: JSON.stringify({
-            expiry_minutes: expiryMinutes
-        })
-    });
-    
-    if (data && data.success) {
-        showToast('Room created successfully!', 'success');
-        closeModal('createRoom');
-        
-        // Show room details in modal
-        const roomLink = `https://ambilfile.web.id/?room=${data.room_id}`;
-        const pinLink = `https://ambilfile.web.id/?pin=${data.pin}`;
-        
-        document.getElementById('roomPinDisplay').value = data.pin;
-        document.getElementById('roomLinkDisplay').value = roomLink;
-        document.getElementById('pinLinkDisplay').value = pinLink;
-        openModal('roomCreated');
-        
-        loadStats();
-    } else {
-        showToast('Failed to create room', 'error');
-    }
-}
+// NOTE: createRoom() dihapus — modal "Create New Room" tidak pernah dibuka dan
+// memanggil endpoint salah (/api/v1/rooms). Buat room admin pakai createAdminRoom().
 
 async function joinRoom() {
     const pin = document.getElementById('pinInput').value.trim();
@@ -151,7 +118,8 @@ async function deleteAdminRoom(roomId) {
         const ownerToken = localStorage.getItem('room_owner_token_' + roomId);
         if (ownerToken) headers['X-Room-Token'] = ownerToken;
         const res = await api('/api/room/' + roomId, { method: 'DELETE', headers: headers });
-        if (!res.ok) throw new Error('gagal');
+        // api() throws on HTTP error, so reaching here means success.
+        if (!res) throw new Error('gagal');
         _adminRooms = _adminRooms.filter(r => r.id !== roomId);
         renderAdminRooms();
         alert('Room berhasil dihapus.');

@@ -3,8 +3,9 @@
 async function loadAPIKeys() {
     try {
         const data = await apiCall('/admin/api-keys');
-        if (data && data.success && data.api_keys) {
-            apiKeys = data.api_keys;
+        // Backend preserves admin format: {"success":true,"keys":[...]}
+        if (data && data.success && data.keys) {
+            apiKeys = data.keys;
         } else {
             apiKeys = [];
         }

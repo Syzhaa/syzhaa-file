@@ -296,6 +296,11 @@ func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 // Returns true if: (1) room has user_id matching session user, OR
 // (2) room is anonymous and X-Room-Token header matches stored hash (constant-time).
 func CheckRoomOwnership(r *http.Request, roomID string) bool {
+	// Admin override: admins can manage any room (dashboard moderation).
+	if a, err := auth.ValidateAdminSession(r); err == nil && a != nil {
+		return true
+	}
+
 	var userID, tokenHash sql.NullString
 	err := db.DB.QueryRow(`SELECT user_id, owner_token_hash FROM rooms WHERE id = ?`, roomID).Scan(&userID, &tokenHash)
 	if err != nil {

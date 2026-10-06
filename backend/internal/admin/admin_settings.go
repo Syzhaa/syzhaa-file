@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 func HandleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {

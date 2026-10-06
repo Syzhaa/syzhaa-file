@@ -52,9 +52,8 @@ async function createRoom() {
     btn.disabled = true;
     btn.textContent = 'Membuat...';
     try {
-        const response = await api.post('/api/room/create', { expiry_minutes: expiryMinutes });
-        const data = await response.json();
-        if (data.success) {
+        const data = await api.post('/api/room/create', { expiry_minutes: expiryMinutes });
+        if (data && data.success) {
             if (data.owner_token) {
                 localStorage.setItem('room_owner_token_' + data.room_id, data.owner_token);
             }
@@ -78,9 +77,8 @@ async function joinRoom() {
         return;
     }
     try {
-        const response = await api.post('/api/room/pin', { pin });
-        const data = await response.json();
-        if (data.success) {
+        const data = await api.post('/api/room/pin', { pin });
+        if (data && data.success) {
             if (data.owner_token) {
                 localStorage.setItem('room_owner_token_' + data.room_id, data.owner_token);
             }
@@ -94,16 +92,14 @@ async function joinRoom() {
     }
 }
 
-// Session check: kalau sudah login, langsung ke dashboard
+// Session check: kalau sudah login, langsung ke dashboard.
+// Pakai noRedirect supaya pengunjung anonim TIDAK dilempar ke halaman login.
 async function checkUserSession() {
     try {
-        const response = await api.get('/user/me');
-        if (response.ok) {
-            const data = await response.json();
-            if (data.user && !data.error) {
-                window.location.href = '/user/';
-                return;
-            }
+        const data = await api.get('/user/me', { noRedirect: true });
+        if (data && data.user && !data.error) {
+            window.location.href = '/user/';
+            return;
         }
     } catch (error) { /* tetap tampil landing */ }
     // Tidak login: update tombol jadi Dashboard link (fallback)
@@ -120,9 +116,8 @@ checkUserSession();
 // Live stats
 async function loadStats() {
     try {
-        const res = await api.get('/api/stats');
-        if (!res.ok) return;
-        const s = await res.json();
+        const s = await api.get('/api/stats');
+        if (!s) return;
         const totalRooms = (s.total_rooms || 0) + (s.deleted_rooms || 0);
         const totalFiles = (s.total_files || 0) + (s.deleted_files || 0);
         const totalBytes = (s.total_bytes || 0) + (s.deleted_bytes || 0);

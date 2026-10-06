@@ -5,7 +5,6 @@ import (
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
-	"log"
 	"net/http"
 	"time"
 
@@ -247,4 +246,3 @@ func HandleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
 // NOTE: auth.RequireUserSession is now implemented in user_auth.go.
 
 // Handler: Admin system settings
-

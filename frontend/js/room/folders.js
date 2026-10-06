@@ -13,9 +13,7 @@ async function createFolder() {
             name: folderName,
             parent_id: currentFolderId || ''
         });
-        
-        const data = await response.json();
-        
+
         if (data.success) {
             closeCreateFolderModal();
             await loadRoomContent();

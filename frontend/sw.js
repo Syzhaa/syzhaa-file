@@ -1,5 +1,5 @@
-const CACHE_NAME = 'ambilfile-v1.2.0';
-const RUNTIME_CACHE = 'ambilfile-runtime-v1.2.0';
+const CACHE_NAME = 'ambilfile-v1.2.1';
+const RUNTIME_CACHE = 'ambilfile-runtime-v1.2.1';
 
 // Assets to cache on install (ONLY static assets, NOT HTML/JS)
 const urlsToCache = [

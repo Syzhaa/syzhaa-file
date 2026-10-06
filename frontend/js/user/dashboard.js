@@ -122,7 +122,8 @@
         const ownerToken = localStorage.getItem('room_owner_token_' + roomId);
         if (ownerToken) headers['X-Room-Token'] = ownerToken;
         const res = await api('/api/room/' + roomId, { method: 'DELETE', headers: headers });
-                if (!res.ok) throw new Error('gagal');
+        // api() throws on HTTP error, so reaching here means success.
+        if (!res) throw new Error('gagal');
                 // Remove from local list and re-render
                 window._allRooms = (window._allRooms || []).filter(r => r.id !== roomId);
                 renderRooms(window._roomFilter || 'all');
