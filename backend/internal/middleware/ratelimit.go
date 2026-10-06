@@ -115,12 +115,33 @@ func ClientIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
+// isStaticAsset reports whether a path is a cacheable public static file.
+// Static assets must not consume the general rate-limit budget: a single page
+// load pulls ~15 of them, so counting them throttles legitimate users behind
+// shared IPs (offices, campuses, mobile NAT, automated browsers).
+func isStaticAsset(path string) bool {
+	for _, p := range []string{"/js/", "/css/", "/assets/"} {
+		if strings.HasPrefix(path, p) {
+			return true
+		}
+	}
+	if strings.HasPrefix(path, "/favicon") || strings.HasPrefix(path, "/icon-") {
+		return true
+	}
+	switch path {
+	case "/sw.js", "/manifest.json", "/og-image.jpg", "/apple-touch-icon.png", "/offline.html":
+		return true
+	}
+	return false
+}
+
 func RateLimitMiddleware(limiter *RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// /api/upload/* has its own dedicated UploadLimiter (per-chunk
-			// requests); don't double-limit it with the general limiter.
-			if limiter == GeneralLimiter && strings.HasPrefix(r.URL.Path, "/api/upload/") {
+			// requests); static assets are cacheable public files.
+			// Neither should consume the general limiter's abuse budget.
+			if limiter == GeneralLimiter && (strings.HasPrefix(r.URL.Path, "/api/upload/") || isStaticAsset(r.URL.Path)) {
 				next.ServeHTTP(w, r)
 				return
 			}
