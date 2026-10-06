@@ -49,6 +49,7 @@
                 const apiRequested = !!me.api_requested;
                 setDisplay('api-locked', apiApproved ? 'none' : 'block');
                 setDisplay('api-unlocked', apiApproved ? 'block' : 'none');
+                setDisplay('api-docs-card', apiApproved ? 'block' : 'none');
                 // Banner CTA paling atas
                 const banner = document.getElementById('api-cta-banner');
                 if (apiApproved) {

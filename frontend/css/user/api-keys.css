@@ -37,6 +37,21 @@
         .cta-banner.pending { background: #f8fafc; border-color: #e2e8f0; }
         .cta-banner.pending .material-symbols-outlined { color: #64748b; }
         @media (max-width: 560px) { .cta-banner { flex-wrap: wrap; } .cta-banner .btn { width: 100%; } }
+        /* API docs */
+        .inline-code { background: #f1f2f6; border-radius: 6px; padding: 2px 7px; font-size: 12.5px; font-family: ui-monospace, monospace; }
+        .endpoint { border: 1px solid #e8eaf0; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+        .ep-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .ep-head code { font-size: 13.5px; font-weight: 600; font-family: ui-monospace, monospace; word-break: break-all; }
+        .endpoint p { font-size: 13px; color: #6b7280; line-height: 1.6; }
+        .method { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px; letter-spacing: .5px; flex-shrink: 0; }
+        .method.post { background: #dcfce7; color: #15803d; }
+        .method.get { background: #dbeafe; color: #1d4ed8; }
+        .docs-sub { font-size: 14px; font-weight: 700; margin: 18px 0 8px; }
+        .codeblock { background: #1a1a2e; color: #e8eaf0; border-radius: 10px; padding: 14px 16px; font-size: 12.5px; line-height: 1.65; overflow-x: auto; font-family: ui-monospace, monospace; margin-bottom: 6px; }
+        .codeblock code { white-space: pre; }
+        .docs-note { display: flex; gap: 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; margin-top: 16px; }
+        .docs-note .material-symbols-outlined { color: #2563eb; font-size: 22px; flex-shrink: 0; }
+        .docs-note p { font-size: 13px; color: #1e40af; line-height: 1.6; }
         .newkey { display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px; margin-top: 14px; }
         .newkey p { font-size: 13px; color: #15803d; font-weight: 600; margin-bottom: 8px; }
         .keyval { display: flex; gap: 8px; align-items: center; }
