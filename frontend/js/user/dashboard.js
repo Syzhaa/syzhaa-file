@@ -64,4 +64,42 @@ async function logout() {
     window.location.href = '/';
 }
 
+function openCreateRoomSheet() {
+    document.getElementById('create-room-sheet').classList.add('open');
+}
+
+function closeCreateRoomSheet() {
+    document.getElementById('create-room-sheet').classList.remove('open');
+}
+
+async function submitCreateRoomSheet() {
+    const btn = document.getElementById('sheet-create-room-btn');
+    const val = parseInt(document.getElementById('sheet-expiry-value').value);
+    const unit = parseInt(document.getElementById('sheet-expiry-unit').value);
+    const minutes = val * unit;
+    if (!minutes || minutes < 10 || minutes > 10080) {
+        showInfoModal('Durasi tidak valid (10 menit - 7 hari)');
+        return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Membuat...';
+    try {
+        const data = await api.post('/api/room/create', { expiry_minutes: minutes });
+        if (data.room_id) {
+            if (data.owner_token) {
+                localStorage.setItem('room_owner_token_' + data.room_id, data.owner_token);
+            }
+            window.location.href = '/room.html?id=' + data.room_id;
+        } else {
+            showInfoModal('Gagal membuat ruangan');
+            btn.disabled = false;
+            btn.textContent = 'Buat Ruangan';
+        }
+    } catch {
+        showInfoModal('Tidak bisa terhubung ke server');
+        btn.disabled = false;
+        btn.textContent = 'Buat Ruangan';
+    }
+}
+
 load();

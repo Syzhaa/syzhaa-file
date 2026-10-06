@@ -10,7 +10,7 @@
     
     
     <script src="/js/api.js"></script>
-    <link rel="stylesheet" href="/css/pages/admin-dashboard.css">
+    <link rel="stylesheet" href="/css/pages/admin-dashboard.css?v=20261006d">
 </head>
 <body class="bg-surface-container-low font-body text-on-surface">
     
@@ -73,7 +73,7 @@
                     <span class="material-symbols-outlined">folder</span>
                     Ruangan
                 </a>
-                <a href="#" data-view="create-room" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
+                <a href="#" onclick="openCreateRoomSheet();return false;" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
                     <span class="material-symbols-outlined">add_circle</span>
                     Buat Room
                 </a>
@@ -245,25 +245,6 @@
                 <div id="admin-rooms-list" class="space-y-3"><p class="text-outline">Memuat...</p></div>
             </div>
 
-            <div id="view-create-room" class="p-6 space-y-6 hidden">
-                <h2 class="text-2xl font-headline font-bold">Buat Room Baru</h2>
-                <div class="bg-white p-6 rounded-2xl border border-outline-variant max-w-xl">
-                    <h3 class="text-lg font-headline font-semibold mb-1">Ruangan Baru</h3>
-                    <p class="text-sm text-outline mb-6">Pilih berapa lama room berlaku. Room admin tanpa batas kuota.</p>
-                    <label class="block text-sm font-semibold mb-2">Masa berlaku</label>
-                    <div class="flex gap-2 mb-2">
-                        <input type="number" id="admin-expiry-value" value="1" min="1" max="10080" class="flex-1 px-4 py-3 border border-outline-variant rounded-xl">
-                        <select id="admin-expiry-unit" class="px-4 py-3 border border-outline-variant rounded-xl bg-white">
-                            <option value="1">Menit</option>
-                            <option value="60" selected>Jam</option>
-                            <option value="1440">Hari</option>
-                        </select>
-                    </div>
-                    <p class="text-xs text-outline mb-6">Maksimal 7 hari. Minimal 10 menit.</p>
-                    <button onclick="createAdminRoom()" id="admin-create-room-btn" class="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:brightness-110 transition-all">Buat Ruangan</button>
-                </div>
-            </div>
-
             <div id="view-settings" class="p-6 space-y-6 hidden">
                 <h2 class="text-2xl font-headline font-bold">Pengaturan</h2>
 
@@ -311,7 +292,7 @@
                     <span class="material-symbols-outlined text-2xl">key</span>
                     <span>API Key</span>
                 </button>
-                <button data-bnav="create-room" onclick="switchView('create-room')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#737686">
+                <button data-bnav="create-room" onclick="openCreateRoomSheet()" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#737686">
                     <span class="material-symbols-outlined text-2xl">add_circle</span>
                     <span>Buat</span>
                 </button>
@@ -565,12 +546,36 @@
     </div>
 
 
+    <!-- Modal: Buat Room (bottom sheet di mobile) -->
+    <div id="modal-createRoomSheet" class="modal items-center justify-center" onclick="if(event.target===this)closeModal('createRoomSheet')">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md mx-4">
+            <div class="flex items-center justify-between mb-1">
+                <h3 class="text-xl font-headline font-bold">Buat Ruang Baru</h3>
+                <button onclick="closeModal('createRoomSheet')" class="text-outline hover:text-on-surface" aria-label="Tutup">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <p class="text-sm text-outline mb-6">Pilih berapa lama room berlaku. Room admin tanpa batas kuota.</p>
+            <label class="block text-sm font-semibold mb-2">Masa berlaku</label>
+            <div class="flex gap-2 mb-2">
+                <input type="number" id="sheet-expiry-value" value="1" min="1" max="10080" class="flex-1 px-4 py-3 border border-outline-variant rounded-xl">
+                <select id="sheet-expiry-unit" class="px-4 py-3 border border-outline-variant rounded-xl bg-white">
+                    <option value="1">Menit</option>
+                    <option value="60" selected>Jam</option>
+                    <option value="1440">Hari</option>
+                </select>
+            </div>
+            <p class="text-xs text-outline mb-6">Maksimal 7 hari. Minimal 10 menit.</p>
+            <button onclick="submitCreateRoomSheet()" id="sheet-create-room-btn" class="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:brightness-110 transition-all">Buat Ruangan</button>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script src="/js/admin/dashboard.js"></script>
     <script src="/js/admin/stats.js"></script>
     <script src="/js/admin/users-tab.js?v=20261006b"></script>
     <script src="/js/admin/apikeys.js"></script>
-    <script src="/js/admin/rooms-tab.js"></script>
+    <script src="/js/admin/rooms-tab.js?v=20261006d"></script>
     <script src="/js/admin/settings-tab.js"></script>
 </body>
 </html>

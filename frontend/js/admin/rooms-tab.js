@@ -27,9 +27,9 @@ async function joinRoom() {
 }
 
 async function createAdminRoom() {
-    const btn = document.getElementById('admin-create-room-btn');
-    const val = parseInt(document.getElementById('admin-expiry-value').value);
-    const unit = parseInt(document.getElementById('admin-expiry-unit').value);
+    const btn = document.getElementById('sheet-create-room-btn');
+    const val = parseInt(document.getElementById('sheet-expiry-value').value);
+    const unit = parseInt(document.getElementById('sheet-expiry-unit').value);
     const minutes = val * unit;
     if (!minutes || minutes < 10 || minutes > 10080) {
         showToast('Durasi tidak valid (10 menit - 7 hari)', 'error');
@@ -57,6 +57,14 @@ async function createAdminRoom() {
         btn.disabled = false;
         btn.textContent = 'Buat Ruangan';
     }
+}
+
+function openCreateRoomSheet() {
+    openModal('createRoomSheet');
+}
+
+function submitCreateRoomSheet() {
+    createAdminRoom();
 }
 
 async function loadAdminRooms() {

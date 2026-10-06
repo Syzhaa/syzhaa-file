@@ -48,6 +48,13 @@
                 max-height: 92vh;
                 overflow-y: auto;
                 animation: slideUp .3s ease-out;
+                padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+            }
+            /* Drag handle ala Android */
+            .modal > div::before {
+                content: ''; display: block;
+                width: 40px; height: 4px; border-radius: 99px;
+                background: #EAECF0; margin: 0 auto 16px;
             }
             @keyframes slideUp {
                 from { transform: translateY(100%); }

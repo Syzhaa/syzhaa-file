@@ -78,6 +78,14 @@
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         }
         .modal-box { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 16px 48px rgba(0,0,0,.15); }
+        /* Bottom sheet buat-room */
+        .sheet-box { text-align: left; max-width: 440px; }
+        .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+        .sheet-head h3 { font-size: 18px; font-weight: 800; }
+        .sheet-box .desc { font-size: 13px; color: #6b7280; margin-bottom: 18px; }
+        .flabel { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: block; }
+        .sheet-box .formrow select { padding: 11px 14px; border: 1.5px solid #e8eaf0; border-radius: 10px; font-size: 14px; font-family: inherit; background: #fff; }
+        .sheet-box .hint { font-size: 12px; color: #9ca3af; margin: 8px 0 20px; }
         .modal-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
         .modal-icon.ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
         .modal-icon.err { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
