@@ -233,6 +233,8 @@ async function loadStats() {
         
         // Update stat cards
         document.getElementById('stat-rooms').textContent = stats.total_rooms || 0;
+        const myRoomsEl = document.getElementById('stat-my-rooms');
+        if (myRoomsEl) myRoomsEl.textContent = stats.admin_rooms || 0;
         document.getElementById('stat-files').textContent = stats.total_files || 0;
         document.getElementById('stat-users').textContent = stats.total_users || 0;
         

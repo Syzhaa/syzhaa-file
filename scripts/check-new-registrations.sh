@@ -1,6 +1,6 @@
 #!/bin/bash
-# Check for new AmbilFile API key access requests since last check.
-# Prints new requests (name | email | api_requested_at), one per line.
+# Check for new AmbilFile user registrations since last check.
+# Prints new users (name | email | created_at), one per line.
 # Updates the watermark file on every run.
 set -u
 
@@ -23,6 +23,6 @@ if [ ! -f "$DB" ]; then
 fi
 
 sqlite3 -separator '|' "$DB" \
-    "SELECT name, email, api_requested_at FROM users WHERE api_requested_at IS NOT NULL AND api_requested_at > '$LAST' AND COALESCE(api_approved, 0) = 0 ORDER BY api_requested_at ASC;"
+    "SELECT name, email, created_at FROM users WHERE created_at > '$LAST' ORDER BY created_at ASC;"
 
 echo "$NOW" > "$WM"

@@ -18,6 +18,10 @@
         .userbox .name { font-size: 14px; font-weight: 600; }
         .logout { font-size: 13px; color: #dc2626; font-weight: 600; background: none; border: 0; cursor: pointer; font-family: inherit; }
         main { max-width: 880px; margin: 0 auto; padding: 32px 20px 120px; }
+        @media (min-width: 769px) {
+            main { max-width: 1200px; padding: 40px 32px 60px; }
+            .stats { grid-template-columns: repeat(4, 1fr); }
+        }
         h2 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
         .hello-sub { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
         .card { background: #fff; border: 1px solid #e8eaf0; border-radius: 14px; padding: 24px; margin-bottom: 20px; }
@@ -150,7 +154,15 @@
             </div>
             <div class="stat">
                 <span class="material-symbols-outlined">folder</span>
-                <div><div class="stat-num" id="stat-rooms">0</div><div class="stat-lbl">Ruangan</div></div>
+                <div><div class="stat-num" id="stat-rooms">0</div><div class="stat-lbl">Total Ruangan</div></div>
+            </div>
+            <div class="stat">
+                <span class="material-symbols-outlined" style="color:#15803d">folder_open</span>
+                <div><div class="stat-num" id="stat-rooms-active">0</div><div class="stat-lbl">Room Aktif</div></div>
+            </div>
+            <div class="stat">
+                <span class="material-symbols-outlined" style="color:#9ca3af">history</span>
+                <div><div class="stat-num" id="stat-rooms-expired">0</div><div class="stat-lbl">Room Kadaluarsa</div></div>
             </div>
         </div>
 
@@ -288,7 +300,13 @@
 
             try {
                 const rooms = await api('/user/rooms');
-                setText('stat-rooms', (rooms.rooms || []).length);
+                const list = rooms.rooms || [];
+                const now = new Date();
+                const active = list.filter(r => new Date(r.expires_at) > now).length;
+                const expired = list.length - active;
+                setText('stat-rooms', list.length);
+                setText('stat-rooms-active', active);
+                setText('stat-rooms-expired', expired);
                 const rl = document.getElementById('rooms-list');
                 if (rl) {
                     if (!rooms.rooms || !rooms.rooms.length) {

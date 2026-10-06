@@ -262,10 +262,12 @@ func handleAdminStats(w http.ResponseWriter, r *http.Request) {
 
 	var totalRooms, activeRooms, totalFiles int64
 	var totalSize int64
+	var adminRooms int64
 
 	db.QueryRow("SELECT COUNT(*) FROM rooms WHERE expires_at > ?", time.Now().Format(time.RFC3339)).Scan(&totalRooms)
 	db.QueryRow("SELECT COUNT(*) FROM rooms WHERE expires_at > ?", time.Now().Format(time.RFC3339)).Scan(&activeRooms)
 	db.QueryRow("SELECT COUNT(*), COALESCE(SUM(size), 0) FROM files").Scan(&totalFiles, &totalSize)
+	db.QueryRow("SELECT COUNT(*) FROM rooms WHERE COALESCE(no_quota, 0) = 1").Scan(&adminRooms)
 
 	var apiKeyCount int64
 	db.QueryRow("SELECT COUNT(*) FROM api_keys WHERE admin_id = ? AND is_active = 1", admin.ID).Scan(&apiKeyCount)
@@ -276,6 +278,7 @@ func handleAdminStats(w http.ResponseWriter, r *http.Request) {
 		"stats": map[string]interface{}{
 			"total_rooms":     totalRooms,
 			"active_rooms":    activeRooms,
+			"admin_rooms":     adminRooms,
 			"total_files":     totalFiles,
 			"total_size":      totalSize,
 			"api_keys_active": apiKeyCount,
