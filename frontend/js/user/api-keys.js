@@ -143,7 +143,7 @@
         }
 
         async function logout() {
-            await fetch('/auth/user/logout', { method: 'POST' });
+            await api.post('/auth/user/logout');
             window.location.href = '/';
         }
 

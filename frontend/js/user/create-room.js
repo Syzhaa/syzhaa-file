@@ -62,6 +62,9 @@
             try {
                 const data = await api.post('/api/room/create', { expiry_minutes: expiryMinutes });
                 if (data.room_id) {
+                    if (data.owner_token) {
+                        localStorage.setItem('room_owner_token_' + data.room_id, data.owner_token);
+                    }
                     window.location.href = '/room.html?id=' + data.room_id;
                 } else {
                     showInfoModal('Gagal membuat ruangan: ' + (data.error || 'Unknown error'));

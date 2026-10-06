@@ -118,7 +118,10 @@
         async function deleteRoom(roomId) {
             if (!confirm('Hapus room ini? Semua file di dalamnya akan ikut terhapus dan tidak bisa dikembalikan.')) return;
             try {
-                const res = await fetch('/api/room/' + roomId, { method: 'DELETE', credentials: 'include' });
+                const headers = {};
+        const ownerToken = localStorage.getItem('room_owner_token_' + roomId);
+        if (ownerToken) headers['X-Room-Token'] = ownerToken;
+        const res = await api('/api/room/' + roomId, { method: 'DELETE', headers: headers });
                 if (!res.ok) throw new Error('gagal');
                 // Remove from local list and re-render
                 window._allRooms = (window._allRooms || []).filter(r => r.id !== roomId);
@@ -199,7 +202,7 @@
         }
 
         async function logout() {
-            await fetch('/auth/user/logout', { method: 'POST' });
+            await api.post('/auth/user/logout');
             window.location.href = '/';
         }
 

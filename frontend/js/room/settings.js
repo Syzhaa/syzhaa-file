@@ -2,16 +2,17 @@
 
 async function setRoomPermission(perm) {
     try {
-        const res = await fetch(`/api/room/${currentRoom.id}/settings`, {
+        const headers = {};
+        const ownerToken = localStorage.getItem('room_owner_token_' + currentRoom.id);
+        if (ownerToken) headers['X-Room-Token'] = ownerToken;
+        await api(`/api/room/${currentRoom.id}/settings`, {
             method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({permission: perm})
+            body: JSON.stringify({permission: perm}),
+            headers: headers
         });
-        if (res.ok) {
-            currentRoom.permission = perm;
-            renderShareSettings();
-            await loadRoomContent();
-        }
+        currentRoom.permission = perm;
+        renderShareSettings();
+        await loadRoomContent();
     } catch (e) {
         showInfoModal('Gagal memperbarui izin');
     }
@@ -20,16 +21,17 @@ async function setRoomPermission(perm) {
 async function toggleAllowDelete() {
     try {
         const newVal = !(currentRoom.allow_delete !== false);
-        const res = await fetch(`/api/room/${currentRoom.id}/settings`, {
+        const headers = {};
+        const ownerToken = localStorage.getItem('room_owner_token_' + currentRoom.id);
+        if (ownerToken) headers['X-Room-Token'] = ownerToken;
+        await api(`/api/room/${currentRoom.id}/settings`, {
             method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({allow_delete: newVal})
+            body: JSON.stringify({allow_delete: newVal}),
+            headers: headers
         });
-        if (res.ok) {
-            currentRoom.allow_delete = newVal;
-            renderShareSettings();
-            await loadRoomContent();
-        }
+        currentRoom.allow_delete = newVal;
+        renderShareSettings();
+        await loadRoomContent();
     } catch (e) {
         showInfoModal('Gagal memperbarui pengaturan');
     }

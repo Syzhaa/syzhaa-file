@@ -45,13 +45,7 @@ async function joinRoom() {
     }
     
     try {
-        const response = await fetch('/api/room/pin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pin })
-        });
-        
-        const data = await response.json();
+        const data = await api.post('/api/room/pin', { pin });
         
         if (data.success) {
             closeModal('joinPin');
@@ -82,6 +76,9 @@ async function createAdminRoom() {
             body: JSON.stringify({ expiry_minutes: minutes })
         });
         if (data && data.room_id) {
+            if (data.owner_token) {
+                localStorage.setItem('room_owner_token_' + data.room_id, data.owner_token);
+            }
             window.location.href = '/room.html?id=' + data.room_id;
         } else {
             showToast('Gagal membuat ruangan', 'error');
@@ -150,7 +147,10 @@ function filterAdminRooms(f) {
 async function deleteAdminRoom(roomId) {
     if (!confirm('Hapus room ini? Semua file di dalamnya akan ikut terhapus dan tidak bisa dikembalikan.')) return;
     try {
-        const res = await fetch('/api/room/' + roomId, { method: 'DELETE', credentials: 'include' });
+        const headers = {};
+        const ownerToken = localStorage.getItem('room_owner_token_' + roomId);
+        if (ownerToken) headers['X-Room-Token'] = ownerToken;
+        const res = await api('/api/room/' + roomId, { method: 'DELETE', headers: headers });
         if (!res.ok) throw new Error('gagal');
         _adminRooms = _adminRooms.filter(r => r.id !== roomId);
         renderAdminRooms();

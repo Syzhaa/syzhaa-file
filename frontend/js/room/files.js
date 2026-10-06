@@ -169,17 +169,10 @@ async function deleteFile(fileId) {
     showConfirmModal('Yakin ingin menghapus file ini?', 'Hapus', async () => {
     
     try {
-        const response = await fetch(`/api/file/${fileId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            await loadTotalFileCount();
-            await loadRoomContent();
-            updateTotalFileDisplay();
-        } else {
-            showInfoModal('Gagal menghapus file');
-        }
+        await api.del(`/api/file/${fileId}`);
+        await loadTotalFileCount();
+        await loadRoomContent();
+        updateTotalFileDisplay();
     } catch (error) {
         console.error('Delete error:', error);
         showInfoModal('Gagal menghapus file');
@@ -270,8 +263,7 @@ async function loadFiles() {
             ? `/api/room/${roomId}?folder_id=${currentFolderId}`
             : `/api/room/${roomId}`;
         
-        const response = await fetch(url);
-        const data = await response.json();
+        const data = await api.get(url);
         
         if (data.room) {
             currentFiles = data.files || [];

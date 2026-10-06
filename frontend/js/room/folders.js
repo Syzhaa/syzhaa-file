@@ -9,13 +9,9 @@ async function createFolder() {
     }
     
     try {
-        const response = await fetch(`/api/folder/create/${roomId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: folderName,
-                parent_id: currentFolderId || ''
-            })
+        const data = await api.post(`/api/folder/create/${roomId}`, {
+            name: folderName,
+            parent_id: currentFolderId || ''
         });
         
         const data = await response.json();
@@ -38,8 +34,7 @@ async function loadFolders() {
             ? `/api/folders/${roomId}?parent_id=${currentFolderId}`
             : `/api/folders/${roomId}`;
         
-        const response = await fetch(url);
-        const data = await response.json();
+        const data = await api.get(url);
         
         if (data.success) {
             currentFolders = data.folders || [];
@@ -165,19 +160,11 @@ async function deleteFolder(folderId) {
     showConfirmModal('Hapus folder ini? Semua file dan subfolder di dalamnya akan ikut terhapus.', 'Hapus', async () => {
     
     try {
-        const response = await fetch(`/api/folder/${folderId}`, {
-            method: 'DELETE'
-        });
+        await api.del(`/api/folder/${folderId}`);
         
-        const data = await response.json();
-        
-        if (data.success) {
-            await loadTotalFileCount();
-            await loadRoomContent();
-            updateTotalFileDisplay();
-        } else {
-            showInfoModal('Gagal menghapus folder');
-        }
+        await loadTotalFileCount();
+        await loadRoomContent();
+        updateTotalFileDisplay();
     } catch (error) {
         console.error('Delete folder error:', error);
         showInfoModal('Gagal menghapus folder');

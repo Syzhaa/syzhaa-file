@@ -55,6 +55,9 @@ async function createRoom() {
         const response = await api.post('/api/room/create', { expiry_minutes: expiryMinutes });
         const data = await response.json();
         if (data.success) {
+            if (data.owner_token) {
+                localStorage.setItem('room_owner_token_' + data.room_id, data.owner_token);
+            }
             window.location.href = '/room.html?id=' + data.room_id;
         } else {
             showInfoModal('Gagal membuat ruangan: ' + (data.error || 'Unknown error'));
@@ -78,6 +81,9 @@ async function joinRoom() {
         const response = await api.post('/api/room/pin', { pin });
         const data = await response.json();
         if (data.success) {
+            if (data.owner_token) {
+                localStorage.setItem('room_owner_token_' + data.room_id, data.owner_token);
+            }
             window.location.href = '/room.html?id=' + data.room_id;
         } else {
             showInfoModal('PIN tidak valid atau ruangan sudah kadaluarsa');
