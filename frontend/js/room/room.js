@@ -40,11 +40,10 @@ async function loadRoom(roomId) {
         currentRoom = data.room;
         currentRoom.permission = data.permission || 'both';
         currentRoom.allow_delete = data.allow_delete !== false;
-        // Update quota label
-        if (data.quota_info && data.quota_info.label) {
-            const ql = document.getElementById('quota-label');
-            if (ql) ql.textContent = 'Maksimal ' + data.quota_info.label + ' total per ruangan';
-        }
+        // Simpan info kuota di currentRoom supaya renderRoom() bisa pakai
+        // (jangan update DOM di sini — renderRoom() me-render ulang semuanya)
+        currentRoom.quota_label = (data.quota_info && data.quota_info.label) ? data.quota_info.label : '1 GB';
+        currentRoom.quota_unlimited = !!(data.quota_info && data.quota_info.unlimited);
         await loadTotalFileCount();
         renderRoom();
         await loadRoomContent();

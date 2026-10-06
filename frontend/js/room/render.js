@@ -48,7 +48,7 @@ function renderRoom() {
             <h3 class="text-lg font-bold mb-1.5">Tarik & letakkan file di sini</h3>
             <p class="text-muted text-sm mb-4">atau <span class="font-semibold text-ink underline underline-offset-2">klik untuk memilih</span></p>
             <input type="file" id="file-input" multiple class="hidden" onchange="handleFileSelect(event)">
-            <p class="text-xs text-muted mt-4" id="quota-label">Maksimal 1 GB total per ruangan</p>
+            <p class="text-xs text-muted mt-4" id="quota-label">${currentRoom.quota_unlimited ? 'Tanpa batas kuota' : 'Maksimal ' + (currentRoom.quota_label || '1 GB') + ' total per ruangan'}</p>
         </div>
 
         <!-- File List -->
