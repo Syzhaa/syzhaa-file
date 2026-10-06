@@ -9,6 +9,23 @@ let uploadAbortController = null;
 let uploadStartTime = null;
 let uploadedBytes = 0;
 let countdownInterval = null;
+let homeDestination = '/'; // tujuan tombol home: '/' anonim, '/user' atau '/admin' kalau login
+
+// Kalau sudah login, tombol home di room mengarah ke dashboard
+// (user -> /user, admin -> /admin). Non-login tetap ke landing page.
+async function updateHomeLinks() {
+    try {
+        const data = await api.get('/user/me', { noRedirect: true });
+        if (data && data.user && !data.error) homeDestination = '/user';
+    } catch { /* bukan sesi user */ }
+    if (homeDestination === '/') {
+        try {
+            const adm = await api.get('/admin/me', { noRedirect: true });
+            if (adm && adm.admin && !adm.error) homeDestination = '/admin';
+        } catch { /* tetap landing */ }
+    }
+    document.querySelectorAll('[data-home-link]').forEach(a => { a.href = homeDestination; });
+}
 
 // Load room on page load
 window.addEventListener('DOMContentLoaded', async () => {
@@ -21,6 +38,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
+    updateHomeLinks(); // jalan paralel, tidak menghambat load room
     await loadRoom(roomId);
 });
 

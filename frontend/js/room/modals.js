@@ -8,7 +8,7 @@ function showErrorModal(title, message) {
 
 function closeErrorModal() {
     document.getElementById('error-modal').classList.add('hidden');
-    window.location.href = '/';
+    window.location.href = (typeof homeDestination !== 'undefined' && homeDestination) || '/';
 }
 
 function showInfoModal(message, success = false) {
