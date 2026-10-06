@@ -80,3 +80,8 @@ backend/uploads/
 # Logs
 *.log
 server.log
+
+# Tailwind build output (generated, not source)
+# NOTE: dist-output.css is currently used in production.
+# Do NOT delete it until build is verified in CI/deploy.
+# frontend/dist-output.css
