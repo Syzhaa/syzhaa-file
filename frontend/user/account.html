@@ -87,10 +87,52 @@
         .modal-msg { font-size: 14px; font-weight: 500; margin-bottom: 20px; line-height: 1.5; }
         .modal-btn { width: 100%; padding: 12px; background: #1a1a2e; color: #fff; border: 0; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
         .modal-btn:hover { background: #000; }
+        /* Desktop sidebar */
+        .sidebar { display: none; }
+        @media (min-width: 769px) {
+            body { display: flex; }
+            .sidebar {
+                display: flex; flex-direction: column;
+                width: 240px; min-height: 100vh;
+                background: #fff; border-right: 1px solid #e8eaf0;
+                position: sticky; top: 0; height: 100vh;
+                padding: 20px 12px;
+            }
+            .sidebar .logo { font-weight: 800; font-size: 20px; color: #1a1a2e; text-decoration: none; padding: 8px 12px 20px; }
+            .sidebar .logo span { color: #F6821F; }
+            .snav-item {
+                display: flex; align-items: center; gap: 12px;
+                padding: 11px 12px; border-radius: 10px;
+                color: #6b7280; text-decoration: none;
+                font-size: 14px; font-weight: 600; margin-bottom: 4px;
+            }
+            .snav-item .material-symbols-outlined { font-size: 22px; }
+            .snav-item:hover { background: #f7f8fa; color: #1a1a2e; }
+            .snav-item.active { background: #fff4e8; color: #F6821F; }
+            .sidebar .spacer { flex: 1; }
+            .sidebar .side-user { padding: 12px; border-top: 1px solid #e8eaf0; font-size: 13px; }
+            .sidebar .side-user .nm { font-weight: 700; }
+            .sidebar .side-user button { color: #dc2626; font-weight: 600; background: none; border: 0; cursor: pointer; font-size: 13px; padding: 4px 0; font-family: inherit; }
+            .page-wrap { flex: 1; min-width: 0; }
+            header.mobile-header { display: none; }
+        }
+
     </style>
 </head>
 <body>
-    <header>
+    <aside class="sidebar">
+        <a class="logo" href="/">Ambil<span>File</span></a>
+            <a href="/user/" class="snav-item"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+            <a href="/user/api-keys.html" class="snav-item"><span class="material-symbols-outlined">key</span>API Key</a>
+            <a href="/user/account.html" class="snav-item active"><span class="material-symbols-outlined">person</span>Akun</a>
+        <div class="spacer"></div>
+        <div class="side-user">
+            <div class="nm" id="side-user-name">…</div>
+            <button onclick="logout()">Keluar</button>
+        </div>
+    </aside>
+    <div class="page-wrap">
+    <header class="mobile-header">
         <a class="logo" href="/">Ambil<span>File</span></a>
         <div class="userbox">
             <span class="name" id="user-name">…</span>
@@ -233,6 +275,7 @@
                 const me = await api('/user/me');
                 const u = me.user;
                 setText('user-name', u.name);
+                setText('side-user-name', u.name);
                 setText('acc-name', u.name);
                 setText('acc-email', u.email);
                 setText('acc-since', new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }));
@@ -314,5 +357,6 @@
 
         load();
     </script>
+    </div><!-- /page-wrap -->
 </body>
 </html>
