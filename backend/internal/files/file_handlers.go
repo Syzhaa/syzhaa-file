@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -25,6 +26,18 @@ const (
 	UploadDir = "./uploads"
 	MaxMemory = 100 << 20 // 100MB untuk buffer upload
 )
+
+// safeFileIDPattern allows only characters that can never form a path
+// (no slashes, no backslashes, no ".."). Applied to client-supplied fileId.
+var safeFileIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)
+
+// sanitizeFileID rejects path traversal attempts in the client-supplied file ID.
+func sanitizeFileID(id string) (string, bool) {
+	if !safeFileIDPattern.MatchString(id) {
+		return "", false
+	}
+	return id, true
+}
 
 func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -52,6 +65,18 @@ func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	mimeType := r.FormValue("mimeType")
 	totalSize := r.FormValue("totalSize")
 
+	// Reject path traversal via fileId (e.g. "../x") and non-numeric chunkIndex.
+	var ok bool
+	if fileID, ok = sanitizeFileID(fileID); !ok {
+		httpx.WriteError(w, http.StatusBadRequest, "Invalid file ID")
+		return
+	}
+	chunkIdx, err := strconv.Atoi(chunkIndex)
+	if err != nil || chunkIdx < 0 {
+		httpx.WriteError(w, http.StatusBadRequest, "Invalid chunk index")
+		return
+	}
+
 	fileChunkDir := filepath.Join(ChunkDir, fileID)
 	os.MkdirAll(fileChunkDir, 0755)
 
@@ -64,7 +89,6 @@ func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	defer out.Close()
 	io.Copy(out, file)
 
-	chunkIdx, _ := strconv.Atoi(chunkIndex)
 	totalChunk, _ := strconv.Atoi(totalChunks)
 
 	// Check if last chunk

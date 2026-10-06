@@ -18,9 +18,34 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// apiKeyMayAccessRoom reports whether the API key in the request context may
+// access the given room. Admin-owned keys (no user_id) have full access;
+// user-owned keys may only access rooms they own. Anonymous rooms are never
+// accessible via a user-owned key.
+func apiKeyMayAccessRoom(r *http.Request, roomID string) bool {
+	apiKey, ok := r.Context().Value("api_key").(*apikeys.APIKey)
+	if !ok || apiKey == nil {
+		return false
+	}
+	if apiKey.UserID == "" {
+		return true // admin-owned key: full access
+	}
+	var owner sql.NullString
+	if err := db.DB.QueryRow("SELECT user_id FROM rooms WHERE id = ?", roomID).Scan(&owner); err != nil {
+		return false
+	}
+	return owner.Valid && owner.String != "" && owner.String == apiKey.UserID
+}
+
 func HandleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
+
+	// Ownership scope: user-owned API keys may only access their own rooms.
+	if !apiKeyMayAccessRoom(r, roomID) {
+		http.Error(w, `{"error":"Tidak diizinkan"}`, http.StatusForbidden)
+		return
+	}
 
 	var expiresAt time.Time
 	err := db.DB.QueryRow("SELECT expires_at FROM rooms WHERE id = ?", roomID).Scan(&expiresAt)
@@ -76,6 +101,12 @@ func HandleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 func HandleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
+
+	// Ownership scope: user-owned API keys may only access their own rooms.
+	if !apiKeyMayAccessRoom(r, roomID) {
+		http.Error(w, `{"error":"Tidak diizinkan"}`, http.StatusForbidden)
+		return
+	}
 
 	var expiresAt time.Time
 	err := db.DB.QueryRow("SELECT expires_at FROM rooms WHERE id = ?", roomID).Scan(&expiresAt)
@@ -154,6 +185,12 @@ func HandleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
 func HandleAPIGetRoomLink(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
+
+	// Ownership scope: user-owned API keys may only access their own rooms.
+	if !apiKeyMayAccessRoom(r, roomID) {
+		http.Error(w, `{"error":"Tidak diizinkan"}`, http.StatusForbidden)
+		return
+	}
 
 	var pin string
 	var expiresAt time.Time
