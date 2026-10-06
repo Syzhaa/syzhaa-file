@@ -1,12 +1,11 @@
 package rooms
 
 import (
-	"github.com/syzhaa/file-server/internal/db"
 	"database/sql"
 	"fmt"
+	"github.com/syzhaa/file-server/internal/db"
 	"strconv"
 )
-
 
 func formatBytes(b int64) string {
 	const unit = 1024
@@ -21,7 +20,6 @@ func formatBytes(b int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
-
 func formatBytesID(b int64) string {
 	const gb = 1024 * 1024 * 1024
 	const mb = 1024 * 1024
@@ -30,7 +28,6 @@ func formatBytesID(b int64) string {
 	}
 	return strconv.FormatInt(b/mb, 10) + " MB"
 }
-
 
 func GetRoomQuotaInfo(roomID string) map[string]interface{} {
 	var noQuota int
@@ -62,7 +59,6 @@ func GetRoomQuotaInfo(roomID string) map[string]interface{} {
 //   - Room owned by a logged-in user: user's storage_limit_mb (default 2GB),
 //     usage counted across all of the user's rooms.
 //   - Anonymous room: anonymous_storage_limit_mb (default 1GB) per room.
-
 
 func CheckStorageQuota(roomID string, incomingBytes int64) string {
 	// Admin-created rooms have no quota limit (full access)
@@ -107,4 +103,3 @@ func CheckStorageQuota(roomID string, incomingBytes int64) string {
 	}
 	return ""
 }
-

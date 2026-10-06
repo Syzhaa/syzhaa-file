@@ -1,12 +1,12 @@
 package auth
 
 import (
-	"github.com/syzhaa/file-server/internal/db"
-	"github.com/syzhaa/file-server/internal/httpx"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"github.com/syzhaa/file-server/internal/db"
+	"github.com/syzhaa/file-server/internal/httpx"
 	"log"
 	"net/http"
 	"os"
@@ -17,12 +17,12 @@ import (
 )
 
 type AdminUser struct {
-	ID          string     `json:"id"`
-	Email       string     `json:"email"`
-	Name        string     `json:"name"`
-	CreatedAt   time.Time  `json:"created_at"`
-	LastLogin   *time.Time `json:"last_login,omitempty"`
-	IsSuperAdmin int       `json:"is_super_admin"`
+	ID           string     `json:"id"`
+	Email        string     `json:"email"`
+	Name         string     `json:"name"`
+	CreatedAt    time.Time  `json:"created_at"`
+	LastLogin    *time.Time `json:"last_login,omitempty"`
+	IsSuperAdmin int        `json:"is_super_admin"`
 }
 
 type AdminSession struct {
@@ -61,7 +61,7 @@ func InitAdminDefaults(email, name, password string) {
 	// Check if admin already exists
 	var exists bool
 	err := db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ?)", email).Scan(&exists)
-	
+
 	if err != nil {
 		log.Printf("❌ Failed to check admin existence: %v", err)
 		return
@@ -153,7 +153,7 @@ func HandleAdminLogin(w http.ResponseWriter, r *http.Request) {
 		FROM admin_users
 		WHERE email = ? AND password_hash = ?
 	`, req.Email, passwordHash).Scan(
-		&admin.ID, &admin.Email, &admin.Name, 
+		&admin.ID, &admin.Email, &admin.Name,
 		&admin.CreatedAt, &admin.LastLogin, &admin.IsSuperAdmin)
 
 	if err == sql.ErrNoRows {
@@ -255,9 +255,9 @@ func ValidateAdminSession(r *http.Request) (*AdminUser, error) {
 // Handler: Get current admin info
 func HandleAdminMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	admin := r.Context().Value("admin").(*AdminUser)
-	
+
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"admin":   admin,

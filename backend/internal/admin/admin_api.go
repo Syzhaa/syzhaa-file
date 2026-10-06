@@ -1,15 +1,14 @@
 package admin
 
-
 import (
-	"github.com/syzhaa/file-server/internal/rooms"
+	"archive/zip"
+	"database/sql"
+	"fmt"
 	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
-	"archive/zip"
-	"database/sql"
-	"fmt"
+	"github.com/syzhaa/file-server/internal/rooms"
 	"io"
 	"net/http"
 	"os"

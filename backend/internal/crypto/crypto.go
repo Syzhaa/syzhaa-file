@@ -17,9 +17,9 @@ import (
 
 const (
 	// Encryption constants
-	KeySize   = 32 // AES-256
-	SaltSize  = 32 // 256 bits
-	NonceSize = 12 // GCM standard nonce size
+	KeySize    = 32     // AES-256
+	SaltSize   = 32     // 256 bits
+	NonceSize  = 12     // GCM standard nonce size
 	Iterations = 100000 // PBKDF2 iterations
 )
 

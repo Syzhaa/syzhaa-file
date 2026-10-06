@@ -21,17 +21,17 @@ func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 		limit:    limit,
 		window:   window,
 	}
-	
+
 	// Start cleanup goroutine
 	go rl.cleanup()
-	
+
 	return rl
 }
 
 func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		rl.mu.Lock()
 		now := time.Now()
@@ -55,10 +55,10 @@ func (rl *RateLimiter) cleanup() {
 func (rl *RateLimiter) Allow(key string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
-	
+
 	now := time.Now()
 	cutoff := now.Add(-rl.window)
-	
+
 	// Clean old requests
 	reqs := rl.requests[key]
 	var validReqs []time.Time
@@ -67,11 +67,11 @@ func (rl *RateLimiter) Allow(key string) bool {
 			validReqs = append(validReqs, t)
 		}
 	}
-	
+
 	if len(validReqs) >= rl.limit {
 		return false
 	}
-	
+
 	validReqs = append(validReqs, now)
 	rl.requests[key] = validReqs
 	return true

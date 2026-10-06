@@ -1,16 +1,16 @@
 package rooms
 
 import (
-	"github.com/syzhaa/file-server/internal/auth"
-	"github.com/syzhaa/file-server/internal/db"
-	"github.com/syzhaa/file-server/internal/httpx"
 	"crypto/rand"
 	"crypto/subtle"
 	"database/sql"
 	"fmt"
+	"github.com/syzhaa/file-server/internal/auth"
+	"github.com/syzhaa/file-server/internal/db"
+	"github.com/syzhaa/file-server/internal/httpx"
+	"math/big"
 	"net/http"
 	"os"
-	"math/big"
 	"path/filepath"
 	"time"
 
@@ -36,7 +36,6 @@ type Room struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-
 func GeneratePin() (string, error) {
 	for {
 		n, err := rand.Int(rand.Reader, big.NewInt(900000))
@@ -44,7 +43,7 @@ func GeneratePin() (string, error) {
 			return "", err
 		}
 		pin := fmt.Sprintf("%06d", n.Int64()+100000)
-		
+
 		var exists bool
 		err = db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE pin = ?)", pin).Scan(&exists)
 		if err != nil {
@@ -55,7 +54,6 @@ func GeneratePin() (string, error) {
 		}
 	}
 }
-
 
 func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -110,7 +108,6 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
 func AccessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Pin string `json:"pin"`
@@ -147,7 +144,6 @@ func AccessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/stats — public statistics (total rooms created, total files uploaded)
 
-
 func GetRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
@@ -173,7 +169,7 @@ func GetRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get folder_id query parameter for filtering
 	folderID := r.URL.Query().Get("folder_id")
-	
+
 	var rows *sql.Rows
 	if folderID != "" {
 		// Get files in specific folder
@@ -198,16 +194,15 @@ func GetRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"room":        room,
-		"files":       files,
-		"quota_info":  GetRoomQuotaInfo(roomID),
-		"permission":  permission.String,
+		"room":         room,
+		"files":        files,
+		"quota_info":   GetRoomQuotaInfo(roomID),
+		"permission":   permission.String,
 		"allow_delete": allowDelete.Int64 == 1,
 	})
 }
 
 // PUT /api/room/{id}/settings — update room permission settings (owner)
-
 
 func UpdateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -256,7 +251,6 @@ func UpdateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // getRoomQuotaInfo returns quota display info for a room
-
 
 // DELETE /api/room/{id} — delete a room (owner or admin only)
 func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {

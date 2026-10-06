@@ -1,12 +1,12 @@
 package auth
 
 import (
-	"github.com/syzhaa/file-server/internal/db"
 	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/syzhaa/file-server/internal/db"
 	"log"
 	"net/http"
 	"os"

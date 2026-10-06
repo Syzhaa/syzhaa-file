@@ -1,10 +1,10 @@
 package auth
 
 import (
-	"github.com/syzhaa/file-server/internal/db"
-	"github.com/syzhaa/file-server/internal/httpx"
 	"context"
 	"database/sql"
+	"github.com/syzhaa/file-server/internal/db"
+	"github.com/syzhaa/file-server/internal/httpx"
 	"net/http"
 	"strings"
 	"time"
@@ -149,7 +149,6 @@ func HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
 // POST /auth/user/login — DISABLED: user login is Google-only now
 func HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -191,12 +190,12 @@ func HandleUserMe(w http.ResponseWriter, r *http.Request) {
 		user.ID).Scan(&apiApproved, &apiRequestedAt)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"success":             true,
-		"user":                user,
-		"storage_used_bytes":  usedBytes,
-		"storage_used_label":  httpx.FormatBytesID(usedBytes),
-		"api_approved":        apiApproved == 1,
-		"api_requested":       apiRequestedAt.Valid,
+		"success":            true,
+		"user":               user,
+		"storage_used_bytes": usedBytes,
+		"storage_used_label": httpx.FormatBytesID(usedBytes),
+		"api_approved":       apiApproved == 1,
+		"api_requested":      apiRequestedAt.Valid,
 	})
 }
 

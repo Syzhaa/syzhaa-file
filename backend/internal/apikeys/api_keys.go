@@ -1,10 +1,10 @@
 package apikeys
 
 import (
+	"database/sql"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
-	"database/sql"
 	"net/http"
 	"time"
 
@@ -25,8 +25,8 @@ type APIKey struct {
 }
 
 type CreateAPIKeyRequest struct {
-	Name           string `json:"name"`
-	ExpiryDays     *int   `json:"expiry_days"` // null = never expires
+	Name       string `json:"name"`
+	ExpiryDays *int   `json:"expiry_days"` // null = never expires
 }
 
 // Generate API Key (format: sfa_xxxxxxxxxxxxxxxxxxxxx)

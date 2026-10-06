@@ -2,11 +2,11 @@ package main
 
 import (
 	"github.com/syzhaa/file-server/internal/admin"
-	"github.com/syzhaa/file-server/internal/files"
-	"github.com/syzhaa/file-server/internal/rooms"
 	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
+	"github.com/syzhaa/file-server/internal/files"
 	"github.com/syzhaa/file-server/internal/middleware"
+	"github.com/syzhaa/file-server/internal/rooms"
 	"log"
 	"net/http"
 
@@ -47,7 +47,7 @@ func setupRoutes() *mux.Router {
 	adminRouter.HandleFunc("/api-keys", apikeys.HandleCreateAPIKey).Methods("POST")
 	adminRouter.HandleFunc("/api-keys/{id}", apikeys.HandleDeleteAPIKey).Methods("DELETE")
 	adminRouter.HandleFunc("/api-keys/{id}/toggle", apikeys.HandleToggleAPIKey).Methods("POST")
-	
+
 	// Admin user management routes
 	adminRouter.HandleFunc("/users", admin.HandleAdminListUsers).Methods("GET")
 	adminRouter.HandleFunc("/rooms", admin.HandleAdminListRooms).Methods("GET")

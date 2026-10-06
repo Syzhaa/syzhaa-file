@@ -26,36 +26,36 @@ func GenerateCSRFToken() string {
 
 func CreateCSRFToken(sessionID string) string {
 	token := GenerateCSRFToken()
-	
+
 	csrfMutex.Lock()
 	csrfTokens[sessionID] = CSRFToken{
 		Token:     token,
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 	csrfMutex.Unlock()
-	
+
 	// Cleanup expired tokens
 	go CleanupExpiredCSRFTokens()
-	
+
 	return token
 }
 
 func ValidateCSRFToken(sessionID, token string) bool {
 	csrfMutex.RLock()
 	defer csrfMutex.RUnlock()
-	
+
 	storedToken, exists := csrfTokens[sessionID]
 	if !exists || time.Now().After(storedToken.ExpiresAt) {
 		return false
 	}
-	
+
 	return storedToken.Token == token
 }
 
 func CleanupExpiredCSRFTokens() {
 	csrfMutex.Lock()
 	defer csrfMutex.Unlock()
-	
+
 	now := time.Now()
 	for sessionID, token := range csrfTokens {
 		if now.After(token.ExpiresAt) {
@@ -71,26 +71,26 @@ func CsrfMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// Skip for download endpoint
 		if r.URL.Path[:3] == "/d/" {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		sessionID := r.Header.Get("X-Session-ID")
 		csrfToken := r.Header.Get("X-CSRF-Token")
-		
+
 		if sessionID == "" || csrfToken == "" {
 			http.Error(w, `{"error":"Missing CSRF token"}`, http.StatusForbidden)
 			return
 		}
-		
+
 		if !ValidateCSRFToken(sessionID, csrfToken) {
 			http.Error(w, `{"error":"Invalid CSRF token"}`, http.StatusForbidden)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }

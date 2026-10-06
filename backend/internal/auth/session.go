@@ -1,10 +1,10 @@
 package auth
 
 import (
-	"github.com/syzhaa/file-server/internal/db"
-	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"fmt"
+	"github.com/syzhaa/file-server/internal/db"
+	"github.com/syzhaa/file-server/internal/httpx"
 	"net/http"
 	"time"
 

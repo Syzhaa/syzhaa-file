@@ -11,7 +11,6 @@ import (
 // UploadDir is the file upload directory (relative to working dir).
 const UploadDir = "./uploads"
 
-
 func AutoCleanupWorker() {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
@@ -37,7 +36,7 @@ func AutoCleanupWorker() {
 		}
 
 		log.Printf("🧹 Auto-cleanup: Found %d expired rooms", len(expiredRooms))
-		
+
 		totalFilesDeleted := 0
 		totalFilesFailed := 0
 		var totalBytesDeleted int64
@@ -54,7 +53,7 @@ func AutoCleanupWorker() {
 				var fsize int64
 				fileRows.Scan(&filename, &fsize)
 				filePath := filepath.Join(UploadDir, filename)
-				
+
 				if err := os.Remove(filePath); err != nil {
 					if !os.IsNotExist(err) {
 						log.Printf("⚠️  Auto-cleanup: Failed to delete file %s: %v", filename, err)
@@ -72,7 +71,7 @@ func AutoCleanupWorker() {
 			if _, err := db.DB.Exec("DELETE FROM files WHERE room_id = ?", roomID); err != nil {
 				log.Printf("⚠️  Auto-cleanup: Failed to delete files from DB for room %s: %v", roomID, err)
 			}
-			
+
 			// Then delete the room
 			if _, err := db.DB.Exec("DELETE FROM rooms WHERE id = ?", roomID); err != nil {
 				log.Printf("⚠️  Auto-cleanup: Failed to delete room %s: %v", roomID, err)
@@ -88,11 +87,10 @@ func AutoCleanupWorker() {
 			db.DB.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_bytes'`, totalBytesDeleted)
 		}
 
-		log.Printf("✅ Auto-cleanup complete: %d rooms, %d files deleted, %d files failed", 
+		log.Printf("✅ Auto-cleanup complete: %d rooms, %d files deleted, %d files failed",
 			len(expiredRooms), totalFilesDeleted, totalFilesFailed)
 	}
 }
-
 
 func CleanOrphanedFiles() {
 	ticker := time.NewTicker(10 * time.Minute)
@@ -122,4 +120,3 @@ func CleanOrphanedFiles() {
 		}
 	}
 }
-

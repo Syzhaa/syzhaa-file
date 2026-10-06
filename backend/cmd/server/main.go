@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"github.com/syzhaa/file-server/internal/middleware"
 	"github.com/syzhaa/file-server/internal/rooms"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,13 +15,11 @@ import (
 )
 
 const (
-	Port        = 4006
-	ChunkDir    = "./chunks"
-	UploadDir   = "./uploads"
-	MaxMemory   = 100 << 20 // 100MB untuk buffer upload
+	Port      = 4006
+	ChunkDir  = "./chunks"
+	UploadDir = "./uploads"
+	MaxMemory = 100 << 20 // 100MB untuk buffer upload
 )
-
-
 
 func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
 	var totalRooms, totalFiles, totalUsers int
@@ -50,7 +48,6 @@ func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
 		"deleted_size_label": httpx.FormatBytes(deletedBytes),
 	})
 }
-
 
 func main() {
 	os.MkdirAll(ChunkDir, 0755)

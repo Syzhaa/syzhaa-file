@@ -98,7 +98,6 @@ func initUserSchema() error {
 	return nil
 }
 
-
 func initUserAuthSchema() error {
 	// password_hash for email/password login (users table predates it)
 	_, _ = DB.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT`)

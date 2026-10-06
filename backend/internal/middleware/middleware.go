@@ -19,7 +19,7 @@ func CorsMiddleware(next http.Handler) http.Handler {
 		if baseURL := os.Getenv("BASE_URL"); baseURL != "" {
 			allowedOrigins = append(allowedOrigins, baseURL)
 		}
-		
+
 		// Check if origin is allowed
 		isAllowed := false
 		for _, allowed := range allowedOrigins {
@@ -28,15 +28,15 @@ func CorsMiddleware(next http.Handler) http.Handler {
 				break
 			}
 		}
-		
+
 		if isAllowed {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
-		
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token, X-Session-ID")
-		
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -54,7 +54,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
-		
+
 		// Content Security Policy
 		csp := "default-src 'self'; " +
 			"script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://cdnjs.cloudflare.com https://static.cloudflareinsights.com; " +
@@ -65,7 +65,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 			"frame-src https://accounts.google.com; " +
 			"upgrade-insecure-requests;"
 		w.Header().Set("Content-Security-Policy", csp)
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -73,27 +73,26 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 func CleanURLMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		
+
 		if filepath.Ext(path) == "" && path != "/" {
 			filePath := filepath.Join("../frontend", path)
-			
+
 			htmlPath := filePath + ".html"
 			if _, err := os.Stat(htmlPath); err == nil {
 				http.ServeFile(w, r, htmlPath)
 				return
 			}
-			
+
 			indexPath := filepath.Join(filePath, "index.html")
 			if _, err := os.Stat(indexPath); err == nil {
 				http.ServeFile(w, r, indexPath)
 				return
 			}
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
-
 
 // CsrfOriginMiddleware validates Origin/Referer headers on state-changing requests.
 // This is a simpler alternative to token-based CSRF: browsers always send Origin

@@ -1,13 +1,13 @@
 package files
 
 import (
-	"github.com/syzhaa/file-server/internal/rooms"
-	"github.com/syzhaa/file-server/internal/crypto"
-	"github.com/syzhaa/file-server/internal/db"
-	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"github.com/syzhaa/file-server/internal/crypto"
+	"github.com/syzhaa/file-server/internal/db"
+	"github.com/syzhaa/file-server/internal/httpx"
+	"github.com/syzhaa/file-server/internal/rooms"
 	"io"
 	"log"
 	"net/http"
@@ -25,8 +25,6 @@ const (
 	UploadDir = "./uploads"
 	MaxMemory = 100 << 20 // 100MB untuk buffer upload
 )
-
-
 
 func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -101,7 +99,7 @@ func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 		os.RemoveAll(fileChunkDir)
 
 		size, _ := strconv.ParseInt(totalSize, 10, 64)
-		
+
 		// Check if encryption is requested
 		encryptPassphrase := r.FormValue("encryptPassphrase")
 		folderID := r.FormValue("folderId")
@@ -125,7 +123,7 @@ func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_, err = db.DB.Exec(`INSERT INTO files (id, room_id, folder_id, filename, original_name, mimetype, size, salt, nonce, is_encrypted, original_size) 
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			fileID, roomID, sql.NullString{String: folderID, Valid: folderID != ""}, finalFileName, originalName, mimeType, size, saltB64, nonceB64, isEncrypted, originalSize)
 		if err != nil {
 			log.Printf("❌ DB insert error: %v", err)
@@ -148,7 +146,6 @@ func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
 func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	fileID := vars["id"]
@@ -158,12 +155,12 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	var saltB64, nonceB64 sql.NullString
 	var isEncrypted sql.NullInt64
 	var originalSize sql.NullInt64
-	
+
 	var permission string
 	err := db.DB.QueryRow(`SELECT f.id, f.filename, f.original_name, f.size, r.expires_at, 
 		f.salt, f.nonce, f.is_encrypted, f.original_size, COALESCE(r.permission, 'both')
 		FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).
-		Scan(&f.ID, &f.Filename, &f.OriginalName, &f.Size, &expiresAt, 
+		Scan(&f.ID, &f.Filename, &f.OriginalName, &f.Size, &expiresAt,
 			&saltB64, &nonceB64, &isEncrypted, &originalSize, &permission)
 
 	if err == sql.ErrNoRows {
@@ -206,7 +203,7 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		if passphrase == "" {
 			passphrase = r.Header.Get("X-Decrypt-Passphrase")
 		}
-		
+
 		if passphrase == "" {
 			w.WriteHeader(http.StatusForbidden)
 			fmt.Fprint(w, "<h1>🔒 rooms.File Terenkripsi</h1><p>Passphrase diperlukan untuk download</p>")
@@ -216,12 +213,12 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		// Decrypt file
 		salt, _ := base64.StdEncoding.DecodeString(saltB64.String)
 		nonce, _ := base64.StdEncoding.DecodeString(nonceB64.String)
-		
+
 		metadata := &crypto.EncryptedFileMetadata{
-			Salt:        salt,
-			Nonce:       nonce,
-			IsEncrypted: true,
-			OriginalSize: originalSize.Int64,
+			Salt:          salt,
+			Nonce:         nonce,
+			IsEncrypted:   true,
+			OriginalSize:  originalSize.Int64,
 			EncryptedSize: f.Size,
 		}
 
@@ -234,7 +231,7 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("🔓 rooms.File decrypted successfully: %s (%d bytes)", f.Filename, len(decryptedData))
-		
+
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", f.OriginalName))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(decryptedData)))
@@ -247,7 +244,6 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	http.ServeFile(w, r, filePath)
 }
-
 
 func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -294,4 +290,3 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✅ rooms.File deleted successfully: %s (ID: %s)", filename, fileID)
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
-

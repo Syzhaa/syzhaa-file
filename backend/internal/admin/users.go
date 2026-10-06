@@ -1,10 +1,10 @@
 package admin
 
 import (
+	"database/sql"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
-	"database/sql"
 	"log"
 	"net/http"
 	"time"
@@ -12,13 +12,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-
 type UserStats struct {
-	UserID            string     `json:"user_id"`
-	TotalRooms        int        `json:"total_rooms_created"`
-	TotalFiles        int        `json:"total_files_uploaded"`
-	StorageUsedMB     float64    `json:"total_storage_used_mb"`
-	LastUploadAt      *time.Time `json:"last_upload_at,omitempty"`
+	UserID        string     `json:"user_id"`
+	TotalRooms    int        `json:"total_rooms_created"`
+	TotalFiles    int        `json:"total_files_uploaded"`
+	StorageUsedMB float64    `json:"total_storage_used_mb"`
+	LastUploadAt  *time.Time `json:"last_upload_at,omitempty"`
 }
 
 // NOTE: auth.HandleUserMe, handleUserRooms, and auth.RequireUserSession are now
@@ -31,7 +30,7 @@ func HandleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT id, email, name, status, 
 		approved_by, approved_at, storage_limit_mb, max_file_duration_days, 
 		created_at, last_login FROM users`
-	
+
 	args := []interface{}{}
 	if status != "" {
 		query += " WHERE status = ?"

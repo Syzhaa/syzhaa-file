@@ -1,10 +1,10 @@
 package apikeys
 
 import (
+	"database/sql"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
-	"database/sql"
 	"net/http"
 	"time"
 

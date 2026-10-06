@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
-	"context"
 	"net/http"
 	"strings"
 )
