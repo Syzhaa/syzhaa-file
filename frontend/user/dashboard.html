@@ -15,6 +15,7 @@
     <aside class="sidebar">
         <a class="logo" href="/">Ambil<span>File</span></a>
             <a href="/user/" class="snav-item active"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+            <a href="/user/rooms.html" class="snav-item"><span class="material-symbols-outlined">folder</span>Ruangan Saya</a>
             <a href="/user/create-room.html" class="snav-item"><span class="material-symbols-outlined">add_circle</span>Buat Room</a>
             <a href="/user/api-keys.html" class="snav-item"><span class="material-symbols-outlined">key</span>API Key</a>
             <a href="/user/account.html" class="snav-item"><span class="material-symbols-outlined">person</span>Akun</a>
@@ -34,7 +35,7 @@
     </header>
     <main>
         <h2 id="greeting">Dashboard</h2>
-        <p class="hello-sub">Kelola API key dan ruanganmu di sini.</p>
+        <p class="hello-sub">Ringkasan aktivitas akunmu.</p>
 
         <div class="stats">
             <div class="stat">
@@ -56,22 +57,14 @@
         </div>
 
         <div class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
                 <h3 style="margin:0"><span class="material-symbols-outlined">folder</span> Ruangan Saya</h3>
-                <div style="display:flex;gap:8px;" id="room-filter">
-                    <button onclick="filterRooms('all')" data-filter="all" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#1a1a2e;color:#fff;cursor:pointer;font-family:inherit;">Semua</button>
-                    <button onclick="filterRooms('active')" data-filter="active" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit;">Aktif</button>
-                    <button onclick="filterRooms('expired')" data-filter="expired" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit;">Kadaluarsa</button>
-                </div>
-            </div>
-            <p class="desc">Ruangan yang kamu buat saat sedang login.</p>
-            <div id="rooms-list"><div class="empty">Memuat…</div></div>
-            <div style="text-align:center;margin-top:16px;">
                 <a href="/user/rooms.html" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#1a1a2e;color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">
                     <span class="material-symbols-outlined" style="font-size:18px">folder_open</span>
-                    Lihat Semua Ruangan
+                    Kelola Ruangan
                 </a>
             </div>
+            <p class="desc">Daftar ruangan pindah ke halaman khusus biar dashboard tetap ringkas.</p>
         </div>
 
     <!-- Bottom Navigation (mobile) -->
@@ -79,6 +72,10 @@
             <a href="/user/" class="bnav-item active">
                 <span class="material-symbols-outlined">dashboard</span>
                 <span>Dashboard</span>
+            </a>
+            <a href="/user/rooms.html" class="bnav-item">
+                <span class="material-symbols-outlined">folder</span>
+                <span>Ruangan</span>
             </a>
             <a href="/user/api-keys.html" class="bnav-item">
                 <span class="material-symbols-outlined">key</span>

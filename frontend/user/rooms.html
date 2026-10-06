@@ -7,17 +7,17 @@
     <link rel="icon" href="/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
-    
     <script src="/js/api.js"></script>
     <link rel="stylesheet" href="/css/user/rooms.css">
 </head>
 <body>
     <aside class="sidebar">
         <a class="logo" href="/">Ambil<span>File</span></a>
-            <a href="/user/" class="snav-item active"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
-            <a href="/user/create-room.html" class="snav-item"><span class="material-symbols-outlined">add_circle</span>Buat Room</a>
-            <a href="/user/api-keys.html" class="snav-item"><span class="material-symbols-outlined">key</span>API Key</a>
-            <a href="/user/account.html" class="snav-item"><span class="material-symbols-outlined">person</span>Akun</a>
+        <a href="/user/" class="snav-item"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+        <a href="/user/rooms.html" class="snav-item active"><span class="material-symbols-outlined">folder</span>Ruangan Saya</a>
+        <a href="/user/create-room.html" class="snav-item"><span class="material-symbols-outlined">add_circle</span>Buat Room</a>
+        <a href="/user/api-keys.html" class="snav-item"><span class="material-symbols-outlined">key</span>API Key</a>
+        <a href="/user/account.html" class="snav-item"><span class="material-symbols-outlined">person</span>Akun</a>
         <div class="spacer"></div>
         <div class="side-user">
             <div class="nm" id="side-user-name">…</div>
@@ -25,93 +25,77 @@
         </div>
     </aside>
     <div class="page-wrap">
-    <header class="mobile-header">
-        <a class="logo" href="/">Ambil<span>File</span></a>
-        <div class="userbox">
-            <span class="name" id="user-name">…</span>
-            <button class="logout" onclick="logout()">Keluar</button>
-        </div>
-    </header>
-    <main>
-        <h2 id="greeting">Dashboard</h2>
-        <p class="hello-sub">Kelola API key dan ruanganmu di sini.</p>
+        <header class="mobile-header">
+            <a class="logo" href="/">Ambil<span>File</span></a>
+            <div class="userbox">
+                <span class="name" id="user-name">…</span>
+                <button class="logout" onclick="logout()">Keluar</button>
+            </div>
+        </header>
+        <main>
+            <h2 id="greeting">Ruangan Saya</h2>
+            <p class="hello-sub">Ruangan yang kamu buat saat sedang login.</p>
 
-<div class="stat-lbl">API Key</div></div>
+            <div class="card">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:4px;">
+                    <h3 style="margin:0"><span class="material-symbols-outlined">folder</span> Daftar Ruangan</h3>
+                    <div style="display:flex;gap:8px;" id="room-filter">
+                        <button onclick="filterRooms('all')" data-filter="all" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#1a1a2e;color:#fff;cursor:pointer;font-family:inherit;">Semua</button>
+                        <button onclick="filterRooms('active')" data-filter="active" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit;">Aktif</button>
+                        <button onclick="filterRooms('expired')" data-filter="expired" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit;">Kadaluarsa</button>
+                    </div>
+                </div>
+                <div id="rooms-list"><div class="empty">Memuat…</div></div>
             </div>
-            <div class="stat">
-                <span class="material-symbols-outlined">folder</span>
-                <div><div class="stat-num" id="stat-rooms">0</div><div class="stat-lbl">Total Ruangan</div></div>
-            </div>
-            <div class="stat">
-                <span class="material-symbols-outlined" style="color:#15803d">folder_open</span>
-                <div><div class="stat-num" id="stat-rooms-active">0</div><div class="stat-lbl">Room Aktif</div></div>
-            </div>
-            <div class="stat">
-                <span class="material-symbols-outlined" style="color:#9ca3af">history</span>
-                <div><div class="stat-num" id="stat-rooms-expired">0</div><div class="stat-lbl">Room Kadaluarsa</div></div>
-            </div>
-        </div>
 
-        <div class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:4px;">
-                <h3 style="margin:0"><span class="material-symbols-outlined">folder</span> Ruangan Saya</h3>
-                <div style="display:flex;gap:8px;" id="room-filter">
-                    <button onclick="filterRooms('all')" data-filter="all" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#1a1a2e;color:#fff;cursor:pointer;font-family:inherit;">Semua</button>
-                    <button onclick="filterRooms('active')" data-filter="active" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit;">Aktif</button>
-                    <button onclick="filterRooms('expired')" data-filter="expired" class="filter-btn" style="padding:8px 16px;border-radius:99px;font-size:13px;font-weight:600;border:1.5px solid #e8eaf0;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit;">Kadaluarsa</button>
+            <!-- Bottom Navigation (mobile) -->
+            <nav class="bottom-nav">
+                <a href="/user/" class="bnav-item">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/user/rooms.html" class="bnav-item active">
+                    <span class="material-symbols-outlined">folder</span>
+                    <span>Ruangan</span>
+                </a>
+                <a href="/user/api-keys.html" class="bnav-item">
+                    <span class="material-symbols-outlined">key</span>
+                    <span>API Key</span>
+                </a>
+                <a href="/user/account.html" class="bnav-item">
+                    <span class="material-symbols-outlined">person</span>
+                    <span>Akun</span>
+                </a>
+            </nav>
+
+            <!-- Info modal (pengganti alert) -->
+            <div class="modal-backdrop" id="info-modal" onclick="if(event.target===this)closeInfoModal()">
+                <div class="modal-box">
+                    <div class="modal-icon err" id="info-modal-icon"><span class="material-symbols-outlined" style="font-size:28px" id="info-modal-glyph">error</span></div>
+                    <p class="modal-msg" id="info-modal-msg"></p>
+                    <button class="modal-btn" onclick="closeInfoModal()">OK</button>
                 </div>
             </div>
-            <p class="desc">Ruangan yang kamu buat saat sedang login.</p>
-            <div id="rooms-list"><div class="empty">Memuat…</div></div>
-        </div>
 
-    <!-- Bottom Navigation (mobile) -->
-    <nav class="bottom-nav">
-            <a href="/user/" class="bnav-item active">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span>Dashboard</span>
-            </a>
-            <a href="/user/api-keys.html" class="bnav-item">
-                <span class="material-symbols-outlined">key</span>
-                <span>API Key</span>
-            </a>
-            <a href="/user/account.html" class="bnav-item">
-                <span class="material-symbols-outlined">person</span>
-                <span>Akun</span>
-            </a>
-        </nav>
-
-    
-
-    <!-- Info modal (pengganti alert) -->
-    <div class="modal-backdrop" id="info-modal" onclick="if(event.target===this)closeInfoModal()">
-        <div class="modal-box">
-            <div class="modal-icon err" id="info-modal-icon"><span class="material-symbols-outlined" style="font-size:28px" id="info-modal-glyph">error</span></div>
-            <p class="modal-msg" id="info-modal-msg"></p>
-            <button class="modal-btn" onclick="closeInfoModal()">OK</button>
-        </div>
-    </div>
-
-    <!-- Confirm modal (pengganti confirm) -->
-    <div class="modal-backdrop" id="confirm-modal" onclick="if(event.target===this)closeConfirmModal()">
-        <div class="modal-box">
-            <div class="modal-icon err"><span class="material-symbols-outlined" style="font-size:28px">warning</span></div>
-            <p class="modal-msg" id="confirm-modal-msg"></p>
-            <div style="display:flex;gap:10px">
-                <button class="modal-btn" style="background:#f1f2f6;color:#1a1a2e" onclick="closeConfirmModal()">Batal</button>
-                <button class="modal-btn" style="background:#dc2626" id="confirm-modal-yes">Hapus</button>
+            <!-- Confirm modal (pengganti confirm) -->
+            <div class="modal-backdrop" id="confirm-modal" onclick="if(event.target===this)closeConfirmModal()">
+                <div class="modal-box">
+                    <div class="modal-icon err"><span class="material-symbols-outlined" style="font-size:28px">warning</span></div>
+                    <p class="modal-msg" id="confirm-modal-msg"></p>
+                    <div style="display:flex;gap:10px">
+                        <button class="modal-btn" style="background:#f1f2f6;color:#1a1a2e" onclick="closeConfirmModal()">Batal</button>
+                        <button class="modal-btn" style="background:#dc2626" id="confirm-modal-yes">Hapus</button>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <script src="/js/user/rooms.js"></script>
+            <script src="/js/user/rooms.js"></script>
+        </main>
     </div><!-- /page-wrap -->
 
     <!-- FAB (mobile only) -->
     <a href="/user/create-room.html" id="fab" style="display:none;position:fixed;bottom:96px;right:20px;width:56px;height:56px;border-radius:50%;background:#F6821F;color:#fff;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(246,130,31,0.4);z-index:40;text-decoration:none;">
         <span class="material-symbols-outlined" style="font-size:28px">add</span>
     </a>
-    
-
 </body>
 </html>
