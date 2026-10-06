@@ -64,6 +64,7 @@ async function loadRoom(roomId) {
         currentRoom.quota_unlimited = !!(data.quota_info && data.quota_info.unlimited);
         await loadTotalFileCount();
         renderRoom();
+        showUnfinishedUploadSessions(); // ingatkan kalau ada upload yang belum selesai
         await loadRoomContent();
     } catch (error) {
         console.error('Error loading room:', error);

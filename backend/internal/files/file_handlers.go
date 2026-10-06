@@ -170,6 +170,45 @@ func UploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// UploadChunkStatusHandler returns the indexes of chunks already received for
+// a fileId, so the client can resume an interrupted upload (e.g. after a page
+// refresh) without re-sending everything.
+func UploadChunkStatusHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	roomID := vars["roomId"]
+
+	var exists bool
+	err := db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
+	if err != nil || !exists {
+		httpx.WriteError(w, http.StatusNotFound, "Invalid room")
+		return
+	}
+
+	fileID, ok := sanitizeFileID(r.URL.Query().Get("fileId"))
+	if !ok {
+		httpx.WriteError(w, http.StatusBadRequest, "Invalid file ID")
+		return
+	}
+
+	uploaded := []int{}
+	entries, err := os.ReadDir(filepath.Join(ChunkDir, fileID))
+	if err == nil {
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			if idx, err := strconv.Atoi(e.Name()); err == nil && idx >= 0 {
+				uploaded = append(uploaded, idx)
+			}
+		}
+	}
+
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"success":  true,
+		"uploaded": uploaded,
+	})
+}
+
 func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	fileID := vars["id"]

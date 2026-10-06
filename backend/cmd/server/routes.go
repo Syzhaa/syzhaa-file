@@ -28,6 +28,7 @@ func setupRoutes() *mux.Router {
 	r.HandleFunc("/api/room/{id}", rooms.HandleDeleteRoom).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/room/{id}/settings", rooms.UpdateRoomSettingsHandler).Methods("PUT", "OPTIONS")
 	r.Handle("/api/upload/{roomId}", middleware.RateLimitMiddleware(middleware.UploadLimiter)(http.HandlerFunc(files.UploadChunkHandler))).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/upload/{roomId}/chunks", files.UploadChunkStatusHandler).Methods("GET")
 	r.HandleFunc("/api/file/{id}", files.DeleteFileHandler).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/folder/create/{roomId}", files.CreateFolderHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/folders/{roomId}", files.ListFoldersHandler).Methods("GET", "OPTIONS")
