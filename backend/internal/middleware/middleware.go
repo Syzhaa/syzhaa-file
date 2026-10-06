@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func CorsMiddleware(next http.Handler) http.Handler {
@@ -93,3 +94,60 @@ func CleanURLMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+
+// CsrfOriginMiddleware validates Origin/Referer headers on state-changing requests.
+// This is a simpler alternative to token-based CSRF: browsers always send Origin
+// on POST/PUT/DELETE, and attackers cannot spoof it cross-origin.
+// API key requests (Authorization: Bearer) are exempt (machine-to-machine).
+func CsrfOriginMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only check state-changing methods
+		if r.Method == "GET" || r.Method == "HEAD" || r.Method == "OPTIONS" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Exempt API key auth (machine-to-machine, not cookie-based)
+		if auth := r.Header.Get("Authorization"); auth != "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Build allowed origins list
+		allowed := map[string]bool{
+			"https://ambilfile.web.id": true,
+			"http://localhost:3000":    true,
+			"http://localhost:4006":    true,
+		}
+		if baseURL := os.Getenv("BASE_URL"); baseURL != "" {
+			allowed[baseURL] = true
+			allowed[strings.TrimSuffix(baseURL, "/")] = true
+		}
+
+		// Check Origin header first
+		if origin := r.Header.Get("Origin"); origin != "" {
+			if allowed[origin] {
+				next.ServeHTTP(w, r)
+				return
+			}
+			http.Error(w, `{"error":"Invalid Origin"}`, http.StatusForbidden)
+			return
+		}
+
+		// Fallback to Referer header
+		if referer := r.Header.Get("Referer"); referer != "" {
+			for a := range allowed {
+				if strings.HasPrefix(referer, a+"/") || referer == a {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+			http.Error(w, `{"error":"Invalid Referer"}`, http.StatusForbidden)
+			return
+		}
+
+		// No Origin or Referer: allow (non-browser clients, curl, etc.)
+		// Browsers always send Origin on POST/PUT/DELETE, so this is safe.
+		next.ServeHTTP(w, r)
+	})
+}

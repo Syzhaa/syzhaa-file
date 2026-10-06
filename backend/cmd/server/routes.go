@@ -17,7 +17,7 @@ func setupRoutes() *mux.Router {
 	r := mux.NewRouter()
 	r.Use(middleware.CorsMiddleware)
 	r.Use(middleware.SecurityHeadersMiddleware)
-	// r.Use(csrfMiddleware) // Temporarily disabled - TODO: Implement proper CSRF token flow in frontend
+	r.Use(middleware.CsrfOriginMiddleware)
 	r.Use(middleware.RateLimitMiddleware(middleware.GeneralLimiter))
 
 	// Public routes (existing)
