@@ -146,18 +146,18 @@
             <!-- Live stats -->
             <div class="mt-8 flex items-center justify-center gap-8 sm:gap-12" id="live-stats" style="display:none">
                 <div class="text-center">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-ink" id="stat-rooms">—</div>
+                    <div class="text-xs text-muted font-medium mt-1">Total ruangan</div>
+                </div>
+                <div class="w-px h-10 bg-line"></div>
+                <div class="text-center">
                     <div class="text-2xl sm:text-3xl font-extrabold text-ink" id="stat-files">—</div>
-                    <div class="text-xs text-muted font-medium mt-1">File tersimpan</div>
+                    <div class="text-xs text-muted font-medium mt-1">Total file</div>
                 </div>
                 <div class="w-px h-10 bg-line"></div>
                 <div class="text-center">
                     <div class="text-2xl sm:text-3xl font-extrabold text-ink" id="stat-size">—</div>
-                    <div class="text-xs text-muted font-medium mt-1">Data tersimpan</div>
-                </div>
-                <div class="w-px h-10 bg-line"></div>
-                <div class="text-center">
-                    <div class="text-2xl sm:text-3xl font-extrabold text-muted" id="stat-deleted">—</div>
-                    <div class="text-xs text-muted font-medium mt-1">File terhapus</div>
+                    <div class="text-xs text-muted font-medium mt-1">Total ukuran</div>
                 </div>
             </div>
         </div>
@@ -546,11 +546,21 @@ async function loadStats() {
         const res = await fetch('/api/stats');
         if (!res.ok) return;
         const s = await res.json();
-        document.getElementById('stat-files').textContent = (s.total_files || 0).toLocaleString('id-ID');
-        document.getElementById('stat-size').textContent = s.total_size_label || '0 B';
-        document.getElementById('stat-deleted').textContent = (s.deleted_files || 0).toLocaleString('id-ID');
+        const totalRooms = (s.total_rooms || 0) + (s.deleted_rooms || 0);
+        const totalFiles = (s.total_files || 0) + (s.deleted_files || 0);
+        const totalBytes = (s.total_bytes || 0) + (s.deleted_bytes || 0);
+        document.getElementById('stat-rooms').textContent = totalRooms.toLocaleString('id-ID');
+        document.getElementById('stat-files').textContent = totalFiles.toLocaleString('id-ID');
+        document.getElementById('stat-size').textContent = formatBytes(totalBytes);
         document.getElementById('live-stats').style.display = 'flex';
     } catch {}
+}
+function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    const u = ['KB','MB','GB','TB'];
+    let i = -1;
+    do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1);
+    return b.toFixed(1) + ' ' + u[i];
 }
 loadStats();
 
