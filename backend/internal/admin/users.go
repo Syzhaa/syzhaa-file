@@ -1,4 +1,4 @@
-package main
+package admin
 
 import (
 	"github.com/syzhaa/file-server/internal/auth"
@@ -25,7 +25,7 @@ type UserStats struct {
 // implemented in user_auth.go (email/password user auth).
 
 // Handler: List all users (admin only)
-func handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
+func HandleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status") // filter by status
 
 	query := `SELECT id, email, name, status, 
@@ -63,7 +63,7 @@ func handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Approve user
-func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
+func HandleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*auth.AdminUser)
 	vars := mux.Vars(r)
 	userID := vars["id"]
@@ -105,7 +105,7 @@ func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Reject user
-func handleAdminRejectUser(w http.ResponseWriter, r *http.Request) {
+func HandleAdminRejectUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
@@ -134,7 +134,7 @@ func handleAdminRejectUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Suspend user
-func handleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
+func HandleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
@@ -162,7 +162,7 @@ func handleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Get user stats
-func handleAdminGetUserStats(w http.ResponseWriter, r *http.Request) {
+func HandleAdminGetUserStats(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
@@ -185,7 +185,7 @@ func handleAdminGetUserStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Update user quotas
-func handleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
+func HandleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
@@ -212,7 +212,7 @@ func handleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Approve user's API key access
-func handleAdminApproveUserAPI(w http.ResponseWriter, r *http.Request) {
+func HandleAdminApproveUserAPI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
@@ -229,7 +229,7 @@ func handleAdminApproveUserAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Revoke user's API key access
-func handleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
+func HandleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
@@ -248,7 +248,7 @@ func handleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
 // NOTE: auth.RequireUserSession is now implemented in user_auth.go.
 
 // Handler: Admin system settings
-func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
+func HandleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == "GET" {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/admin"
 	"github.com/syzhaa/file-server/internal/files"
 	"github.com/syzhaa/file-server/internal/rooms"
 	"github.com/syzhaa/file-server/internal/apikeys"
@@ -41,23 +42,23 @@ func setupRoutes() *mux.Router {
 	adminRouter := r.PathPrefix("/admin").Subrouter()
 	adminRouter.Use(requireAdminSession)
 	adminRouter.HandleFunc("/me", auth.HandleAdminMe).Methods("GET")
-	adminRouter.HandleFunc("/stats", handleAdminStats).Methods("GET")
+	adminRouter.HandleFunc("/stats", admin.HandleAdminStats).Methods("GET")
 	adminRouter.HandleFunc("/api-keys", apikeys.HandleListAPIKeys).Methods("GET")
 	adminRouter.HandleFunc("/api-keys", apikeys.HandleCreateAPIKey).Methods("POST")
 	adminRouter.HandleFunc("/api-keys/{id}", apikeys.HandleDeleteAPIKey).Methods("DELETE")
 	adminRouter.HandleFunc("/api-keys/{id}/toggle", apikeys.HandleToggleAPIKey).Methods("POST")
 	
 	// Admin user management routes
-	adminRouter.HandleFunc("/users", handleAdminListUsers).Methods("GET")
-	adminRouter.HandleFunc("/rooms", handleAdminListRooms).Methods("GET")
-	adminRouter.HandleFunc("/users/{id}/approve", handleAdminApproveUser).Methods("POST")
-	adminRouter.HandleFunc("/users/{id}/reject", handleAdminRejectUser).Methods("POST")
-	adminRouter.HandleFunc("/users/{id}/suspend", handleAdminSuspendUser).Methods("POST")
-	adminRouter.HandleFunc("/users/{id}/quotas", handleAdminUpdateUserQuotas).Methods("PUT")
-	adminRouter.HandleFunc("/users/{id}/api-approve", handleAdminApproveUserAPI).Methods("PUT")
-	adminRouter.HandleFunc("/users/{id}/api-revoke", handleAdminRevokeUserAPI).Methods("PUT")
-	adminRouter.HandleFunc("/users/{id}/stats", handleAdminGetUserStats).Methods("GET")
-	adminRouter.HandleFunc("/settings", handleAdminSystemSettings).Methods("GET", "POST")
+	adminRouter.HandleFunc("/users", admin.HandleAdminListUsers).Methods("GET")
+	adminRouter.HandleFunc("/rooms", admin.HandleAdminListRooms).Methods("GET")
+	adminRouter.HandleFunc("/users/{id}/approve", admin.HandleAdminApproveUser).Methods("POST")
+	adminRouter.HandleFunc("/users/{id}/reject", admin.HandleAdminRejectUser).Methods("POST")
+	adminRouter.HandleFunc("/users/{id}/suspend", admin.HandleAdminSuspendUser).Methods("POST")
+	adminRouter.HandleFunc("/users/{id}/quotas", admin.HandleAdminUpdateUserQuotas).Methods("PUT")
+	adminRouter.HandleFunc("/users/{id}/api-approve", admin.HandleAdminApproveUserAPI).Methods("PUT")
+	adminRouter.HandleFunc("/users/{id}/api-revoke", admin.HandleAdminRevokeUserAPI).Methods("PUT")
+	adminRouter.HandleFunc("/users/{id}/stats", admin.HandleAdminGetUserStats).Methods("GET")
+	adminRouter.HandleFunc("/settings", admin.HandleAdminSystemSettings).Methods("GET", "POST")
 	adminRouter.HandleFunc("/account", auth.HandleAdminUpdateAccount).Methods("POST", "PUT")
 
 	// auth.User routes (require user session)
@@ -80,10 +81,10 @@ func setupRoutes() *mux.Router {
 	// API v1 routes (require API key)
 	apiRouter := r.PathPrefix("/api/v1").Subrouter()
 	apiRouter.Use(requireAPIKey)
-	apiRouter.HandleFunc("/room/create", handleAPICreateRoom).Methods("POST")
-	apiRouter.HandleFunc("/room/{id}/link", handleAPIGetRoomLink).Methods("GET")
-	apiRouter.HandleFunc("/room/{id}/files", handleAPIGetRoomFiles).Methods("GET")
-	apiRouter.HandleFunc("/room/{id}/download-all", handleAPIDownloadAll).Methods("GET")
+	apiRouter.HandleFunc("/room/create", admin.HandleAPICreateRoom).Methods("POST")
+	apiRouter.HandleFunc("/room/{id}/link", admin.HandleAPIGetRoomLink).Methods("GET")
+	apiRouter.HandleFunc("/room/{id}/files", admin.HandleAPIGetRoomFiles).Methods("GET")
+	apiRouter.HandleFunc("/room/{id}/download-all", admin.HandleAPIDownloadAll).Methods("GET")
 
 	// Clean URLs: /user -> user dashboard, /admin -> admin dashboard
 	r.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {

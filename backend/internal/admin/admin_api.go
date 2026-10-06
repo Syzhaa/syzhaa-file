@@ -1,4 +1,5 @@
-package main
+package admin
+
 
 import (
 	"github.com/syzhaa/file-server/internal/rooms"
@@ -19,6 +20,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// UploadDir is the file upload directory.
+const UploadDir = "./uploads"
+
 // getBaseURL returns the public base URL from BASE_URL env, with fallback.
 func getBaseURL() string {
 	if v := os.Getenv("BASE_URL"); v != "" {
@@ -28,7 +32,7 @@ func getBaseURL() string {
 }
 
 // Handler: Create Room via API
-func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
+func HandleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 	apiKey := r.Context().Value("api_key").(*apikeys.APIKey)
 
 	var req struct {
@@ -83,7 +87,7 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Get Room Link via API
-func handleAPIGetRoomLink(w http.ResponseWriter, r *http.Request) {
+func HandleAPIGetRoomLink(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
 
@@ -121,7 +125,7 @@ func handleAPIGetRoomLink(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Download All Files as Zip via API
-func handleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
+func HandleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
 
@@ -201,7 +205,7 @@ func handleAPIDownloadAll(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Get Room Files List via API
-func handleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
+func HandleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
 
@@ -258,7 +262,7 @@ func handleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: Admin Stats
-func handleAdminStats(w http.ResponseWriter, r *http.Request) {
+func HandleAdminStats(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*auth.AdminUser)
 
 	var totalRooms, activeRooms, totalFiles int64
@@ -287,7 +291,7 @@ func handleAdminStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /admin/rooms — list all rooms (admin)
-func handleAdminListRooms(w http.ResponseWriter, r *http.Request) {
+func HandleAdminListRooms(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.DB.Query(`
 		SELECT r.id, r.pin, r.created_at, r.expires_at, COALESCE(r.no_quota, 0),
 		       (SELECT COUNT(*) FROM files f WHERE f.room_id = r.id) as file_count,
