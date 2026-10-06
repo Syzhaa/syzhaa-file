@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"net/http"
 	"time"
@@ -60,11 +61,11 @@ func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*AdminUser)
 	keys, err := listKeysByOwner("admin_id", admin.ID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch API keys")
+		httpx.WriteError(w, http.StatusInternalServerError, "Failed to fetch API keys")
 		return
 	}
 	// Preserve admin response format: {"success":true,"keys":[...]}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "keys": keys})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "keys": keys})
 }
 
 func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
@@ -75,24 +76,24 @@ func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	var ownerID string
 	err := db.QueryRow("SELECT admin_id FROM api_keys WHERE id = ?", keyID).Scan(&ownerID)
 	if err == sql.ErrNoRows {
-		writeError(w, http.StatusNotFound, "API key not found")
+		httpx.WriteError(w, http.StatusNotFound, "API key not found")
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Server error")
+		httpx.WriteError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 	if ownerID != admin.ID {
-		writeError(w, http.StatusForbidden, "Unauthorized")
+		httpx.WriteError(w, http.StatusForbidden, "Unauthorized")
 		return
 	}
 
 	deleted, err := deleteKeyByOwner("admin_id", admin.ID, keyID)
 	if err != nil || !deleted {
-		writeError(w, http.StatusInternalServerError, "Failed to delete API key")
+		httpx.WriteError(w, http.StatusInternalServerError, "Failed to delete API key")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
 
 // --- User wrappers (preserve existing response format) ---
@@ -100,40 +101,40 @@ func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r.Context())
 	if user == nil {
-		writeJSON(w, http.StatusUnauthorized,
+		httpx.WriteJSON(w, http.StatusUnauthorized,
 			map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 	keys, err := listKeysByOwner("user_id", user.ID)
 	if err != nil {
-		writeJSON(w, http.StatusOK,
+		httpx.WriteJSON(w, http.StatusOK,
 			map[string]interface{}{"success": true, "api_keys": []interface{}{}})
 		return
 	}
 	// Preserve user response format: {"success":true,"api_keys":[...]}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "api_keys": keys})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "api_keys": keys})
 }
 
 func handleUserDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	user := userFromContext(r.Context())
 	if user == nil {
-		writeJSON(w, http.StatusUnauthorized,
+		httpx.WriteJSON(w, http.StatusUnauthorized,
 			map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 	keyID := mux.Vars(r)["id"]
 	deleted, err := deleteKeyByOwner("user_id", user.ID, keyID)
 	if err != nil {
-		writeJSON(w, http.StatusOK,
+		httpx.WriteJSON(w, http.StatusOK,
 			map[string]interface{}{"success": false, "error": "Gagal menghapus"})
 		return
 	}
 	if !deleted {
-		writeJSON(w, http.StatusNotFound,
+		httpx.WriteJSON(w, http.StatusNotFound,
 			map[string]interface{}{"success": false, "error": "API key tidak ditemukan"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
 
 // generateAPIKey creates a new API key string.

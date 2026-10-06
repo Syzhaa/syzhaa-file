@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"fmt"
 	"log"
@@ -54,7 +55,7 @@ func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
 	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_files'`).Scan(&deletedFiles)
 	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_bytes'`).Scan(&deletedBytes)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"total_rooms":        totalRooms,
 		"total_files":        totalFiles,
 		"total_users":        totalUsers,

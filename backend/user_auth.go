@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"context"
 	"database/sql"
 	"net/http"
@@ -114,7 +115,7 @@ func requireUserSession(next http.Handler) http.Handler {
 		user, err := validateUserSession(r)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
-			writeJSON(w, http.StatusUnauthorized, map[string]interface{}{
+			httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{
 				"success": false,
 				"error":   "Login diperlukan",
 			})
@@ -134,7 +135,7 @@ func requireUserSession(next http.Handler) http.Handler {
 // POST /auth/user/register — DISABLED: user signup is Google-only now
 func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	writeJSON(w, http.StatusGone, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusGone, map[string]interface{}{
 		"success": false,
 		"error":   "Pendaftaran via email dinonaktifkan. Silakan daftar dengan Google.",
 	})
@@ -144,7 +145,7 @@ func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 // POST /auth/user/login — DISABLED: user login is Google-only now
 func handleUserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	writeJSON(w, http.StatusGone, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusGone, map[string]interface{}{
 		"success": false,
 		"error":   "Login via email dinonaktifkan. Silakan masuk dengan Google.",
 	})
@@ -164,7 +165,7 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
@@ -181,7 +182,7 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0), api_requested_at FROM users WHERE id = ?`,
 		user.ID).Scan(&apiApproved, &apiRequestedAt)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success":             true,
 		"user":                user,
 		"storage_used_bytes":  usedBytes,
@@ -213,7 +214,7 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
@@ -222,7 +223,7 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 		WHERE user_id = ? ORDER BY created_at DESC LIMIT 50
 	`, user.ID)
 	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": []roomOut{}})
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": []roomOut{}})
 		return
 	}
 	defer rows.Close()
@@ -233,7 +234,7 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 		rows.Scan(&rm.ID, &rm.PIN, &rm.CreatedAt, &rm.ExpiresAt)
 		rooms = append(rooms, rm)
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": rooms})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": rooms})
 }
 
 // ---------------------------------------------------------------------------
@@ -247,7 +248,7 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
@@ -255,14 +256,14 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	var apiApproved int
 	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&apiApproved)
 	if apiApproved != 1 {
-		writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "error": "Pembuatan API key perlu persetujuan admin. Minta persetujuan dulu ya."})
+		httpx.WriteJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "error": "Pembuatan API key perlu persetujuan admin. Minta persetujuan dulu ya."})
 		return
 	}
 
 	var req struct {
 		Name string `json:"name"`
 	}
-	readJSON(r, &req)
+	httpx.ReadJSON(r, &req)
 	if strings.TrimSpace(req.Name) == "" {
 		req.Name = "API Key"
 	}
@@ -285,11 +286,11 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		VALUES (?, ?, ?, ?, ?, ?, 1)
 	`, keyID, hashPassword(rawKey), ownerAdminID, user.ID, strings.TrimSpace(req.Name), time.Now().Format(time.RFC3339))
 	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal membuat API key"})
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal membuat API key"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"api_key": map[string]string{"id": keyID, "key": rawKey, "name": strings.TrimSpace(req.Name)},
 		"warning": "Simpan key ini baik-baik, tidak akan ditampilkan lagi.",
@@ -301,24 +302,24 @@ func handleUserRequestAPIAccess(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
 	var already int
 	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&already)
 	if already == 1 {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Sudah disetujui"})
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Sudah disetujui"})
 		return
 	}
 
 	_, err := db.Exec(`UPDATE users SET api_requested_at = ? WHERE id = ?`,
 		time.Now().Format(time.RFC3339), user.ID)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]interface{}{"success": false, "error": "Gagal mengirim permintaan"})
+		httpx.WriteJSON(w, http.StatusInternalServerError, map[string]interface{}{"success": false, "error": "Gagal mengirim permintaan"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Permintaan terkirim"})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Permintaan terkirim"})
 }
 
 // DELETE /user/api-keys/{id}

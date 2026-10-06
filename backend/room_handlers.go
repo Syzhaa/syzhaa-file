@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"crypto/rand"
 	"database/sql"
 	"fmt"
@@ -39,7 +40,7 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ExpiryMinutes int `json:"expiry_minutes"`
 	}
-	readJSON(r, &req)
+	httpx.ReadJSON(r, &req)
 
 	if req.ExpiryMinutes == 0 {
 		req.ExpiryMinutes = 60
@@ -54,7 +55,7 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 	roomID := uuid.New().String()
 	pin, err := generatePin()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to generate PIN")
+		httpx.WriteError(w, http.StatusInternalServerError, "Failed to generate PIN")
 		return
 	}
 
@@ -73,11 +74,11 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = db.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota) VALUES (?, ?, ?, ?, ?)",
 		roomID, pin, expiresAt.Format(time.RFC3339), userID, noQuota)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create room")
+		httpx.WriteError(w, http.StatusInternalServerError, "Failed to create room")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"room_id": roomID,
 		"pin":     pin,
@@ -89,10 +90,10 @@ func accessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Pin string `json:"pin"`
 	}
-	readJSON(r, &req)
+	httpx.ReadJSON(r, &req)
 
 	if req.Pin == "" {
-		writeError(w, http.StatusBadRequest, "PIN is empty")
+		httpx.WriteError(w, http.StatusBadRequest, "PIN is empty")
 		return
 	}
 
@@ -100,20 +101,20 @@ func accessRoomByPinHandler(w http.ResponseWriter, r *http.Request) {
 	err := db.QueryRow("SELECT id, expires_at FROM rooms WHERE pin = ?", req.Pin).
 		Scan(&room.ID, &room.ExpiresAt)
 	if err == sql.ErrNoRows {
-		writeError(w, http.StatusNotFound, "Invalid PIN or room expired")
+		httpx.WriteError(w, http.StatusNotFound, "Invalid PIN or room expired")
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Server error")
+		httpx.WriteError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 
 	if time.Now().After(room.ExpiresAt) {
-		writeError(w, http.StatusGone, "Room expired")
+		httpx.WriteError(w, http.StatusGone, "Room expired")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"room_id": room.ID,
 	})
@@ -132,16 +133,16 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 	err := db.QueryRow(`SELECT id, pin, created_at, expires_at, COALESCE(permission, 'both'), COALESCE(allow_delete, 1) FROM rooms WHERE id = ?`, roomID).
 		Scan(&room.ID, &room.Pin, &room.CreatedAt, &room.ExpiresAt, &permission, &allowDelete)
 	if err == sql.ErrNoRows {
-		writeError(w, http.StatusNotFound, "Room not found")
+		httpx.WriteError(w, http.StatusNotFound, "Room not found")
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Server error")
+		httpx.WriteError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 
 	if time.Now().After(room.ExpiresAt) {
-		writeError(w, http.StatusGone, "Room expired")
+		httpx.WriteError(w, http.StatusGone, "Room expired")
 		return
 	}
 
@@ -159,7 +160,7 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 			FROM files WHERE room_id = ? AND (folder_id IS NULL OR folder_id = '') ORDER BY created_at DESC`, roomID)
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Server error")
+		httpx.WriteError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 	defer rows.Close()
@@ -171,7 +172,7 @@ func getRoomInfoHandler(w http.ResponseWriter, r *http.Request) {
 		files = append(files, f)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"room":        room,
 		"files":       files,
 		"quota_info":  getRoomQuotaInfo(roomID),
@@ -191,13 +192,13 @@ func updateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 		Permission  string `json:"permission"`   // 'both', 'view', 'download'
 		AllowDelete *bool  `json:"allow_delete"` // nil = no change
 	}
-	if err := readJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "Data tidak valid")
+	if err := httpx.ReadJSON(r, &req); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "Data tidak valid")
 		return
 	}
 
 	if req.Permission != "" && req.Permission != "both" && req.Permission != "view" && req.Permission != "download" {
-		writeError(w, http.StatusBadRequest, "Permission tidak valid")
+		httpx.WriteError(w, http.StatusBadRequest, "Permission tidak valid")
 		return
 	}
 
@@ -205,7 +206,7 @@ func updateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 	var exists bool
 	_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)`, roomID).Scan(&exists)
 	if !exists {
-		writeError(w, http.StatusNotFound, "Room tidak ditemukan")
+		httpx.WriteError(w, http.StatusNotFound, "Room tidak ditemukan")
 		return
 	}
 
@@ -220,7 +221,7 @@ func updateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 		db.Exec(`UPDATE rooms SET allow_delete = ? WHERE id = ?`, val, roomID)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
 
 // getRoomQuotaInfo returns quota display info for a room
@@ -235,7 +236,7 @@ func handleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 	var noQuota int
 	err := db.QueryRow(`SELECT user_id, COALESCE(no_quota, 0) FROM rooms WHERE id = ?`, roomID).Scan(&userID, &noQuota)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "Room tidak ditemukan")
+		httpx.WriteError(w, http.StatusNotFound, "Room tidak ditemukan")
 		return
 	}
 
@@ -247,7 +248,7 @@ func handleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin {
 		u, err := validateUserSession(r)
 		if err != nil || u == nil || !userID.Valid || userID.String != u.ID {
-			writeError(w, http.StatusForbidden, "Tidak diizinkan")
+			httpx.WriteError(w, http.StatusForbidden, "Tidak diizinkan")
 			return
 		}
 	}
@@ -271,5 +272,5 @@ func handleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 	// Update stats
 	db.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + 1 WHERE key = 'stats_deleted_rooms'`)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }

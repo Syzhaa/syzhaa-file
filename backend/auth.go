@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -90,8 +91,8 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	if err := readJSON(r, &req); err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{
+	if err := httpx.ReadJSON(r, &req); err != nil {
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 			"success": false,
 			"error":   "Invalid request body",
 		})
@@ -103,7 +104,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	req.Password = strings.TrimSpace(req.Password)
 
 	if req.Email == "" || req.Password == "" {
-		writeJSON(w, http.StatusOK, map[string]interface{}{
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 			"success": false,
 			"error":   "Email and password required",
 		})
@@ -135,7 +136,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isWhitelisted {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{
+		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{
 			"success": false,
 			"error":   "Email not authorized",
 		})
@@ -155,7 +156,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 		&admin.CreatedAt, &admin.LastLogin, &admin.IsSuperAdmin)
 
 	if err == sql.ErrNoRows {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{
+		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{
 			"success": false,
 			"error":   "Invalid email or password",
 		})
@@ -193,7 +194,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("✅ Admin login successful: %s", req.Email)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"token":   session.Token,
 		"admin":   admin,
@@ -256,7 +257,7 @@ func handleAdminMe(w http.ResponseWriter, r *http.Request) {
 	
 	admin := r.Context().Value("admin").(*AdminUser)
 	
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"admin":   admin,
 	})
@@ -274,8 +275,8 @@ func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		CurrentPassword string `json:"current_password"`
 		NewPassword     string `json:"new_password"`
 	}
-	if err := readJSON(r, &req); err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Data tidak valid"})
+	if err := httpx.ReadJSON(r, &req); err != nil {
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Data tidak valid"})
 		return
 	}
 
@@ -285,24 +286,24 @@ func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 	var storedHash string
 	err := db.QueryRow(`SELECT password_hash FROM admin_users WHERE id = ?`, admin.ID).Scan(&storedHash)
 	if err != nil || hashPassword(req.CurrentPassword) != storedHash {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Password saat ini salah"})
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Password saat ini salah"})
 		return
 	}
 
 	// Update email if changed
 	if req.Email != "" && req.Email != admin.Email {
 		if !strings.Contains(req.Email, "@") {
-			writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Format email tidak valid"})
+			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Format email tidak valid"})
 			return
 		}
 		var taken bool
 		_ = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM admin_users WHERE email = ? AND id != ?)`, req.Email, admin.ID).Scan(&taken)
 		if taken {
-			writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Email sudah dipakai admin lain"})
+			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Email sudah dipakai admin lain"})
 			return
 		}
 		if _, err := db.Exec(`UPDATE admin_users SET email = ? WHERE id = ?`, req.Email, admin.ID); err != nil {
-			writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal mengganti email"})
+			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal mengganti email"})
 			return
 		}
 		admin.Email = req.Email
@@ -311,16 +312,16 @@ func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 	// Update password if provided
 	if req.NewPassword != "" {
 		if len(req.NewPassword) < 8 {
-			writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Password baru minimal 8 karakter"})
+			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Password baru minimal 8 karakter"})
 			return
 		}
 		if _, err := db.Exec(`UPDATE admin_users SET password_hash = ? WHERE id = ?`, hashPassword(req.NewPassword), admin.ID); err != nil {
-			writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal mengganti password"})
+			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal mengganti password"})
 			return
 		}
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Akun berhasil diperbarui",
 		"admin":   map[string]string{"email": admin.Email, "name": admin.Name},

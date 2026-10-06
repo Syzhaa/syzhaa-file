@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"archive/zip"
 	"database/sql"
 	"fmt"
@@ -29,7 +30,7 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ExpiryMinutes int `json:"expiry_minutes"`
 	}
-	readJSON(r, &req)
+	httpx.ReadJSON(r, &req)
 
 	if req.ExpiryMinutes == 0 {
 		req.ExpiryMinutes = 60
@@ -67,7 +68,7 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success":        true,
 		"room_id":        roomID,
 		"pin":            pin,
@@ -105,7 +106,7 @@ func handleAPIGetRoomLink(w http.ResponseWriter, r *http.Request) {
 	roomLink := fmt.Sprintf("%s/?room=%s", baseURL, roomID)
 	pinLink := fmt.Sprintf("%s/?pin=%s", baseURL, pin)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success":    true,
 		"room_id":    roomID,
 		"pin":        pin,
@@ -243,7 +244,7 @@ func handleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 		files = append(files, f)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success":    true,
 		"room_id":    roomID,
 		"expires_at": expiresAt.Format(time.RFC3339),
@@ -268,7 +269,7 @@ func handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	var apiKeyCount int64
 	db.QueryRow("SELECT COUNT(*) FROM api_keys WHERE admin_id = ? AND is_active = 1", admin.ID).Scan(&apiKeyCount)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"stats": map[string]interface{}{
 			"total_rooms":     totalRooms,
@@ -291,7 +292,7 @@ func handleAdminListRooms(w http.ResponseWriter, r *http.Request) {
 		ORDER BY r.created_at DESC LIMIT 100
 	`)
 	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": []interface{}{}})
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": []interface{}{}})
 		return
 	}
 	defer rows.Close()
@@ -312,5 +313,5 @@ func handleAdminListRooms(w http.ResponseWriter, r *http.Request) {
 			"owner_email": ownerEmail.String,
 		})
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": rooms})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": rooms})
 }

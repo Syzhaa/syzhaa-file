@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"log"
 	"net/http"
@@ -66,7 +67,7 @@ func handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 		users = append(users, u)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"users":   users,
 		"count":   len(users),
@@ -83,7 +84,7 @@ func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
 		StorageLimitMB      *int `json:"storage_limit_mb"`
 		MaxFileDurationDays *int `json:"max_file_duration_days"`
 	}
-	readJSON(r, &req)
+	httpx.ReadJSON(r, &req)
 
 	// Check user exists
 	var currentStatus string
@@ -109,7 +110,7 @@ func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "User approved successfully",
 	})
@@ -123,7 +124,7 @@ func handleAdminRejectUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Reason string `json:"reason"`
 	}
-	readJSON(r, &req)
+	httpx.ReadJSON(r, &req)
 
 	if req.Reason == "" {
 		req.Reason = "Registration rejected by admin"
@@ -138,7 +139,7 @@ func handleAdminRejectUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "User rejected",
 	})
@@ -152,7 +153,7 @@ func handleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Reason string `json:"reason"`
 	}
-	readJSON(r, &req)
+	httpx.ReadJSON(r, &req)
 
 	_, err := db.Exec(`UPDATE users 
 		SET status = 'suspended', rejected_reason = ?
@@ -166,7 +167,7 @@ func handleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
 	// Delete all user sessions
 	db.Exec("DELETE FROM user_sessions WHERE user_id = ?", userID)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "User suspended",
 	})
@@ -189,7 +190,7 @@ func handleAdminGetUserStats(w http.ResponseWriter, r *http.Request) {
 	// Get total storage used
 	db.QueryRow(`SELECT COALESCE(SUM(size), 0) / 1024 / 1024 FROM files WHERE created_by = ?`, userID).Scan(&stats.StorageUsedMB)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"stats":   stats,
 	})
@@ -204,7 +205,7 @@ func handleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
 		StorageLimitMB      int `json:"storage_limit_mb"`
 		MaxFileDurationDays int `json:"max_file_duration_days"`
 	}
-	readJSON(r, &req)
+	httpx.ReadJSON(r, &req)
 
 	_, err := db.Exec(`UPDATE users 
 		SET storage_limit_mb = ?, max_file_duration_days = ?
@@ -216,7 +217,7 @@ func handleAdminUpdateUserQuotas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Quotas updated successfully",
 	})
@@ -233,7 +234,7 @@ func handleAdminApproveUserAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Akses API key disetujui",
 	})
@@ -250,7 +251,7 @@ func handleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Akses API key dicabut",
 	})
@@ -265,7 +266,7 @@ func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		rows, err := db.Query(`SELECT key, value FROM system_settings`)
 		if err != nil {
-			writeJSON(w, http.StatusOK, map[string]interface{}{
+			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 				"success": false,
 				"error":   "Failed to fetch settings",
 			})
@@ -280,7 +281,7 @@ func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 			settings[key] = value
 		}
 
-		writeJSON(w, http.StatusOK, map[string]interface{}{
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 			"success":  true,
 			"settings": settings,
 		})
@@ -294,7 +295,7 @@ func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 			Key   string `json:"key"`
 			Value string `json:"value"`
 		}
-		readJSON(r, &req)
+		httpx.ReadJSON(r, &req)
 
 		now := time.Now().Format(time.RFC3339)
 		_, err := db.Exec(`UPDATE system_settings 
@@ -303,7 +304,7 @@ func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 			req.Value, now, req.Key)
 
 		if err != nil {
-			writeJSON(w, http.StatusOK, map[string]interface{}{
+			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 				"success": false,
 				"error":   "Failed to update setting",
 			})
@@ -312,7 +313,7 @@ func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("✅ Admin %s updated setting: %s", admin.Email, req.Key)
 
-		writeJSON(w, http.StatusOK, map[string]interface{}{
+		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"message": "Setting updated successfully",
 		})

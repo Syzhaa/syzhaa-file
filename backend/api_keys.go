@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"net/http"
 	"time"
@@ -33,7 +34,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*AdminUser)
 
 	var req CreateAPIKeyRequest
-	if err := readJSON(r, &req); err != nil {
+	if err := httpx.ReadJSON(r, &req); err != nil {
 		http.Error(w, `{"error":"Invalid request"}`, http.StatusBadRequest)
 		return
 	}
@@ -63,7 +64,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"api_key": APIKey{
 			ID:        keyID,
@@ -114,7 +115,7 @@ func handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success":   true,
 		"is_active": newStatus == 1,
 	})

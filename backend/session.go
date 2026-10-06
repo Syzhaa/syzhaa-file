@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -103,7 +104,7 @@ func logoutSession(cfg sessionConfig, w http.ResponseWriter, r *http.Request) {
 			cfg.table), hashPassword(c.Value))
 	}
 	clearSessionCookie(cfg, w)
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Logged out successfully",
 	})
