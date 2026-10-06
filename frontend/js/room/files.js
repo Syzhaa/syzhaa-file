@@ -169,7 +169,10 @@ async function deleteFile(fileId) {
     showConfirmModal('Yakin ingin menghapus file ini?', 'Hapus', async () => {
     
     try {
-        await api.del(`/api/file/${fileId}`);
+        const headers = {};
+        const ownerToken = localStorage.getItem('room_owner_token_' + roomId);
+        if (ownerToken) headers['X-Room-Token'] = ownerToken;
+        await api.del(`/api/file/${fileId}`, { headers: headers });
         await loadTotalFileCount();
         await loadRoomContent();
         updateTotalFileDisplay();

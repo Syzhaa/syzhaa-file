@@ -9,10 +9,13 @@ async function createFolder() {
     }
     
     try {
+        const headers = {};
+        const ownerToken = localStorage.getItem('room_owner_token_' + roomId);
+        if (ownerToken) headers['X-Room-Token'] = ownerToken;
         const data = await api.post(`/api/folder/create/${roomId}`, {
             name: folderName,
             parent_id: currentFolderId || ''
-        });
+        }, { headers: headers });
 
         if (data.success) {
             closeCreateFolderModal();
@@ -158,7 +161,10 @@ async function deleteFolder(folderId) {
     showConfirmModal('Hapus folder ini? Semua file dan subfolder di dalamnya akan ikut terhapus.', 'Hapus', async () => {
     
     try {
-        await api.del(`/api/folder/${folderId}`);
+        const headers = {};
+        const ownerToken = localStorage.getItem('room_owner_token_' + roomId);
+        if (ownerToken) headers['X-Room-Token'] = ownerToken;
+        await api.del(`/api/folder/${folderId}`, { headers: headers });
         
         await loadTotalFileCount();
         await loadRoomContent();

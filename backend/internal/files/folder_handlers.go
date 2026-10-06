@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
+	"github.com/syzhaa/file-server/internal/rooms"
 	"log"
 	"net/http"
 
@@ -20,6 +21,12 @@ func CreateFolderHandler(w http.ResponseWriter, r *http.Request) {
 	err := db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
 	if err != nil || !exists {
 		httpx.WriteError(w, http.StatusNotFound, "Invalid room")
+		return
+	}
+
+	// Ownership check (IDOR fix): only the room owner (session/token) or admin may create folders.
+	if !rooms.CheckRoomOwnership(r, roomID) {
+		httpx.WriteError(w, http.StatusForbidden, "Tidak diizinkan")
 		return
 	}
 
@@ -115,14 +122,20 @@ func DeleteFolderHandler(w http.ResponseWriter, r *http.Request) {
 	folderID := vars["id"]
 
 	// Verify folder exists
-	var name string
-	err := db.DB.QueryRow("SELECT name FROM folders WHERE id = ?", folderID).Scan(&name)
+	var name, roomID string
+	err := db.DB.QueryRow("SELECT name, room_id FROM folders WHERE id = ?", folderID).Scan(&name, &roomID)
 	if err == sql.ErrNoRows {
 		httpx.WriteError(w, http.StatusNotFound, "Folder not found")
 		return
 	}
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "Server error")
+		return
+	}
+
+	// Ownership check (IDOR fix): only the room owner (session/token) or admin may delete.
+	if !rooms.CheckRoomOwnership(r, roomID) {
+		httpx.WriteError(w, http.StatusForbidden, "Tidak diizinkan")
 		return
 	}
 

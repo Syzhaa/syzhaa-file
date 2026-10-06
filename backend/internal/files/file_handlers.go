@@ -249,15 +249,21 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	fileID := vars["id"]
 
-	var filename string
+	var filename, roomID string
 	var allowDelete int
-	err := db.DB.QueryRow(`SELECT f.filename, COALESCE(r.allow_delete, 1) FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).Scan(&filename, &allowDelete)
+	err := db.DB.QueryRow(`SELECT f.filename, f.room_id, COALESCE(r.allow_delete, 1) FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).Scan(&filename, &roomID, &allowDelete)
 	if err == sql.ErrNoRows {
 		httpx.WriteError(w, http.StatusNotFound, "rooms.File not found")
 		return
 	}
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "Server error")
+		return
+	}
+
+	// Ownership check (IDOR fix): only the room owner (session/token) or admin may delete.
+	if !rooms.CheckRoomOwnership(r, roomID) {
+		httpx.WriteError(w, http.StatusForbidden, "Tidak diizinkan")
 		return
 	}
 

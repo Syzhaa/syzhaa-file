@@ -153,6 +153,9 @@ func HandleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
 	// Delete all user sessions
 	db.DB.Exec("DELETE FROM user_sessions WHERE user_id = ?", userID)
 
+	// Deactivate all user API keys (suspended users must not retain API access)
+	db.DB.Exec("UPDATE api_keys SET is_active = 0 WHERE user_id = ?", userID)
+
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "auth.User suspended",

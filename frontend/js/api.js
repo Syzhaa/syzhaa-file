@@ -52,13 +52,13 @@
     }
 
     api.get = function (path, opts) { return api(path, Object.assign({ method: 'GET' }, opts)); };
-    api.post = function (path, body) {
-        return api(path, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined });
+    api.post = function (path, body, opts) {
+        return api(path, Object.assign({ method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }, opts));
     };
-    api.put = function (path, body) {
-        return api(path, { method: 'PUT', body: body !== undefined ? JSON.stringify(body) : undefined });
+    api.put = function (path, body, opts) {
+        return api(path, Object.assign({ method: 'PUT', body: body !== undefined ? JSON.stringify(body) : undefined }, opts));
     };
-    api.del = function (path) { return api(path, { method: 'DELETE' }); };
+    api.del = function (path, opts) { return api(path, Object.assign({ method: 'DELETE' }, opts)); };
 
     // Uniform error display (replaces scattered alert() calls).
     api.showError = function (msg) {
