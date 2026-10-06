@@ -199,7 +199,7 @@ func findOrCreateGoogleUser(g *GoogleUserInfo) *User {
 	newID := uuid.New().String()
 	_, err = db.Exec(`
 		INSERT INTO users (id, google_id, email, name, avatar_url, status, storage_limit_mb, api_approved, created_at)
-		VALUES (?, ?, ?, ?, ?, 'active', ?, 0, ?)
+		VALUES (?, ?, ?, ?, ?, 'active', ?, 1, ?)
 	`, newID, g.ID, g.Email, g.Name, g.Picture, defaultLimit, time.Now().Format(time.RFC3339))
 	if err != nil {
 		log.Printf("❌ Failed to create Google user: %v", err)
