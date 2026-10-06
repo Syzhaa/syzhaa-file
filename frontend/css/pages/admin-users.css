@@ -1,0 +1,4 @@
+/* Extracted from admin/users.html */
+
+body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .field:focus { border-color: #F6821F; box-shadow: 0 0 0 3px rgba(246,130,31,.15); outline: none; }

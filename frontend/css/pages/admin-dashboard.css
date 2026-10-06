@@ -1,0 +1,60 @@
+/* Extracted from admin/dashboard.html */
+
+.material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .sidebar-item:hover {
+            background: rgba(246, 130, 31, 0.08);
+        }
+        .sidebar-item.active {
+            background: #FFF7ED;
+            color: #C05E08;
+            font-weight: 600;
+        }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+        .modal.active {
+            display: flex;
+        }
+        /* Bottom sheet modals on mobile (slide from bottom like native apps) */
+        @media (max-width: 1023px) {
+            .modal {
+                align-items: flex-end !important;
+                justify-content: center !important;
+            }
+            .modal > div {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                border-radius: 24px 24px 0 0 !important;
+                max-height: 92vh;
+                overflow-y: auto;
+                animation: slideUp .3s ease-out;
+            }
+            @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
+        }
+        /* Main content padding for mobile bottom nav */
+        @media (max-width: 1023px) {
+            main { padding-bottom: 90px !important; }
+        }
