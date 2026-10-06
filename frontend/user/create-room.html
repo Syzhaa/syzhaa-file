@@ -298,6 +298,7 @@
                 const response = await fetch('/api/room/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ expiry_minutes: expiryMinutes })
                 });
                 const data = await response.json();
