@@ -2,19 +2,13 @@ package admin
 
 import (
 	"database/sql"
-	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
-	"github.com/syzhaa/file-server/internal/rooms"
-	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 )
 
 // UploadDir is the file upload directory.
