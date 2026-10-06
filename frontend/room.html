@@ -31,6 +31,13 @@
                 max-width: 100% !important;
                 width: 100% !important;
                 animation: sheetUp .3s ease-out;
+                max-height: 90vh; overflow-y: auto;
+                padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;
+            }
+            #info-modal > div::before, #confirm-modal > div::before, #error-modal > div::before {
+                content: ''; display: block;
+                width: 40px; height: 4px; border-radius: 99px;
+                background: #EAECF0; margin: 0 auto 16px;
             }
             @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         }
