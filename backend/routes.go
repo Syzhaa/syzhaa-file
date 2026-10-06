@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/middleware"
 	"log"
 	"net/http"
 
@@ -9,10 +10,10 @@ import (
 
 func setupRoutes() *mux.Router {
 	r := mux.NewRouter()
-	r.Use(corsMiddleware)
-	r.Use(securityHeadersMiddleware)
+	r.Use(middleware.CorsMiddleware)
+	r.Use(middleware.SecurityHeadersMiddleware)
 	// r.Use(csrfMiddleware) // Temporarily disabled - TODO: Implement proper CSRF token flow in frontend
-	r.Use(rateLimitMiddleware(generalLimiter))
+	r.Use(middleware.RateLimitMiddleware(middleware.GeneralLimiter))
 
 	// Public routes (existing)
 	r.HandleFunc("/api/stats", getPublicStatsHandler).Methods("GET", "OPTIONS")
@@ -94,7 +95,7 @@ func setupRoutes() *mux.Router {
 		http.Redirect(w, r, "/admin/dashboard.html", http.StatusTemporaryRedirect)
 	}).Methods("GET")
 
-	r.PathPrefix("/").Handler(cleanURLMiddleware(http.FileServer(http.Dir("./frontend"))))
+	r.PathPrefix("/").Handler(middleware.CleanURLMiddleware(http.FileServer(http.Dir("./frontend"))))
 
 	log.Printf("🚀 AmbilFile Server (Go) running on port %d", Port)
 	return r

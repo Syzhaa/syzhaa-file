@@ -1,4 +1,4 @@
-package main
+package middleware
 
 import (
 	"crypto/rand"
@@ -18,14 +18,14 @@ var (
 	csrfMutex  sync.RWMutex
 )
 
-func generateCSRFToken() string {
+func GenerateCSRFToken() string {
 	b := make([]byte, 32)
 	rand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
 
 func CreateCSRFToken(sessionID string) string {
-	token := generateCSRFToken()
+	token := GenerateCSRFToken()
 	
 	csrfMutex.Lock()
 	csrfTokens[sessionID] = CSRFToken{
@@ -35,7 +35,7 @@ func CreateCSRFToken(sessionID string) string {
 	csrfMutex.Unlock()
 	
 	// Cleanup expired tokens
-	go cleanupExpiredCSRFTokens()
+	go CleanupExpiredCSRFTokens()
 	
 	return token
 }
@@ -52,7 +52,7 @@ func ValidateCSRFToken(sessionID, token string) bool {
 	return storedToken.Token == token
 }
 
-func cleanupExpiredCSRFTokens() {
+func CleanupExpiredCSRFTokens() {
 	csrfMutex.Lock()
 	defer csrfMutex.Unlock()
 	
@@ -64,7 +64,7 @@ func cleanupExpiredCSRFTokens() {
 	}
 }
 
-func csrfMiddleware(next http.Handler) http.Handler {
+func CsrfMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip CSRF check for GET, HEAD, OPTIONS
 		if r.Method == "GET" || r.Method == "HEAD" || r.Method == "OPTIONS" {

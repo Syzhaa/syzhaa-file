@@ -1,4 +1,4 @@
-package main
+package middleware
 
 import (
 	"net/http"
@@ -76,18 +76,18 @@ func (rl *RateLimiter) Allow(key string) bool {
 }
 
 var (
-	generalLimiter *RateLimiter
-	pinLimiter     *RateLimiter
-	uploadLimiter  *RateLimiter
+	GeneralLimiter *RateLimiter
+	PinLimiter     *RateLimiter
+	UploadLimiter  *RateLimiter
 )
 
-func initRateLimiters() {
-	generalLimiter = NewRateLimiter(100, 1*time.Minute)
-	pinLimiter = NewRateLimiter(5, 15*time.Minute)
-	uploadLimiter = NewRateLimiter(10, 1*time.Minute)
+func InitRateLimiters() {
+	GeneralLimiter = NewRateLimiter(100, 1*time.Minute)
+	PinLimiter = NewRateLimiter(5, 15*time.Minute)
+	UploadLimiter = NewRateLimiter(10, 1*time.Minute)
 }
 
-func rateLimitMiddleware(limiter *RateLimiter) func(http.Handler) http.Handler {
+func RateLimitMiddleware(limiter *RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := r.RemoteAddr

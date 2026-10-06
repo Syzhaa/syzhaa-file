@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
+	"github.com/syzhaa/file-server/internal/middleware"
 	"fmt"
 	"log"
 	"net/http"
@@ -88,7 +89,7 @@ func main() {
 	)
 
 	// Initialize rate limiters
-	initRateLimiters()
+	middleware.InitRateLimiters()
 
 	go autoCleanupWorker()
 	go cleanOrphanedFiles()
