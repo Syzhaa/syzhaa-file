@@ -146,18 +146,18 @@
             <!-- Live stats -->
             <div class="mt-8 flex items-center justify-center gap-8 sm:gap-12" id="live-stats" style="display:none">
                 <div class="text-center">
-                    <div class="text-2xl sm:text-3xl font-extrabold text-ink" id="stat-rooms">—</div>
-                    <div class="text-xs text-muted font-medium mt-1">Ruangan dibuat</div>
-                </div>
-                <div class="w-px h-10 bg-line"></div>
-                <div class="text-center">
                     <div class="text-2xl sm:text-3xl font-extrabold text-ink" id="stat-files">—</div>
-                    <div class="text-xs text-muted font-medium mt-1">File terupload</div>
+                    <div class="text-xs text-muted font-medium mt-1">File tersimpan</div>
                 </div>
                 <div class="w-px h-10 bg-line"></div>
                 <div class="text-center">
                     <div class="text-2xl sm:text-3xl font-extrabold text-ink" id="stat-size">—</div>
                     <div class="text-xs text-muted font-medium mt-1">Data tersimpan</div>
+                </div>
+                <div class="w-px h-10 bg-line"></div>
+                <div class="text-center">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-muted" id="stat-deleted">—</div>
+                    <div class="text-xs text-muted font-medium mt-1">File terhapus</div>
                 </div>
             </div>
         </div>
@@ -546,9 +546,9 @@ async function loadStats() {
         const res = await fetch('/api/stats');
         if (!res.ok) return;
         const s = await res.json();
-        document.getElementById('stat-rooms').textContent = (s.total_rooms || 0).toLocaleString('id-ID');
         document.getElementById('stat-files').textContent = (s.total_files || 0).toLocaleString('id-ID');
         document.getElementById('stat-size').textContent = s.total_size_label || '0 B';
+        document.getElementById('stat-deleted').textContent = (s.deleted_files || 0).toLocaleString('id-ID');
         document.getElementById('live-stats').style.display = 'flex';
     } catch {}
 }

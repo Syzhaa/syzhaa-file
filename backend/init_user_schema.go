@@ -67,7 +67,10 @@ func initUserSchema() error {
 		('default_storage_limit_mb', '2048', 'Default storage limit per user (2GB)'),
 		('anonymous_storage_limit_mb', '1024', 'Storage limit per anonymous room (1GB)'),
 		('default_max_duration_days', '7', 'Default max file duration (7 days)'),
-		('require_approval', 'true', 'Require admin approval for new users')`)
+		('require_approval', 'true', 'Require admin approval for new users'),
+		('stats_deleted_rooms', '0', 'Total rooms auto-deleted after expiry'),
+		('stats_deleted_files', '0', 'Total files auto-deleted after expiry'),
+		('stats_deleted_bytes', '0', 'Total bytes auto-deleted after expiry')`)
 
 	// Migrate old 5GB default to 2GB (policy change 2026-10-05)
 	db.Exec(`UPDATE system_settings SET value = '2048', description = 'Default storage limit per user (2GB)'

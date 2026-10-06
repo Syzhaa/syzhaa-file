@@ -343,13 +343,24 @@ func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
 	_ = db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&totalUsers)
 	_ = db.QueryRow(`SELECT COALESCE(SUM(size), 0) FROM files`).Scan(&totalBytes)
 
+	// Cumulative deleted stats
+	var deletedRooms, deletedFiles int
+	var deletedBytes int64
+	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_rooms'`).Scan(&deletedRooms)
+	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_files'`).Scan(&deletedFiles)
+	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_bytes'`).Scan(&deletedBytes)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"total_rooms":       totalRooms,
-		"total_files":       totalFiles,
-		"total_users":       totalUsers,
-		"total_bytes":       totalBytes,
-		"total_size_label":  formatBytes(totalBytes),
+		"total_rooms":        totalRooms,
+		"total_files":        totalFiles,
+		"total_users":        totalUsers,
+		"total_bytes":        totalBytes,
+		"total_size_label":   formatBytes(totalBytes),
+		"deleted_rooms":      deletedRooms,
+		"deleted_files":      deletedFiles,
+		"deleted_bytes":      deletedBytes,
+		"deleted_size_label": formatBytes(deletedBytes),
 	})
 }
 
@@ -981,9 +992,10 @@ func autoCleanupWorker() {
 		
 		totalFilesDeleted := 0
 		totalFilesFailed := 0
+		var totalBytesDeleted int64
 
 		for _, roomID := range expiredRooms {
-			fileRows, err := db.Query("SELECT filename FROM files WHERE room_id = ?", roomID)
+			fileRows, err := db.Query("SELECT filename, size FROM files WHERE room_id = ?", roomID)
 			if err != nil {
 				log.Printf("⚠️  Auto-cleanup: Failed to query files for room %s: %v", roomID, err)
 				continue
@@ -991,7 +1003,8 @@ func autoCleanupWorker() {
 
 			for fileRows.Next() {
 				var filename string
-				fileRows.Scan(&filename)
+				var fsize int64
+				fileRows.Scan(&filename, &fsize)
 				filePath := filepath.Join(UploadDir, filename)
 				
 				if err := os.Remove(filePath); err != nil {
@@ -1002,6 +1015,7 @@ func autoCleanupWorker() {
 				} else {
 					log.Printf("🗑️  Auto-cleanup: Deleted file %s", filename)
 					totalFilesDeleted++
+					totalBytesDeleted += fsize
 				}
 			}
 			fileRows.Close()
@@ -1017,6 +1031,13 @@ func autoCleanupWorker() {
 			} else {
 				log.Printf("🧹 Auto-cleanup: Deleted room %s", roomID)
 			}
+		}
+
+		// Update cumulative deletion stats
+		if len(expiredRooms) > 0 {
+			db.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_rooms'`, len(expiredRooms))
+			db.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_files'`, totalFilesDeleted)
+			db.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + ? WHERE key = 'stats_deleted_bytes'`, totalBytesDeleted)
 		}
 
 		log.Printf("✅ Auto-cleanup complete: %d rooms, %d files deleted, %d files failed", 
