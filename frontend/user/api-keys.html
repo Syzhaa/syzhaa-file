@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard — AmbilFile</title>
+    <title>API Key — AmbilFile</title>
     <link rel="icon" href="/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
@@ -88,33 +88,39 @@
         </div>
     </header>
     <main>
-        <h2 id="greeting">Dashboard</h2>
-        <p class="hello-sub">Kelola API key dan ruanganmu di sini.</p>
+        <h2 id="greeting">API Key</h2>
+        <p class="hello-sub">Buat dan kelola API key untuk akses API.</p>
 
-        <div class="stats">
-            <div class="stat">
-                <span class="material-symbols-outlined">key</span>
-                <div><div class="stat-num" id="stat-keys">0</div><div class="stat-lbl">API Key</div></div>
+        <div class="card" id="keys-card">
+            <h3><span class="material-symbols-outlined">key</span> API Keys</h3>
+            <p class="desc">Buat API key untuk mengakses AmbilFile lewat API. Key hanya ditampilkan sekali saat dibuat.</p>
+            <div id="api-locked" style="display:none">
+                <div class="empty" id="api-locked-msg">Untuk membuat API key, kamu perlu persetujuan admin dulu.</div>
+                <button class="btn" id="request-api-btn" onclick="requestApiAccess()">Minta Persetujuan</button>
             </div>
-            <div class="stat">
-                <span class="material-symbols-outlined">folder</span>
-                <div><div class="stat-num" id="stat-rooms">0</div><div class="stat-lbl">Ruangan</div></div>
+            <div id="api-unlocked" style="display:none">
+                <div id="keys-list"><div class="empty">Memuat…</div></div>
+                <div class="newkey" id="newkey-box">
+                    <p>API key baru berhasil dibuat. Salin sekarang — tidak akan ditampilkan lagi.</p>
+                    <div class="keyval">
+                        <code id="newkey-val"></code>
+                        <button class="copybtn" onclick="copyNewKey()">Salin</button>
+                    </div>
+                </div>
+                <div class="formrow">
+                    <input type="text" id="key-name" placeholder="Nama key, mis. Aplikasi saya" maxlength="60">
+                    <button class="btn" id="create-key-btn" onclick="createKey()">Buat API Key</button>
+                </div>
             </div>
-        </div>
-
-        <div class="card">
-            <h3><span class="material-symbols-outlined">folder</span> Ruangan Saya</h3>
-            <p class="desc">Ruangan yang kamu buat saat sedang login.</p>
-            <div id="rooms-list"><div class="empty">Memuat…</div></div>
         </div>
 
     <!-- Bottom Navigation (mobile) -->
     <nav class="bottom-nav">
-            <a href="/user/" class="bnav-item active">
+            <a href="/user/" class="bnav-item">
                 <span class="material-symbols-outlined">dashboard</span>
                 <span>Dashboard</span>
             </a>
-            <a href="/user/api-keys.html" class="bnav-item">
+            <a href="/user/api-keys.html" class="bnav-item active">
                 <span class="material-symbols-outlined">key</span>
                 <span>API Key</span>
             </a>
@@ -223,32 +229,36 @@
         async function load() {
             try {
                 const me = await api('/user/me');
-                const u = me.user;
-                setText('user-name', u.name);
-                setText('greeting', 'Halo, ' + u.name);
+                setText('user-name', me.user.name);
+                const apiApproved = !!me.api_approved;
+                const apiRequested = !!me.api_requested;
+                setDisplay('api-locked', apiApproved ? 'none' : 'block');
+                setDisplay('api-unlocked', apiApproved ? 'block' : 'none');
+                if (!apiApproved) {
+                    if (apiRequested) {
+                        setText('api-locked-msg', 'Permintaanmu sedang ditinjau admin. Kamu akan bisa membuat API key setelah disetujui.');
+                        setDisplay('request-api-btn', 'none');
+                    }
+                    return;
+                }
             } catch { return; }
 
             try {
                 const keys = await api('/user/api-keys');
-                setText('stat-keys', (keys.api_keys || []).length);
-            } catch {}
-
-            try {
-                const rooms = await api('/user/rooms');
-                setText('stat-rooms', (rooms.rooms || []).length);
-                const rl = document.getElementById('rooms-list');
-                if (rl) {
-                    if (!rooms.rooms || !rooms.rooms.length) {
-                        rl.innerHTML = '<div class="empty">Belum ada ruangan. <a href="/" style="color:#F6821F;font-weight:600">Buat ruangan</a> dulu.</div>';
+                const kl = document.getElementById('keys-list');
+                if (kl) {
+                    if (!keys.api_keys || !keys.api_keys.length) {
+                        kl.innerHTML = '<div class="empty">Belum ada API key. Buat satu di bawah.</div>';
                     } else {
-                        rl.innerHTML = rooms.rooms.map(rm =>
-                            `<div class="roomrow">
-                                <span class="material-symbols-outlined" style="color:#9ca3af">folder</span>
+                        kl.innerHTML = keys.api_keys.map(k =>
+                            `<div class="keyrow">
                                 <div style="flex:1">
-                                    <div class="pin">${esc(rm.pin)}</div>
-                                    <div class="meta">Kadaluarsa ${new Date(rm.expires_at).toLocaleString('id-ID')}</div>
+                                    <div class="kname">${esc(k.name)}</div>
+                                    <div class="kdate">Dibuat ${new Date(k.created_at).toLocaleDateString('id-ID')}</div>
                                 </div>
-                                <a href="/room/${esc(rm.id)}">Buka</a>
+                                <button class="iconbtn danger" title="Hapus" onclick="deleteKey('${k.id}','${esc(k.name)}')">
+                                    <span class="material-symbols-outlined" style="font-size:20px">delete</span>
+                                </button>
                             </div>`
                         ).join('');
                     }
