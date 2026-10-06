@@ -126,6 +126,10 @@
                     <span class="material-symbols-outlined">key</span>
                     API Key
                 </a>
+                <a href="#" data-view="create-room" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
+                    <span class="material-symbols-outlined">add_circle</span>
+                    Buat Room
+                </a>
                 <a href="#" data-view="settings" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors">
                     <span class="material-symbols-outlined">settings</span>
                     Settings
@@ -281,6 +285,25 @@
             </div>
 
             <!-- Settings View -->
+            <div id="view-create-room" class="p-6 space-y-6 hidden">
+                <h2 class="text-2xl font-headline font-bold">Buat Room Baru</h2>
+                <div class="bg-white p-6 rounded-2xl border border-outline-variant max-w-xl">
+                    <h3 class="text-lg font-headline font-semibold mb-1">Ruangan Baru</h3>
+                    <p class="text-sm text-outline mb-6">Pilih berapa lama room berlaku. Room admin tanpa batas kuota.</p>
+                    <label class="block text-sm font-semibold mb-2">Masa berlaku</label>
+                    <div class="flex gap-2 mb-2">
+                        <input type="number" id="admin-expiry-value" value="1" min="1" max="10080" class="flex-1 px-4 py-3 border border-outline-variant rounded-xl">
+                        <select id="admin-expiry-unit" class="px-4 py-3 border border-outline-variant rounded-xl bg-white">
+                            <option value="1">Menit</option>
+                            <option value="60" selected>Jam</option>
+                            <option value="1440">Hari</option>
+                        </select>
+                    </div>
+                    <p class="text-xs text-outline mb-6">Maksimal 7 hari. Minimal 10 menit.</p>
+                    <button onclick="createAdminRoom()" id="admin-create-room-btn" class="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:brightness-110 transition-all">Buat Ruangan</button>
+                </div>
+            </div>
+
             <div id="view-settings" class="p-6 space-y-6 hidden">
                 <h2 class="text-2xl font-headline font-bold">Pengaturan</h2>
 
@@ -327,6 +350,10 @@
                 <button data-bnav="api-keys" onclick="switchView('api-keys')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#737686">
                     <span class="material-symbols-outlined text-2xl">key</span>
                     <span>API Key</span>
+                </button>
+                <button data-bnav="create-room" onclick="switchView('create-room')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#737686">
+                    <span class="material-symbols-outlined text-2xl">add_circle</span>
+                    <span>Buat</span>
                 </button>
                 <button data-bnav="settings" onclick="switchView('settings')" class="bnav-item flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-medium active:scale-95 transition-transform" style="color:#737686">
                     <span class="material-symbols-outlined text-2xl">settings</span>
@@ -603,6 +630,6 @@
     }
     </script>
 
-    <script src="dashboard.js?v=20261006a"></script>
+    <script src="dashboard.js?v=20261006b"></script>
 </body>
 </html>

@@ -794,3 +794,33 @@ async function saveAccount() {
     }
 }
 
+
+async function createAdminRoom() {
+    const btn = document.getElementById('admin-create-room-btn');
+    const val = parseInt(document.getElementById('admin-expiry-value').value);
+    const unit = parseInt(document.getElementById('admin-expiry-unit').value);
+    const minutes = val * unit;
+    if (!minutes || minutes < 10 || minutes > 10080) {
+        showToast('Durasi tidak valid (10 menit - 7 hari)', 'error');
+        return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Membuat...';
+    try {
+        const data = await apiCall('/api/room/create', {
+            method: 'POST',
+            body: JSON.stringify({ expiry_minutes: minutes })
+        });
+        if (data && data.room_id) {
+            window.location.href = '/room.html?id=' + data.room_id;
+        } else {
+            showToast('Gagal membuat ruangan', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Buat Ruangan';
+        }
+    } catch {
+        showToast('Tidak bisa terhubung ke server', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Buat Ruangan';
+    }
+}
