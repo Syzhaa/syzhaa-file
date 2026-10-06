@@ -23,11 +23,11 @@ func setupRoutes() *mux.Router {
 	// Public routes (existing)
 	r.HandleFunc("/api/stats", getPublicStatsHandler).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/room/create", rooms.CreateRoomHandler).Methods("POST", "OPTIONS")
-	r.HandleFunc("/api/room/pin", rooms.AccessRoomByPinHandler).Methods("POST", "OPTIONS")
+	r.Handle("/api/room/pin", middleware.RateLimitMiddleware(middleware.PinLimiter)(http.HandlerFunc(rooms.AccessRoomByPinHandler))).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/{id}", rooms.GetRoomInfoHandler).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/room/{id}", rooms.HandleDeleteRoom).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/room/{id}/settings", rooms.UpdateRoomSettingsHandler).Methods("PUT", "OPTIONS")
-	r.HandleFunc("/api/upload/{roomId}", files.UploadChunkHandler).Methods("POST", "OPTIONS")
+	r.Handle("/api/upload/{roomId}", middleware.RateLimitMiddleware(middleware.UploadLimiter)(http.HandlerFunc(files.UploadChunkHandler))).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/file/{id}", files.DeleteFileHandler).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/folder/create/{roomId}", files.CreateFolderHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/folders/{roomId}", files.ListFoldersHandler).Methods("GET", "OPTIONS")
@@ -35,7 +35,7 @@ func setupRoutes() *mux.Router {
 	r.HandleFunc("/d/{id}", files.DownloadFileHandler).Methods("GET")
 
 	// Admin email/password auth routes
-	r.HandleFunc("/auth/login", auth.HandleAdminLogin).Methods("POST", "OPTIONS")
+	r.Handle("/auth/login", middleware.RateLimitMiddleware(middleware.LoginLimiter)(http.HandlerFunc(auth.HandleAdminLogin))).Methods("POST", "OPTIONS")
 	r.HandleFunc("/auth/logout", auth.HandleAdminLogout).Methods("POST", "OPTIONS")
 
 	// Admin routes (require session)
@@ -72,8 +72,8 @@ func setupRoutes() *mux.Router {
 	userRouter.HandleFunc("/api-keys/{id}", apikeys.HandleUserDeleteAPIKey).Methods("DELETE")
 
 	// auth.User auth (public)
-	r.HandleFunc("/auth/user/register", auth.HandleUserRegister).Methods("POST", "OPTIONS")
-	r.HandleFunc("/auth/user/login", auth.HandleUserLogin).Methods("POST", "OPTIONS")
+	r.Handle("/auth/user/register", middleware.RateLimitMiddleware(middleware.LoginLimiter)(http.HandlerFunc(auth.HandleUserRegister))).Methods("POST", "OPTIONS")
+	r.Handle("/auth/user/login", middleware.RateLimitMiddleware(middleware.LoginLimiter)(http.HandlerFunc(auth.HandleUserLogin))).Methods("POST", "OPTIONS")
 	r.HandleFunc("/auth/user/logout", auth.HandleUserLogout).Methods("POST", "OPTIONS")
 	r.HandleFunc("/auth/user/google", auth.HandleUserGoogleLogin).Methods("GET")
 	r.HandleFunc("/auth/user/google/callback", auth.HandleUserGoogleCallback).Methods("GET")

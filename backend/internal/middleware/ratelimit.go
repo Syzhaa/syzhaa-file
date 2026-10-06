@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -79,25 +81,48 @@ var (
 	GeneralLimiter *RateLimiter
 	PinLimiter     *RateLimiter
 	UploadLimiter  *RateLimiter
+	LoginLimiter   *RateLimiter
 )
 
 func InitRateLimiters() {
 	GeneralLimiter = NewRateLimiter(100, 1*time.Minute)
 	PinLimiter = NewRateLimiter(5, 15*time.Minute)
 	UploadLimiter = NewRateLimiter(10, 1*time.Minute)
+	LoginLimiter = NewRateLimiter(5, 10*time.Minute)
+}
+
+// ClientIP extracts the real client IP, trusting Cloudflare/proxy headers.
+// Priority: CF-Connecting-IP > X-Real-IP > X-Forwarded-For (first) > RemoteAddr.
+func ClientIP(r *http.Request) string {
+	if ip := r.Header.Get("CF-Connecting-IP"); ip != "" {
+		return strings.TrimSpace(ip)
+	}
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return strings.TrimSpace(ip)
+	}
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if i := strings.Index(xff, ","); i >= 0 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
 }
 
 func RateLimitMiddleware(limiter *RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := r.RemoteAddr
-			
+			ip := ClientIP(r)
+
 			if !limiter.Allow(ip) {
 				w.Header().Set("Retry-After", "60")
 				http.Error(w, `{"error":"Rate limit exceeded. Please try again later."}`, http.StatusTooManyRequests)
 				return
 			}
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
