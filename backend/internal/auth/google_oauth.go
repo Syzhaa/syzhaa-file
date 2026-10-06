@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -74,6 +75,11 @@ func HandleUserGoogleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, `{"error":"Gagal membuat sesi login"}`, http.StatusInternalServerError)
 		return
+	}
+	// Jalur aplikasi Android: tandai state agar callback redirect ke deep link,
+	// bukan ke halaman web. Alur web tidak berubah sama sekali.
+	if r.FormValue("app") == "1" {
+		state += ".mobile"
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
@@ -145,6 +151,11 @@ func HandleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		sess, err := CreateUserSession(user.ID)
 		if err != nil {
 			http.Redirect(w, r, "/user-login.html?error=server", http.StatusTemporaryRedirect)
+			return
+		}
+		// Aplikasi Android: kembalikan token lewat deep link, bukan cookie web.
+		if strings.HasSuffix(r.FormValue("state"), ".mobile") {
+			http.Redirect(w, r, "ambilfile://login?token="+sess.Token, http.StatusTemporaryRedirect)
 			return
 		}
 		http.SetCookie(w, &http.Cookie{
