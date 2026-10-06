@@ -149,10 +149,6 @@
 
     <!-- Bottom Navigation (mobile) -->
     <nav class="bottom-nav">
-        <a href="/" class="bnav-item">
-            <span class="material-symbols-outlined">home</span>
-            <span>Beranda</span>
-        </a>
         <a href="/user/dashboard.html" class="bnav-item active">
             <span class="material-symbols-outlined">dashboard</span>
             <span>Dashboard</span>
@@ -160,6 +156,10 @@
         <a href="#keys" class="bnav-item" onclick="document.getElementById('keys-card').scrollIntoView({behavior:'smooth'})">
             <span class="material-symbols-outlined">key</span>
             <span>API Key</span>
+        </a>
+        <a href="#" class="bnav-item" onclick="document.querySelector('.card').scrollIntoView({behavior:'smooth'});return false;">
+            <span class="material-symbols-outlined">person</span>
+            <span>Akun</span>
         </a>
     </nav>
 
