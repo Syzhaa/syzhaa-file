@@ -92,13 +92,20 @@ async function joinRoom() {
     }
 }
 
-// Session check: kalau sudah login, langsung ke dashboard.
+// Session check: kalau sudah login, langsung ke dashboard (user -> /user/, admin -> /admin).
 // Pakai noRedirect supaya pengunjung anonim TIDAK dilempar ke halaman login.
 async function checkUserSession() {
     try {
         const data = await api.get('/user/me', { noRedirect: true });
         if (data && data.user && !data.error) {
             window.location.href = '/user/';
+            return;
+        }
+    } catch (error) { /* bukan sesi user, lanjut cek admin */ }
+    try {
+        const adm = await api.get('/admin/me', { noRedirect: true });
+        if (adm && adm.admin && !adm.error) {
+            window.location.href = '/admin';
             return;
         }
     } catch (error) { /* tetap tampil landing */ }
