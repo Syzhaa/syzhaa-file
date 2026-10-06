@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard — AmbilFile</title>
+    <title>Ruangan Saya — AmbilFile</title>
     <link rel="icon" href="/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
@@ -148,10 +148,7 @@
         <h2 id="greeting">Dashboard</h2>
         <p class="hello-sub">Kelola API key dan ruanganmu di sini.</p>
 
-        <div class="stats">
-            <div class="stat">
-                <span class="material-symbols-outlined">key</span>
-                <div><div class="stat-num" id="stat-keys">0</div><div class="stat-lbl">API Key</div></div>
+<div class="stat-lbl">API Key</div></div>
             </div>
             <div class="stat">
                 <span class="material-symbols-outlined">folder</span>
@@ -178,12 +175,6 @@
             </div>
             <p class="desc">Ruangan yang kamu buat saat sedang login.</p>
             <div id="rooms-list"><div class="empty">Memuat…</div></div>
-            <div style="text-align:center;margin-top:16px;">
-                <a href="/user/rooms.html" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#1a1a2e;color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">
-                    <span class="material-symbols-outlined" style="font-size:18px">folder_open</span>
-                    Lihat Semua Ruangan
-                </a>
-            </div>
         </div>
 
     <!-- Bottom Navigation (mobile) -->
@@ -332,9 +323,6 @@
             let filtered = list;
             if (filter === 'active') filtered = list.filter(r => new Date(r.expires_at) > now);
             if (filter === 'expired') filtered = list.filter(r => new Date(r.expires_at) <= now);
-            // Dashboard: show only 3 latest
-            const isDashboard = !window.location.pathname.includes('rooms.html');
-            if (isDashboard && filter === 'all') filtered = filtered.slice(0, 3);
             
             // Update filter button styles
             document.querySelectorAll('#room-filter .filter-btn').forEach(b => {
