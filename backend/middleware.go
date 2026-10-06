@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/auth"
 	"context"
 	"net/http"
 	"strings"
@@ -9,7 +10,7 @@ import (
 // Middleware: Require admin session
 func requireAdminSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		admin, err := validateAdminSession(r)
+		admin, err := auth.ValidateAdminSession(r)
 		if err != nil {
 			http.Error(w, `{"error":"Unauthorized"}`, http.StatusUnauthorized)
 			return

@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"github.com/syzhaa/file-server/internal/db"
@@ -27,7 +27,7 @@ type GoogleUserInfo struct {
 	Picture string `json:"picture"`
 }
 
-func initGoogleOAuth() {
+func InitGoogleOAuth() {
 	clientID := os.Getenv("GOOGLE_CLIENT_ID")
 	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	if clientID == "" || clientSecret == "" {
@@ -65,7 +65,7 @@ func googleOAuthState() (string, error) {
 }
 
 // GET /auth/user/google — redirect to Google
-func handleUserGoogleLogin(w http.ResponseWriter, r *http.Request) {
+func HandleUserGoogleLogin(w http.ResponseWriter, r *http.Request) {
 	if !googleOAuthEnabled {
 		http.Error(w, `{"error":"Google login belum dikonfigurasi"}`, http.StatusServiceUnavailable)
 		return
@@ -89,7 +89,7 @@ func handleUserGoogleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /auth/user/google/callback — Google redirects back here
-func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
+func HandleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	if !googleOAuthEnabled {
 		http.Error(w, "Google login belum dikonfigurasi", http.StatusServiceUnavailable)
 		return
@@ -142,7 +142,7 @@ func handleUserGoogleCallback(w http.ResponseWriter, r *http.Request) {
 
 	switch user.Status {
 	case "approved", "active", "pending":
-		sess, err := createUserSession(user.ID)
+		sess, err := CreateUserSession(user.ID)
 		if err != nil {
 			http.Redirect(w, r, "/user-login.html?error=server", http.StatusTemporaryRedirect)
 			return

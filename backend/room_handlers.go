@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"crypto/rand"
@@ -66,9 +67,9 @@ func createRoomHandler(w http.ResponseWriter, r *http.Request) {
 	// Rooms created by an admin bypass storage quotas (full access).
 	var userID string
 	noQuota := 0
-	if _, err := validateAdminSession(r); err == nil {
+	if _, err := auth.ValidateAdminSession(r); err == nil {
 		noQuota = 1
-	} else if u, err := validateUserSession(r); err == nil && u != nil {
+	} else if u, err := auth.ValidateUserSession(r); err == nil && u != nil {
 		userID = u.ID
 	}
 
@@ -243,11 +244,11 @@ func handleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 
 	// Authorization: admin can delete anything; user can delete their own rooms
 	isAdmin := false
-	if _, err := validateAdminSession(r); err == nil {
+	if _, err := auth.ValidateAdminSession(r); err == nil {
 		isAdmin = true
 	}
 	if !isAdmin {
-		u, err := validateUserSession(r)
+		u, err := auth.ValidateUserSession(r)
 		if err != nil || u == nil || !userID.Valid || userID.String != u.ID {
 			httpx.WriteError(w, http.StatusForbidden, "Tidak diizinkan")
 			return

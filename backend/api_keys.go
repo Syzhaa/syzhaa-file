@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
@@ -32,7 +33,7 @@ type CreateAPIKeyRequest struct {
 
 // Handler: Create API Key
 func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
-	admin := r.Context().Value("admin").(*AdminUser)
+	admin := r.Context().Value("admin").(*auth.AdminUser)
 
 	var req CreateAPIKeyRequest
 	if err := httpx.ReadJSON(r, &req); err != nil {
@@ -46,7 +47,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := generateAPIKey()
-	keyHash := hashString(key)
+	keyHash := auth.HashString(key)
 	keyID := uuid.New().String()
 
 	var expiresAt *string
@@ -84,7 +85,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 
 // Handler: Toggle API Key
 func handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
-	admin := r.Context().Value("admin").(*AdminUser)
+	admin := r.Context().Value("admin").(*auth.AdminUser)
 	vars := mux.Vars(r)
 	keyID := vars["id"]
 

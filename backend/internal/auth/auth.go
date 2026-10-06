@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"github.com/syzhaa/file-server/internal/db"
@@ -33,19 +33,19 @@ type AdminSession struct {
 }
 
 // Hash password using SHA256
-func hashPassword(password string) string {
+func HashPassword(password string) string {
 	h := sha256.New()
 	h.Write([]byte(password))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
 // Alias for compatibility with api_keys.go
-func hashString(s string) string {
-	return hashPassword(s)
+func HashString(s string) string {
+	return HashPassword(s)
 }
 
 // Initialize admin user with default password on first run
-func initAdminDefaults(email, name, password string) {
+func InitAdminDefaults(email, name, password string) {
 	if email == "" {
 		email = "admin@ambilfile.local"
 	}
@@ -56,7 +56,7 @@ func initAdminDefaults(email, name, password string) {
 		password = "admin"
 	}
 
-	passwordHash := hashPassword(password)
+	passwordHash := HashPassword(password)
 
 	// Check if admin already exists
 	var exists bool
@@ -84,7 +84,7 @@ func initAdminDefaults(email, name, password string) {
 }
 
 // Handler: Admin login with email and password
-func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
+func HandleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var req struct {
@@ -146,7 +146,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify password
-	passwordHash := hashPassword(req.Password)
+	passwordHash := HashPassword(req.Password)
 	var admin AdminUser
 	err := db.DB.QueryRow(`
 		SELECT id, email, name, created_at, last_login, is_super_admin
@@ -172,7 +172,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create session
-	session, err := createAdminSession(admin.ID)
+	session, err := CreateAdminSession(admin.ID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to create session"}`, http.StatusInternalServerError)
 		return
@@ -203,7 +203,7 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // Create admin session
-func createAdminSession(adminID string) (*AdminSession, error) {
+func CreateAdminSession(adminID string) (*AdminSession, error) {
 	token, err := createSession(adminSessionCfg, adminID)
 	if err != nil {
 		return nil, err
@@ -216,12 +216,12 @@ func createAdminSession(adminID string) (*AdminSession, error) {
 }
 
 // Handler: Admin logout
-func handleAdminLogout(w http.ResponseWriter, r *http.Request) {
+func HandleAdminLogout(w http.ResponseWriter, r *http.Request) {
 	logoutSession(adminSessionCfg, w, r)
 }
 
 // Generate random string helper
-func generateRandomString(length int) string {
+func GenerateRandomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
 	for i := range b {
@@ -232,7 +232,7 @@ func generateRandomString(length int) string {
 
 // Validate admin session from cookie or Authorization header
 // Validate admin session from cookie or Authorization header
-func validateAdminSession(r *http.Request) (*AdminUser, error) {
+func ValidateAdminSession(r *http.Request) (*AdminUser, error) {
 	adminID, err := getSessionOwnerID(adminSessionCfg, r)
 	if err != nil {
 		return nil, fmt.Errorf("invalid or expired session")
@@ -253,7 +253,7 @@ func validateAdminSession(r *http.Request) (*AdminUser, error) {
 }
 
 // Handler: Get current admin info
-func handleAdminMe(w http.ResponseWriter, r *http.Request) {
+func HandleAdminMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	
 	admin := r.Context().Value("admin").(*AdminUser)
@@ -266,7 +266,7 @@ func handleAdminMe(w http.ResponseWriter, r *http.Request) {
 
 // Handler: Update own admin account (email and/or password).
 // Requires current password verification.
-func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
+func HandleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	admin := r.Context().Value("admin").(*AdminUser)
@@ -286,7 +286,7 @@ func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 	// Verify current password
 	var storedHash string
 	err := db.DB.QueryRow(`SELECT password_hash FROM admin_users WHERE id = ?`, admin.ID).Scan(&storedHash)
-	if err != nil || hashPassword(req.CurrentPassword) != storedHash {
+	if err != nil || HashPassword(req.CurrentPassword) != storedHash {
 		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Password saat ini salah"})
 		return
 	}
@@ -316,7 +316,7 @@ func handleAdminUpdateAccount(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Password baru minimal 8 karakter"})
 			return
 		}
-		if _, err := db.DB.Exec(`UPDATE admin_users SET password_hash = ? WHERE id = ?`, hashPassword(req.NewPassword), admin.ID); err != nil {
+		if _, err := db.DB.Exec(`UPDATE admin_users SET password_hash = ? WHERE id = ?`, HashPassword(req.NewPassword), admin.ID); err != nil {
 			httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal mengganti password"})
 			return
 		}

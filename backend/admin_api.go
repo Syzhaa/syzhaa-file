@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"archive/zip"
@@ -53,7 +54,7 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 	expiresAt := time.Now().Add(time.Duration(req.ExpiryMinutes) * time.Minute)
 
 	// Admin-owned keys (not user keys) create quota-free rooms (full access).
-	// User-owned keys tag the room with the user for quota tracking.
+	// auth.User-owned keys tag the room with the user for quota tracking.
 	noQuota := 0
 	roomUserID := ""
 	if apiKey.UserID == "" {
@@ -256,7 +257,7 @@ func handleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 
 // Handler: Admin Stats
 func handleAdminStats(w http.ResponseWriter, r *http.Request) {
-	admin := r.Context().Value("admin").(*AdminUser)
+	admin := r.Context().Value("admin").(*auth.AdminUser)
 
 	var totalRooms, activeRooms, totalFiles int64
 	var totalSize int64

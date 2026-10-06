@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
@@ -59,7 +60,7 @@ func deleteKeyByOwner(ownerColumn, ownerID, keyID string) (bool, error) {
 // --- Admin wrappers (preserve existing response format) ---
 
 func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
-	admin := r.Context().Value("admin").(*AdminUser)
+	admin := r.Context().Value("admin").(*auth.AdminUser)
 	keys, err := listKeysByOwner("admin_id", admin.ID)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "Failed to fetch API keys")
@@ -70,7 +71,7 @@ func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
-	admin := r.Context().Value("admin").(*AdminUser)
+	admin := r.Context().Value("admin").(*auth.AdminUser)
 	keyID := mux.Vars(r)["id"]
 
 	// Check existence first (preserve 404 behavior)
@@ -97,10 +98,10 @@ func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
 
-// --- User wrappers (preserve existing response format) ---
+// --- auth.User wrappers (preserve existing response format) ---
 
 func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
-	user := userFromContext(r.Context())
+	user := auth.UserFromContext(r.Context())
 	if user == nil {
 		httpx.WriteJSON(w, http.StatusUnauthorized,
 			map[string]interface{}{"success": false, "error": "Login diperlukan"})
@@ -117,7 +118,7 @@ func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleUserDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
-	user := userFromContext(r.Context())
+	user := auth.UserFromContext(r.Context())
 	if user == nil {
 		httpx.WriteJSON(w, http.StatusUnauthorized,
 			map[string]interface{}{"success": false, "error": "Login diperlukan"})
@@ -140,7 +141,7 @@ func handleUserDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 
 // generateAPIKey creates a new API key string.
 func generateAPIKey() string {
-	return "sfa_" + generateRandomString(32)
+	return "sfa_" + auth.GenerateRandomString(32)
 }
 
 // validateAPIKey checks if an API key is valid.
@@ -150,7 +151,7 @@ func validateAPIKey(keyString string) (*APIKey, error) {
 	var isActive int
 	err := db.DB.QueryRow(`
 		SELECT id, admin_id, user_id, name, expires_at, created_at, is_active
-		FROM api_keys WHERE key_hash = ?`, hashString(keyString)).Scan(
+		FROM api_keys WHERE key_hash = ?`, auth.HashString(keyString)).Scan(
 		&k.ID, &k.AdminID, &k.UserID, &k.Name, &expiresAt, &k.CreatedAt, &isActive)
 	if err != nil {
 		return nil, err

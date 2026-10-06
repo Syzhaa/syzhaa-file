@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"github.com/syzhaa/file-server/internal/db"
@@ -14,13 +14,29 @@ import (
 
 type userCtxKey struct{}
 
+// User represents a registered user.
+type User struct {
+	ID                  string     `json:"id"`
+	Email               string     `json:"email"`
+	Name                string     `json:"name"`
+	AvatarURL           string     `json:"avatar_url,omitempty"`
+	Status              string     `json:"status"` // pending, approved, rejected, suspended
+	ApprovedBy          *string    `json:"approved_by,omitempty"`
+	ApprovedAt          *time.Time `json:"approved_at,omitempty"`
+	RejectedReason      *string    `json:"rejected_reason,omitempty"`
+	StorageLimitMB      *int       `json:"storage_limit_mb"`
+	MaxFileDurationDays *int       `json:"max_file_duration_days"`
+	CreatedAt           time.Time  `json:"created_at"`
+	LastLogin           *time.Time `json:"last_login,omitempty"`
+}
+
 // contextWithUser stores the authenticated *User in the request context.
 func contextWithUser(ctx context.Context, u *User) context.Context {
 	return context.WithValue(ctx, userCtxKey{}, u)
 }
 
 // userFromContext retrieves the authenticated *User, or nil.
-func userFromContext(ctx context.Context) *User {
+func UserFromContext(ctx context.Context) *User {
 	if u, ok := ctx.Value(userCtxKey{}).(*User); ok {
 		return u
 	}
@@ -42,10 +58,10 @@ type UserSession struct {
 	ExpiresAt time.Time
 }
 
-func createUserSession(userID string) (*UserSession, error) {
+func CreateUserSession(userID string) (*UserSession, error) {
 	sessionID := uuid.New().String()
-	token := generateRandomString(48)
-	tokenHash := hashPassword(token)
+	token := GenerateRandomString(48)
+	tokenHash := HashPassword(token)
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 
 	_, err := db.DB.Exec(`
@@ -59,7 +75,7 @@ func createUserSession(userID string) (*UserSession, error) {
 	return &UserSession{ID: sessionID, UserID: userID, Token: token, ExpiresAt: expiresAt}, nil
 }
 
-func validateUserSession(r *http.Request) (*User, error) {
+func ValidateUserSession(r *http.Request) (*User, error) {
 	userID, err := getSessionOwnerID(userSessionCfg, r)
 	if err != nil {
 		return nil, err
@@ -102,9 +118,9 @@ func validateUserSession(r *http.Request) (*User, error) {
 }
 
 // requireUserSession replaces the old stub middleware.
-func requireUserSession(next http.Handler) http.Handler {
+func RequireUserSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := validateUserSession(r)
+		user, err := ValidateUserSession(r)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{
@@ -125,7 +141,7 @@ func requireUserSession(next http.Handler) http.Handler {
 
 // POST /auth/user/register
 // POST /auth/user/register — DISABLED: user signup is Google-only now
-func handleUserRegister(w http.ResponseWriter, r *http.Request) {
+func HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	httpx.WriteJSON(w, http.StatusGone, map[string]interface{}{
 		"success": false,
@@ -135,7 +151,7 @@ func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 
 
 // POST /auth/user/login — DISABLED: user login is Google-only now
-func handleUserLogin(w http.ResponseWriter, r *http.Request) {
+func HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	httpx.WriteJSON(w, http.StatusGone, map[string]interface{}{
 		"success": false,
@@ -144,7 +160,7 @@ func handleUserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /auth/user/logout
-func handleUserLogout(w http.ResponseWriter, r *http.Request) {
+func HandleUserLogout(w http.ResponseWriter, r *http.Request) {
 	logoutSession(userSessionCfg, w, r)
 }
 
@@ -153,9 +169,9 @@ func handleUserLogout(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 // GET /user/me
-func handleUserMe(w http.ResponseWriter, r *http.Request) {
+func HandleUserMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	user := userFromContext(r.Context())
+	user := UserFromContext(r.Context())
 	if user == nil {
 		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
@@ -178,7 +194,7 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 		"success":             true,
 		"user":                user,
 		"storage_used_bytes":  usedBytes,
-		"storage_used_label":  formatBytesID(usedBytes),
+		"storage_used_label":  httpx.FormatBytesID(usedBytes),
 		"api_approved":        apiApproved == 1,
 		"api_requested":       apiRequestedAt.Valid,
 	})
@@ -202,9 +218,9 @@ type keyOut struct {
 }
 
 // GET /user/rooms
-func handleUserRooms(w http.ResponseWriter, r *http.Request) {
+func HandleUserRooms(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	user := userFromContext(r.Context())
+	user := UserFromContext(r.Context())
 	if user == nil {
 		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
@@ -236,9 +252,9 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 // GET /user/api-keys
 
 // POST /user/api-keys
-func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
+func HandleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	user := userFromContext(r.Context())
+	user := UserFromContext(r.Context())
 	if user == nil {
 		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
@@ -261,7 +277,7 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Reuse the same key format as admin keys
-	rawKey := "sfa_" + generateRandomString(32)
+	rawKey := "sfa_" + GenerateRandomString(32)
 	keyID := uuid.New().String()
 
 	// api_keys.admin_id has a FOREIGN KEY to admin_users (PRAGMA foreign_keys=ON),
@@ -276,7 +292,7 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	_, err := db.DB.Exec(`
 		INSERT INTO api_keys (id, key_hash, admin_id, user_id, name, created_at, is_active)
 		VALUES (?, ?, ?, ?, ?, ?, 1)
-	`, keyID, hashPassword(rawKey), ownerAdminID, user.ID, strings.TrimSpace(req.Name), time.Now().Format(time.RFC3339))
+	`, keyID, HashPassword(rawKey), ownerAdminID, user.ID, strings.TrimSpace(req.Name), time.Now().Format(time.RFC3339))
 	if err != nil {
 		httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal membuat API key"})
 		return
@@ -290,9 +306,9 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /user/api-keys/request — request admin approval for API key access
-func handleUserRequestAPIAccess(w http.ResponseWriter, r *http.Request) {
+func HandleUserRequestAPIAccess(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	user := userFromContext(r.Context())
+	user := UserFromContext(r.Context())
 	if user == nil {
 		httpx.WriteJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return

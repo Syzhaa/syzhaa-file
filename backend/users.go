@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
@@ -11,20 +12,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type User struct {
-	ID                   string     `json:"id"`
-	Email                string     `json:"email"`
-	Name                 string     `json:"name"`
-	AvatarURL            string     `json:"avatar_url,omitempty"`
-	Status               string     `json:"status"` // pending, approved, rejected, suspended
-	ApprovedBy           *string    `json:"approved_by,omitempty"`
-	ApprovedAt           *time.Time `json:"approved_at,omitempty"`
-	RejectedReason       *string    `json:"rejected_reason,omitempty"`
-	StorageLimitMB       *int       `json:"storage_limit_mb"`
-	MaxFileDurationDays  *int       `json:"max_file_duration_days"`
-	CreatedAt            time.Time  `json:"created_at"`
-	LastLogin            *time.Time `json:"last_login,omitempty"`
-}
 
 type UserStats struct {
 	UserID            string     `json:"user_id"`
@@ -34,7 +21,7 @@ type UserStats struct {
 	LastUploadAt      *time.Time `json:"last_upload_at,omitempty"`
 }
 
-// NOTE: handleUserMe, handleUserRooms, and requireUserSession are now
+// NOTE: auth.HandleUserMe, handleUserRooms, and auth.RequireUserSession are now
 // implemented in user_auth.go (email/password user auth).
 
 // Handler: List all users (admin only)
@@ -59,9 +46,9 @@ func handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	users := []User{}
+	users := []auth.User{}
 	for rows.Next() {
-		var u User
+		var u auth.User
 		rows.Scan(&u.ID, &u.Email, &u.Name,
 			&u.Status, &u.ApprovedBy, &u.ApprovedAt, &u.StorageLimitMB,
 			&u.MaxFileDurationDays, &u.CreatedAt, &u.LastLogin)
@@ -77,7 +64,7 @@ func handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 
 // Handler: Approve user
 func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
-	admin := r.Context().Value("admin").(*AdminUser)
+	admin := r.Context().Value("admin").(*auth.AdminUser)
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
@@ -91,7 +78,7 @@ func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
 	var currentStatus string
 	err := db.DB.QueryRow("SELECT status FROM users WHERE id = ?", userID).Scan(&currentStatus)
 	if err == sql.ErrNoRows {
-		http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
+		http.Error(w, `{"error":"auth.User not found"}`, http.StatusNotFound)
 		return
 	}
 	if err != nil {
@@ -113,7 +100,7 @@ func handleAdminApproveUser(w http.ResponseWriter, r *http.Request) {
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
-		"message": "User approved successfully",
+		"message": "auth.User approved successfully",
 	})
 }
 
@@ -142,7 +129,7 @@ func handleAdminRejectUser(w http.ResponseWriter, r *http.Request) {
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
-		"message": "User rejected",
+		"message": "auth.User rejected",
 	})
 }
 
@@ -170,7 +157,7 @@ func handleAdminSuspendUser(w http.ResponseWriter, r *http.Request) {
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
-		"message": "User suspended",
+		"message": "auth.User suspended",
 	})
 }
 
@@ -258,7 +245,7 @@ func handleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// NOTE: requireUserSession is now implemented in user_auth.go.
+// NOTE: auth.RequireUserSession is now implemented in user_auth.go.
 
 // Handler: Admin system settings
 func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
@@ -290,7 +277,7 @@ func handleAdminSystemSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		admin := r.Context().Value("admin").(*AdminUser)
+		admin := r.Context().Value("admin").(*auth.AdminUser)
 
 		var req struct {
 			Key   string `json:"key"`

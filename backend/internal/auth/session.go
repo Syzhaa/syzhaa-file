@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"github.com/syzhaa/file-server/internal/db"
@@ -39,8 +39,8 @@ var userSessionCfg = sessionConfig{
 // createSession creates a new session and returns the raw token.
 func createSession(cfg sessionConfig, ownerID string) (token string, err error) {
 	sessionID := uuid.New().String()
-	token = generateRandomString(64)
-	tokenHash := hashPassword(token)
+	token = GenerateRandomString(64)
+	tokenHash := HashPassword(token)
 	expiresAt := time.Now().Add(cfg.expiry)
 
 	_, err = db.DB.Exec(
@@ -68,7 +68,7 @@ func getSessionOwnerID(cfg sessionConfig, r *http.Request) (string, error) {
 		return "", sql.ErrNoRows
 	}
 
-	tokenHash := hashPassword(token)
+	tokenHash := HashPassword(token)
 	var ownerID string
 	err := db.DB.QueryRow(
 		fmt.Sprintf("SELECT %s FROM %s WHERE token_hash = ? AND expires_at > ?",
@@ -102,7 +102,7 @@ func clearSessionCookie(cfg sessionConfig, w http.ResponseWriter) {
 func logoutSession(cfg sessionConfig, w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(cfg.cookieName); err == nil && c.Value != "" {
 		db.DB.Exec(fmt.Sprintf("DELETE FROM %s WHERE token_hash = ?",
-			cfg.table), hashPassword(c.Value))
+			cfg.table), HashPassword(c.Value))
 	}
 	clearSessionCookie(cfg, w)
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{

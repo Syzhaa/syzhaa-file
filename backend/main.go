@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"github.com/syzhaa/file-server/internal/middleware"
@@ -76,13 +77,13 @@ func main() {
 	}
 	defer db.Close()
 
-	initGoogleOAuth()
+	auth.InitGoogleOAuth()
 	// Initialize admin password (use ADMIN_PASSWORD env or default)
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 	if adminPassword == "" {
 		adminPassword = "admin"
 	}
-	initAdminDefaults(
+	auth.InitAdminDefaults(
 		os.Getenv("ADMIN_EMAIL"),
 		os.Getenv("ADMIN_NAME"),
 		adminPassword,

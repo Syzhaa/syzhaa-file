@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/middleware"
 	"log"
 	"net/http"
@@ -30,13 +31,13 @@ func setupRoutes() *mux.Router {
 	r.HandleFunc("/d/{id}", downloadFileHandler).Methods("GET")
 
 	// Admin email/password auth routes
-	r.HandleFunc("/auth/login", handleAdminLogin).Methods("POST", "OPTIONS")
-	r.HandleFunc("/auth/logout", handleAdminLogout).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/login", auth.HandleAdminLogin).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/logout", auth.HandleAdminLogout).Methods("POST", "OPTIONS")
 
 	// Admin routes (require session)
 	adminRouter := r.PathPrefix("/admin").Subrouter()
 	adminRouter.Use(requireAdminSession)
-	adminRouter.HandleFunc("/me", handleAdminMe).Methods("GET")
+	adminRouter.HandleFunc("/me", auth.HandleAdminMe).Methods("GET")
 	adminRouter.HandleFunc("/stats", handleAdminStats).Methods("GET")
 	adminRouter.HandleFunc("/api-keys", handleListAPIKeys).Methods("GET")
 	adminRouter.HandleFunc("/api-keys", handleCreateAPIKey).Methods("POST")
@@ -54,24 +55,24 @@ func setupRoutes() *mux.Router {
 	adminRouter.HandleFunc("/users/{id}/api-revoke", handleAdminRevokeUserAPI).Methods("PUT")
 	adminRouter.HandleFunc("/users/{id}/stats", handleAdminGetUserStats).Methods("GET")
 	adminRouter.HandleFunc("/settings", handleAdminSystemSettings).Methods("GET", "POST")
-	adminRouter.HandleFunc("/account", handleAdminUpdateAccount).Methods("POST", "PUT")
+	adminRouter.HandleFunc("/account", auth.HandleAdminUpdateAccount).Methods("POST", "PUT")
 
-	// User routes (require user session)
+	// auth.User routes (require user session)
 	userRouter := r.PathPrefix("/user").Subrouter()
-	userRouter.Use(requireUserSession)
-	userRouter.HandleFunc("/me", handleUserMe).Methods("GET")
-	userRouter.HandleFunc("/rooms", handleUserRooms).Methods("GET")
+	userRouter.Use(auth.RequireUserSession)
+	userRouter.HandleFunc("/me", auth.HandleUserMe).Methods("GET")
+	userRouter.HandleFunc("/rooms", auth.HandleUserRooms).Methods("GET")
 	userRouter.HandleFunc("/api-keys", handleUserListAPIKeys).Methods("GET")
-	userRouter.HandleFunc("/api-keys", handleUserCreateAPIKey).Methods("POST")
-	userRouter.HandleFunc("/api-keys/request", handleUserRequestAPIAccess).Methods("POST")
+	userRouter.HandleFunc("/api-keys", auth.HandleUserCreateAPIKey).Methods("POST")
+	userRouter.HandleFunc("/api-keys/request", auth.HandleUserRequestAPIAccess).Methods("POST")
 	userRouter.HandleFunc("/api-keys/{id}", handleUserDeleteAPIKey).Methods("DELETE")
 
-	// User auth (public)
-	r.HandleFunc("/auth/user/register", handleUserRegister).Methods("POST", "OPTIONS")
-	r.HandleFunc("/auth/user/login", handleUserLogin).Methods("POST", "OPTIONS")
-	r.HandleFunc("/auth/user/logout", handleUserLogout).Methods("POST", "OPTIONS")
-	r.HandleFunc("/auth/user/google", handleUserGoogleLogin).Methods("GET")
-	r.HandleFunc("/auth/user/google/callback", handleUserGoogleCallback).Methods("GET")
+	// auth.User auth (public)
+	r.HandleFunc("/auth/user/register", auth.HandleUserRegister).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/user/login", auth.HandleUserLogin).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/user/logout", auth.HandleUserLogout).Methods("POST", "OPTIONS")
+	r.HandleFunc("/auth/user/google", auth.HandleUserGoogleLogin).Methods("GET")
+	r.HandleFunc("/auth/user/google/callback", auth.HandleUserGoogleCallback).Methods("GET")
 
 	// API v1 routes (require API key)
 	apiRouter := r.PathPrefix("/api/v1").Subrouter()
