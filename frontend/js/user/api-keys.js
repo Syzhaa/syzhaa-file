@@ -49,6 +49,24 @@
                 const apiRequested = !!me.api_requested;
                 setDisplay('api-locked', apiApproved ? 'none' : 'block');
                 setDisplay('api-unlocked', apiApproved ? 'block' : 'none');
+                // Banner CTA paling atas
+                const banner = document.getElementById('api-cta-banner');
+                if (apiApproved) {
+                    setDisplay('api-cta-banner', 'none');
+                } else {
+                    setDisplay('api-cta-banner', 'flex');
+                    if (apiRequested) {
+                        banner.classList.add('pending');
+                        setText('api-cta-title', 'Permintaan terkirim');
+                        setText('api-cta-sub', 'Tunggu persetujuan admin ya. Kamu bisa buat API key setelah disetujui.');
+                        setDisplay('api-cta-btn', 'none');
+                    } else {
+                        banner.classList.remove('pending');
+                        setText('api-cta-title', 'Butuh persetujuan admin untuk membuat API key');
+                        setText('api-cta-sub', 'Minta persetujuan dulu — setelah disetujui kamu bisa buat API key.');
+                        setDisplay('api-cta-btn', 'inline-block');
+                    }
+                }
                 if (!apiApproved) {
                     if (apiRequested) {
                         setText('api-locked-msg', 'Permintaanmu sedang ditinjau admin. Kamu akan bisa membuat API key setelah disetujui.');
@@ -81,15 +99,14 @@
             } catch {}
         }
 
-        async function requestApiAccess() {
-            const btn = document.getElementById('request-api-btn');
+        async function requestApiAccess(clickedBtn) {
+            const btn = clickedBtn || document.getElementById('request-api-btn');
             btn.disabled = true;
             btn.textContent = 'Mengirim...';
             try {
                 const res = await api('/user/api-keys/request', { method: 'POST' });
                 if (res.success) {
-                    document.getElementById('api-locked-msg').textContent = 'Permintaan terkirim! Tunggu persetujuan admin ya.';
-                    btn.style.display = 'none';
+                    load(); // refresh state -> banner + card ikut update
                 } else {
                     showInfoModal(res.error || 'Gagal mengirim permintaan');
                     btn.disabled = false;

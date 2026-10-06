@@ -28,7 +28,7 @@ func HandleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 
 	query := `SELECT id, email, name, status, 
 		approved_by, approved_at, storage_limit_mb, max_file_duration_days, 
-		created_at, last_login FROM users`
+		created_at, last_login, api_requested_at, COALESCE(api_approved, 0) FROM users`
 
 	args := []interface{}{}
 	if status != "" {
@@ -47,9 +47,12 @@ func HandleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 	users := []auth.User{}
 	for rows.Next() {
 		var u auth.User
+		var apiApproved int
 		rows.Scan(&u.ID, &u.Email, &u.Name,
 			&u.Status, &u.ApprovedBy, &u.ApprovedAt, &u.StorageLimitMB,
-			&u.MaxFileDurationDays, &u.CreatedAt, &u.LastLogin)
+			&u.MaxFileDurationDays, &u.CreatedAt, &u.LastLogin,
+			&u.ApiRequestedAt, &apiApproved)
+		u.ApiApproved = apiApproved == 1
 		users = append(users, u)
 	}
 
@@ -234,11 +237,14 @@ func HandleAdminRevokeUserAPI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
-	_, err := db.DB.Exec(`UPDATE users SET api_approved = 0 WHERE id = ?`, userID)
+	_, err := db.DB.Exec(`UPDATE users SET api_approved = 0, api_requested_at = NULL WHERE id = ?`, userID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to revoke API access"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// Deactivate all user API keys on revoke
+	db.DB.Exec("UPDATE api_keys SET is_active = 0 WHERE user_id = ?", userID)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,

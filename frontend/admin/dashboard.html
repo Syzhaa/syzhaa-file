@@ -468,6 +468,37 @@
         </div>
     </div>
 
+    <!-- Modal: Edit User Quota -->
+    <div id="modal-editQuota" class="modal items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-headline font-bold">Edit Kuota</h3>
+                <button onclick="closeModal('editQuota')" class="text-outline hover:text-on-surface">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-sm text-outline">Kuota penyimpanan untuk <span id="quotaUserName" class="font-semibold text-on-surface"></span></p>
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Limit penyimpanan (MB)</label>
+                    <input id="quotaLimitInput" type="number" min="1" step="1" placeholder="2048"
+                           class="w-full px-4 py-3 border-2 border-outline-variant rounded-xl focus:border-primary focus:outline-none">
+                    <p class="text-xs text-outline mt-1">Berlaku untuk room baru yang dibuat user ini.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeModal('editQuota')"
+                            class="flex-1 py-3 border-2 border-outline-variant text-outline rounded-xl font-semibold hover:bg-surface-container">
+                        Batal
+                    </button>
+                    <button onclick="confirmEditQuota()"
+                            class="flex-1 py-3 bg-primary text-white rounded-xl font-semibold hover:brightness-110">
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Room Created Success -->
     <div id="modal-roomCreated" class="modal items-center justify-center">
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4">

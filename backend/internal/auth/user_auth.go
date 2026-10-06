@@ -27,6 +27,8 @@ type User struct {
 	MaxFileDurationDays *int       `json:"max_file_duration_days"`
 	CreatedAt           time.Time  `json:"created_at"`
 	LastLogin           *time.Time `json:"last_login,omitempty"`
+	ApiRequestedAt      *time.Time `json:"api_requested_at,omitempty"`
+	ApiApproved         bool       `json:"api_approved"`
 }
 
 // contextWithUser stores the authenticated *User in the request context.

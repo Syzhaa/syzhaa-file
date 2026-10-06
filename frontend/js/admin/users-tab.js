@@ -38,23 +38,20 @@ function renderUsersTable() {
                 }">
                     ${user.status}
                 </span>
+                ${user.api_requested_at && !user.api_approved ? `
+                    <span class="ml-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Minta API</span>
+                ` : ''}
             </td>
             <td class="px-6 py-4 text-sm text-outline">${formatDate(user.created_at)}</td>
             <td class="px-6 py-4 text-sm text-outline">${user.storage_used_mb ? formatBytes(user.storage_used_mb * 1024 * 1024) : '0 MB'}</td>
             <td class="px-6 py-4 text-right">
-                <div class="flex justify-end gap-2">
-                    ${user.status === 'pending' ? `
-                        <button onclick="approveUser('${user.id}')" class="px-3 py-1.5 bg-green-500 text-white text-xs font-semibold rounded-lg hover:bg-green-600">
-                            Approve
-                        </button>
-                        <button onclick="rejectUser('${user.id}')" class="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600">
-                            Reject
-                        </button>
-                    ` : (user.status === 'approved' || user.status === 'active') ? `
-                        <button onclick="suspendUser('${user.id}')" class="px-3 py-1.5 bg-orange-500 text-white text-xs font-semibold rounded-lg hover:bg-orange-600">
-                            Suspend
-                        </button>
-                    ` : ''}
+                <div class="relative inline-block">
+                    <button onclick="toggleUserMenu('${user.id}', event)" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500" title="Aksi">
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+                    <div id="umenu-${user.id}" class="hidden absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-outline-variant py-1.5 z-30 text-left">
+                        ${userMenuItems(user)}
+                    </div>
                 </div>
             </td>
         </tr>
@@ -63,6 +60,45 @@ function renderUsersTable() {
     // Mobile cards
     renderUsersCards();
 }
+
+// Item menu aksi per user (dipakai tabel desktop & kartu mobile)
+function userMenuItems(user) {
+    const item = (fn, icon, label, color) => `
+        <button onclick="${fn}('${user.id}')" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium ${color} hover:bg-gray-50 text-left">
+            <span class="material-symbols-outlined text-xl">${icon}</span>${label}
+        </button>`;
+    let html = '';
+    if (user.status === 'pending') {
+        html += item('approveUser', 'check_circle', 'Setujui User', 'text-green-600');
+        html += item('rejectUser', 'cancel', 'Tolak User', 'text-red-600');
+    }
+    if (user.status === 'approved' || user.status === 'active') {
+        if (user.api_requested_at && !user.api_approved) {
+            html += item('approveUserAPI', 'key', 'Setujui API Key', 'text-blue-600');
+        }
+        if (user.api_approved) {
+            html += item('revokeUserAPI', 'key_off', 'Cabut Akses API', 'text-gray-600');
+        }
+        html += item('editUserQuota', 'storage', 'Edit Kuota', 'text-gray-700');
+        html += item('suspendUser', 'block', 'Suspend User', 'text-orange-600');
+    }
+    if (!html) html = '<p class="px-4 py-2.5 text-sm text-outline">Tidak ada aksi</p>';
+    return html;
+}
+
+function toggleUserMenu(userId, event) {
+    event.stopPropagation();
+    const menu = document.getElementById('umenu-' + userId);
+    if (!menu) return;
+    const wasHidden = menu.classList.contains('hidden');
+    document.querySelectorAll('[id^="umenu-"]').forEach(m => m.classList.add('hidden'));
+    if (wasHidden) menu.classList.remove('hidden');
+}
+
+// Tutup semua menu saat klik di luar
+document.addEventListener('click', () => {
+    document.querySelectorAll('[id^="umenu-"]').forEach(m => m.classList.add('hidden'));
+});
 
 function renderUsersCards() {
     const container = document.getElementById('usersCards');
@@ -87,22 +123,21 @@ function renderUsersCards() {
                     <p class="text-xs text-outline truncate">${user.email}</p>
                 </div>
                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${statusColor}">${user.status}</span>
+                ${user.api_requested_at && !user.api_approved ? `
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Minta API</span>
+                ` : ''}
+                <div class="relative">
+                    <button onclick="toggleUserMenu('${user.id}', event)" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500" title="Aksi">
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+                    <div id="umenu-${user.id}" class="hidden absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-outline-variant py-1.5 z-30 text-left">
+                        ${userMenuItems(user)}
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center justify-between text-xs text-outline mb-3">
+            <div class="flex items-center justify-between text-xs text-outline mb-1">
                 <span>Bergabung ${new Date(user.created_at).toLocaleDateString('id-ID')}</span>
                 <span class="shrink-0 ml-2">· ${user.storage_limit_mb || 2048} MB</span>
-            </div>
-            <div class="flex gap-2">
-                ${user.status === 'pending' ? `
-                    <button onclick="approveUser('${user.id}')" class="flex-1 px-3 py-2 bg-green-500 text-white text-sm font-semibold rounded-xl">Setujui</button>
-                    <button onclick="rejectUser('${user.id}')" class="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-xl">Tolak</button>
-                ` : ''}
-                ${(user.status === 'approved' || user.status === 'active') ? `
-                    <button onclick="suspendUser('${user.id}')" class="flex-1 px-3 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl">Suspend</button>
-                ` : ''}
-                ${user.api_requested_at && !user.api_approved ? `
-                    <button onclick="approveUserAPI('${user.id}')" class="flex-1 px-3 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl">Setujui API</button>
-                ` : ''}
             </div>
         </div>`;
     }).join('');
@@ -175,5 +210,62 @@ function suspendUser(userId) {
             }
         }
     );
+}
+
+async function approveUserAPI(userId) {
+    const data = await apiCall(`/admin/users/${userId}/api-approve`, { method: 'PUT' });
+    if (data && data.success) {
+        showToast('Akses API disetujui', 'success');
+        loadUsers();
+        loadStats();
+    } else {
+        showToast(data && data.error ? data.error : 'Gagal menyetujui API', 'error');
+    }
+}
+
+function revokeUserAPI(userId) {
+    showConfirmModal(
+        'Cabut Akses API',
+        'Cabut persetujuan API user ini? Semua API key miliknya akan ikut dinonaktifkan.',
+        async () => {
+            const data = await apiCall(`/admin/users/${userId}/api-revoke`, { method: 'PUT' });
+            if (data && data.success) {
+                showToast('Akses API dicabut', 'success');
+                loadUsers();
+            } else {
+                showToast('Gagal mencabut akses API', 'error');
+            }
+        }
+    );
+}
+
+let quotaUserId = null;
+function editUserQuota(userId) {
+    const user = (typeof users !== 'undefined' ? users : []).find(u => u.id === userId);
+    quotaUserId = userId;
+    document.getElementById('quotaLimitInput').value = (user && user.storage_limit_mb) || 2048;
+    document.getElementById('quotaUserName').textContent = user ? user.name : '';
+    openModal('editQuota');
+}
+
+async function confirmEditQuota() {
+    const limit = parseInt(document.getElementById('quotaLimitInput').value, 10);
+    if (!limit || limit < 1) {
+        showToast('Limit tidak valid', 'error');
+        return;
+    }
+    closeModal('editQuota');
+    if (!quotaUserId) return;
+    const data = await apiCall(`/admin/users/${quotaUserId}/quotas`, {
+        method: 'PUT',
+        body: JSON.stringify({ storage_limit_mb: limit })
+    });
+    if (data && data.success) {
+        showToast('Kuota diperbarui', 'success');
+        loadUsers();
+    } else {
+        showToast('Gagal memperbarui kuota', 'error');
+    }
+    quotaUserId = null;
 }
 

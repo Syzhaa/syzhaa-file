@@ -34,6 +34,16 @@
         </div>
     </header>
     <main>
+        <!-- CTA persetujuan API key (paling atas) -->
+        <div class="cta-banner" id="api-cta-banner" style="display:none">
+            <span class="material-symbols-outlined">key</span>
+            <div class="cta-text">
+                <p class="cta-title" id="api-cta-title">Butuh persetujuan admin untuk membuat API key</p>
+                <p class="cta-sub" id="api-cta-sub">Minta persetujuan dulu — setelah disetujui kamu bisa buat API key.</p>
+            </div>
+            <button class="btn" id="api-cta-btn" onclick="requestApiAccess(this)">Minta Persetujuan</button>
+        </div>
+
         <h2 id="greeting">API Key</h2>
         <p class="hello-sub">Buat dan kelola API key untuk akses API.</p>
 

@@ -29,6 +29,14 @@
         .btn { padding: 11px 20px; background: #F6821F; color: #fff; border: 0; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
         .btn:hover { background: #e06f0e; }
         .btn:disabled { opacity: .6; cursor: not-allowed; }
+        .cta-banner { display: flex; align-items: center; gap: 14px; background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 14px; padding: 16px 18px; margin-bottom: 20px; }
+        .cta-banner .material-symbols-outlined { font-size: 34px; color: #F6821F; flex-shrink: 0; }
+        .cta-text { flex: 1; min-width: 0; }
+        .cta-title { font-weight: 700; font-size: 15px; }
+        .cta-sub { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        .cta-banner.pending { background: #f8fafc; border-color: #e2e8f0; }
+        .cta-banner.pending .material-symbols-outlined { color: #64748b; }
+        @media (max-width: 560px) { .cta-banner { flex-wrap: wrap; } .cta-banner .btn { width: 100%; } }
         .newkey { display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px; margin-top: 14px; }
         .newkey p { font-size: 13px; color: #15803d; font-weight: 600; margin-bottom: 8px; }
         .keyval { display: flex; gap: 8px; align-items: center; }
