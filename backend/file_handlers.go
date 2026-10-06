@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/crypto"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"database/sql"
@@ -101,7 +102,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 
 		if encryptPassphrase != "" {
 			// Encrypt the file
-			meta, err := EncryptFileInPlace(finalFileName, encryptPassphrase)
+			meta, err := crypto.EncryptFileInPlace(UploadDir, finalFileName, encryptPassphrase)
 			if err != nil {
 				log.Printf("❌ Encryption failed: %v", err)
 				httpx.WriteError(w, http.StatusInternalServerError, "Encryption failed")
@@ -207,7 +208,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		salt, _ := base64.StdEncoding.DecodeString(saltB64.String)
 		nonce, _ := base64.StdEncoding.DecodeString(nonceB64.String)
 		
-		metadata := &EncryptedFileMetadata{
+		metadata := &crypto.EncryptedFileMetadata{
 			Salt:        salt,
 			Nonce:       nonce,
 			IsEncrypted: true,
@@ -215,7 +216,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 			EncryptedSize: f.Size,
 		}
 
-		decryptedData, err := DecryptFile(filePath, passphrase, metadata)
+		decryptedData, err := crypto.DecryptFile(filePath, passphrase, metadata)
 		if err != nil {
 			log.Printf("❌ Decryption failed for file %s: %v", fileID, err)
 			w.WriteHeader(http.StatusForbidden)

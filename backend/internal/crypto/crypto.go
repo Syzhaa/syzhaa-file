@@ -1,4 +1,4 @@
-package main
+package crypto
 
 import (
 	"crypto/aes"
@@ -249,8 +249,8 @@ func GenerateRoomPassphrase() (string, error) {
 
 // EncryptFileInPlace encrypts a file in the uploads directory
 // Used during file upload process
-func EncryptFileInPlace(filename, passphrase string) (*EncryptedFileMetadata, error) {
-	filePath := filepath.Join(UploadDir, filename)
+func EncryptFileInPlace(uploadDir, filename, passphrase string) (*EncryptedFileMetadata, error) {
+	filePath := filepath.Join(uploadDir, filename)
 	_, metadata, err := EncryptFile(filePath, passphrase)
 	if err != nil {
 		return nil, err
