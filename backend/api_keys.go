@@ -2,9 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,9 +27,6 @@ type CreateAPIKeyRequest struct {
 }
 
 // Generate API Key (format: sfa_xxxxxxxxxxxxxxxxxxxxx)
-func generateAPIKey() string {
-	return fmt.Sprintf("sfa_%s", generateRandomString(32))
-}
 
 // Handler: Create API Key
 func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
@@ -82,75 +77,8 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handler: List API Keys
-func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
-	admin := r.Context().Value("admin").(*AdminUser)
-
-	rows, err := db.Query(`SELECT id, admin_id, name, expires_at, created_at, last_used_at, is_active
-		FROM api_keys WHERE admin_id = ? ORDER BY created_at DESC`, admin.ID)
-	if err != nil {
-		http.Error(w, `{"error":"Failed to fetch API keys"}`, http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	keys := []APIKey{}
-	for rows.Next() {
-		var k APIKey
-		var expiresAt, lastUsedAt sql.NullString
-		var isActive int
-
-		rows.Scan(&k.ID, &k.AdminID, &k.Name, &expiresAt, &k.CreatedAt, &lastUsedAt, &isActive)
-
-		if expiresAt.Valid {
-			t, _ := time.Parse(time.RFC3339, expiresAt.String)
-			k.ExpiresAt = &t
-		}
-		if lastUsedAt.Valid {
-			t, _ := time.Parse(time.RFC3339, lastUsedAt.String)
-			k.LastUsedAt = &t
-		}
-		k.IsActive = isActive == 1
-
-		keys = append(keys, k)
-	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"keys":    keys,
-	})
-}
 
 // Handler: Delete API Key
-func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
-	admin := r.Context().Value("admin").(*AdminUser)
-	vars := mux.Vars(r)
-	keyID := vars["id"]
-
-	// Check ownership
-	var ownerID string
-	err := db.QueryRow("SELECT admin_id FROM api_keys WHERE id = ?", keyID).Scan(&ownerID)
-	if err == sql.ErrNoRows {
-		http.Error(w, `{"error":"API key not found"}`, http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		http.Error(w, `{"error":"Server error"}`, http.StatusInternalServerError)
-		return
-	}
-
-	if ownerID != admin.ID {
-		http.Error(w, `{"error":"Unauthorized"}`, http.StatusForbidden)
-		return
-	}
-
-	_, err = db.Exec("DELETE FROM api_keys WHERE id = ?", keyID)
-	if err != nil {
-		http.Error(w, `{"error":"Failed to delete API key"}`, http.StatusInternalServerError)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
-}
 
 // Handler: Toggle API Key
 func handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
@@ -193,47 +121,3 @@ func handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
 }
 
 // Validate API Key
-func validateAPIKey(keyString string) (*APIKey, error) {
-	if !strings.HasPrefix(keyString, "sfa_") {
-		return nil, fmt.Errorf("invalid API key format")
-	}
-
-	keyHash := hashString(keyString)
-
-	var k APIKey
-	var expiresAt, lastUsedAt sql.NullString
-	var isActive int
-	var userID sql.NullString
-
-	err := db.QueryRow(`SELECT id, admin_id, user_id, name, expires_at, created_at, last_used_at, is_active
-		FROM api_keys WHERE key_hash = ?`, keyHash).
-		Scan(&k.ID, &k.AdminID, &userID, &k.Name, &expiresAt, &k.CreatedAt, &lastUsedAt, &isActive)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("invalid API key")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	k.IsActive = isActive == 1
-	if !k.IsActive {
-		return nil, fmt.Errorf("API key is disabled")
-	}
-	if userID.Valid {
-		k.UserID = userID.String
-	}
-
-	if expiresAt.Valid {
-		t, _ := time.Parse(time.RFC3339, expiresAt.String)
-		k.ExpiresAt = &t
-		if time.Now().After(t) {
-			return nil, fmt.Errorf("API key expired")
-		}
-	}
-
-	// Update last used timestamp
-	go db.Exec("UPDATE api_keys SET last_used_at = ? WHERE id = ?", time.Now().Format(time.RFC3339), k.ID)
-
-	return &k, nil
-}

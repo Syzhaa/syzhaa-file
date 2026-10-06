@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 )
 
 type userCtxKey struct{}
@@ -242,39 +241,6 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 // GET /user/api-keys
-func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	user := userFromContext(r.Context())
-	if user == nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
-		return
-	}
-
-	rows, err := db.Query(`
-		SELECT id, name, expires_at, created_at, last_used_at, is_active
-		FROM api_keys WHERE user_id = ? ORDER BY created_at DESC
-	`, user.ID)
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "api_keys": []keyOut{}})
-		return
-	}
-	defer rows.Close()
-
-	keys := []keyOut{}
-	for rows.Next() {
-		var k keyOut
-		var expiresAt sql.NullString
-		var isActive int
-		var lastUsed sql.NullString
-		rows.Scan(&k.ID, &k.Name, &expiresAt, &k.CreatedAt, &lastUsed, &isActive)
-		if expiresAt.Valid {
-			k.ExpiresAt = &expiresAt.String
-		}
-		k.IsActive = isActive == 1
-		keys = append(keys, k)
-	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "api_keys": keys})
-}
 
 // POST /user/api-keys
 func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
@@ -356,23 +322,3 @@ func handleUserRequestAPIAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 // DELETE /user/api-keys/{id}
-func handleUserDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	user := userFromContext(r.Context())
-	if user == nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
-		return
-	}
-
-	keyID := mux.Vars(r)["id"]
-	res, err := db.Exec(`DELETE FROM api_keys WHERE id = ? AND user_id = ?`, keyID, user.ID)
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal menghapus"})
-		return
-	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		writeJSON(w, http.StatusNotFound, map[string]interface{}{"success": false, "error": "API key tidak ditemukan"})
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
-}
