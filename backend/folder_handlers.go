@@ -19,7 +19,7 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 	var exists bool
 	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
 	if err != nil || !exists {
-		http.Error(w, `{"error":"Invalid room"}`, http.StatusNotFound)
+		errJSON(w, http.StatusNotFound, "Invalid room")
 		return
 	}
 	
@@ -29,13 +29,13 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 		ParentID string `json:"parent_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"Invalid request"}`, http.StatusBadRequest)
+		errJSON(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	
 	// Validate folder name
 	if req.Name == "" || len(req.Name) > 255 {
-		http.Error(w, `{"error":"Invalid folder name"}`, http.StatusBadRequest)
+		errJSON(w, http.StatusBadRequest, "Invalid folder name")
 		return
 	}
 	
@@ -47,7 +47,7 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 		folderID, roomID, sql.NullString{String: req.ParentID, Valid: req.ParentID != ""}, req.Name)
 	if err != nil {
 		log.Printf("❌ Failed to create folder: %v", err)
-		http.Error(w, `{"error":"Failed to create folder"}`, http.StatusInternalServerError)
+		errJSON(w, http.StatusInternalServerError, "Failed to create folder")
 		return
 	}
 	
@@ -88,7 +88,7 @@ func listFoldersHandler(w http.ResponseWriter, r *http.Request) {
 	
 	if err != nil {
 		log.Printf("❌ Failed to list folders: %v", err)
-		http.Error(w, `{"error":"Failed to list folders"}`, http.StatusInternalServerError)
+		errJSON(w, http.StatusInternalServerError, "Failed to list folders")
 		return
 	}
 	defer rows.Close()
@@ -122,11 +122,11 @@ func deleteFolderHandler(w http.ResponseWriter, r *http.Request) {
 	var name string
 	err := db.QueryRow("SELECT name FROM folders WHERE id = ?", folderID).Scan(&name)
 	if err == sql.ErrNoRows {
-		http.Error(w, `{"error":"Folder not found"}`, http.StatusNotFound)
+		errJSON(w, http.StatusNotFound, "Folder not found")
 		return
 	}
 	if err != nil {
-		http.Error(w, `{"error":"Server error"}`, http.StatusInternalServerError)
+		errJSON(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 	
@@ -134,7 +134,7 @@ func deleteFolderHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = db.Exec("DELETE FROM folders WHERE id = ?", folderID)
 	if err != nil {
 		log.Printf("❌ Failed to delete folder: %v", err)
-		http.Error(w, `{"error":"Failed to delete folder"}`, http.StatusInternalServerError)
+		errJSON(w, http.StatusInternalServerError, "Failed to delete folder")
 		return
 	}
 	
