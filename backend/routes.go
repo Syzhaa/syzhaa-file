@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/middleware"
 	"log"
@@ -39,10 +40,10 @@ func setupRoutes() *mux.Router {
 	adminRouter.Use(requireAdminSession)
 	adminRouter.HandleFunc("/me", auth.HandleAdminMe).Methods("GET")
 	adminRouter.HandleFunc("/stats", handleAdminStats).Methods("GET")
-	adminRouter.HandleFunc("/api-keys", handleListAPIKeys).Methods("GET")
-	adminRouter.HandleFunc("/api-keys", handleCreateAPIKey).Methods("POST")
-	adminRouter.HandleFunc("/api-keys/{id}", handleDeleteAPIKey).Methods("DELETE")
-	adminRouter.HandleFunc("/api-keys/{id}/toggle", handleToggleAPIKey).Methods("POST")
+	adminRouter.HandleFunc("/api-keys", apikeys.HandleListAPIKeys).Methods("GET")
+	adminRouter.HandleFunc("/api-keys", apikeys.HandleCreateAPIKey).Methods("POST")
+	adminRouter.HandleFunc("/api-keys/{id}", apikeys.HandleDeleteAPIKey).Methods("DELETE")
+	adminRouter.HandleFunc("/api-keys/{id}/toggle", apikeys.HandleToggleAPIKey).Methods("POST")
 	
 	// Admin user management routes
 	adminRouter.HandleFunc("/users", handleAdminListUsers).Methods("GET")
@@ -62,10 +63,10 @@ func setupRoutes() *mux.Router {
 	userRouter.Use(auth.RequireUserSession)
 	userRouter.HandleFunc("/me", auth.HandleUserMe).Methods("GET")
 	userRouter.HandleFunc("/rooms", auth.HandleUserRooms).Methods("GET")
-	userRouter.HandleFunc("/api-keys", handleUserListAPIKeys).Methods("GET")
+	userRouter.HandleFunc("/api-keys", apikeys.HandleUserListAPIKeys).Methods("GET")
 	userRouter.HandleFunc("/api-keys", auth.HandleUserCreateAPIKey).Methods("POST")
 	userRouter.HandleFunc("/api-keys/request", auth.HandleUserRequestAPIAccess).Methods("POST")
-	userRouter.HandleFunc("/api-keys/{id}", handleUserDeleteAPIKey).Methods("DELETE")
+	userRouter.HandleFunc("/api-keys/{id}", apikeys.HandleUserDeleteAPIKey).Methods("DELETE")
 
 	// auth.User auth (public)
 	r.HandleFunc("/auth/user/register", auth.HandleUserRegister).Methods("POST", "OPTIONS")

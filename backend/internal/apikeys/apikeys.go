@@ -1,4 +1,4 @@
-package main
+package apikeys
 
 import (
 	"github.com/syzhaa/file-server/internal/auth"
@@ -59,7 +59,7 @@ func deleteKeyByOwner(ownerColumn, ownerID, keyID string) (bool, error) {
 
 // --- Admin wrappers (preserve existing response format) ---
 
-func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
+func HandleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*auth.AdminUser)
 	keys, err := listKeysByOwner("admin_id", admin.ID)
 	if err != nil {
@@ -70,7 +70,7 @@ func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "keys": keys})
 }
 
-func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
+func HandleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*auth.AdminUser)
 	keyID := mux.Vars(r)["id"]
 
@@ -100,7 +100,7 @@ func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 
 // --- auth.User wrappers (preserve existing response format) ---
 
-func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
+func HandleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	if user == nil {
 		httpx.WriteJSON(w, http.StatusUnauthorized,
@@ -117,7 +117,7 @@ func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true, "api_keys": keys})
 }
 
-func handleUserDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
+func HandleUserDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	if user == nil {
 		httpx.WriteJSON(w, http.StatusUnauthorized,
@@ -145,7 +145,7 @@ func generateAPIKey() string {
 }
 
 // validateAPIKey checks if an API key is valid.
-func validateAPIKey(keyString string) (*APIKey, error) {
+func ValidateAPIKey(keyString string) (*APIKey, error) {
 	var k APIKey
 	var expiresAt sql.NullString
 	var isActive int

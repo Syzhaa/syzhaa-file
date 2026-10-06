@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
@@ -27,7 +28,7 @@ func getBaseURL() string {
 
 // Handler: Create Room via API
 func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
-	apiKey := r.Context().Value("api_key").(*APIKey)
+	apiKey := r.Context().Value("api_key").(*apikeys.APIKey)
 
 	var req struct {
 		ExpiryMinutes int `json:"expiry_minutes"`

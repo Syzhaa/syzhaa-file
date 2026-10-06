@@ -1,4 +1,4 @@
-package main
+package apikeys
 
 import (
 	"github.com/syzhaa/file-server/internal/auth"
@@ -32,7 +32,7 @@ type CreateAPIKeyRequest struct {
 // Generate API Key (format: sfa_xxxxxxxxxxxxxxxxxxxxx)
 
 // Handler: Create API Key
-func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
+func HandleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*auth.AdminUser)
 
 	var req CreateAPIKeyRequest
@@ -84,7 +84,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 // Handler: Delete API Key
 
 // Handler: Toggle API Key
-func handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
+func HandleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*auth.AdminUser)
 	vars := mux.Vars(r)
 	keyID := vars["id"]

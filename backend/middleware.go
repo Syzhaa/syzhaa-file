@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/syzhaa/file-server/internal/apikeys"
 	"github.com/syzhaa/file-server/internal/auth"
 	"context"
 	"net/http"
@@ -36,7 +37,7 @@ func requireAPIKey(next http.Handler) http.Handler {
 			return
 		}
 
-		apiKey, err := validateAPIKey(parts[1])
+		apiKey, err := apikeys.ValidateAPIKey(parts[1])
 		if err != nil {
 			http.Error(w, `{"error":"Invalid or expired API key"}`, http.StatusUnauthorized)
 			return
