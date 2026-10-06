@@ -155,40 +155,94 @@ async function uploadFileInChunks(file, fileId, roomId, onProgress) {
     // retry, big enough to keep request count sane (~160 reqs for 800MB).
     const chunkSize = 5 * 1024 * 1024;
     const totalChunks = Math.ceil(file.size / chunkSize);
-    let totalUploaded = 0;
-    let speedMbps = 0;
 
-    for (let i = 0; i < totalChunks; i++) {
-        if (uploadAbortController.signal.aborted) {
-            throw new Error('Upload cancelled');
+    // --- Real-time progress & honest speed meter ---
+    // fetch() can't report upload progress, so chunks go through XHR which
+    // fires upload.onprogress per byte. A 500ms ticker turns that into a
+    // smooth bar + speed measured from actual bytes on the wire.
+    let doneBytes = 0;      // bytes dari chunk yang sudah selesai
+    let chunkLoaded = 0;    // bytes chunk berjalan yang sudah terkirim
+    let speedBps = 0;       // EMA kecepatan (byte/detik)
+    let lastTickBytes = 0;
+    let lastTickAt = performance.now();
+
+    const renderLive = () => {
+        const now = performance.now();
+        const dt = Math.max((now - lastTickAt) / 1000, 0.05);
+        const nowLoaded = doneBytes + chunkLoaded;
+        const instBps = Math.max(0, (nowLoaded - lastTickBytes) / dt);
+        // EMA: responsif tapi tidak lompat-lompat; macet -> turun ke 0 (jujur)
+        speedBps = speedBps === 0 ? instBps : speedBps * 0.6 + instBps * 0.4;
+        lastTickBytes = nowLoaded;
+        lastTickAt = now;
+        const progress = Math.min(100, Math.round((nowLoaded / file.size) * 100));
+        onProgress(progress, nowLoaded, (speedBps * 8) / 1e6);
+    };
+    const ticker = setInterval(() => {
+        if (uploadAbortController.signal.aborted) return;
+        renderLive();
+    }, 500);
+
+    try {
+        for (let i = 0; i < totalChunks; i++) {
+            if (uploadAbortController.signal.aborted) {
+                throw new Error('Upload cancelled');
+            }
+
+            const start = i * chunkSize;
+            const end = Math.min(start + chunkSize, file.size);
+            const chunk = file.slice(start, end);
+            chunkLoaded = 0;
+
+            await uploadChunkWithRetry(chunk, i, totalChunks, fileId, file, roomId,
+                uploadAbortController.signal, (loaded) => { chunkLoaded = loaded; });
+
+            doneBytes += chunk.size;
+            chunkLoaded = 0;
+            renderLive();
         }
-
-        const start = i * chunkSize;
-        const end = Math.min(start + chunkSize, file.size);
-        const chunk = file.slice(start, end);
-
-        const chunkStart = performance.now();
-        await uploadChunkWithRetry(chunk, i, totalChunks, fileId, file, roomId, uploadAbortController.signal);
-        const chunkSecs = Math.max((performance.now() - chunkStart) / 1000, 0.01);
-        // Mbps = (bytes * 8) / (seconds * 1e6), smoothed
-        const instMbps = (chunk.size * 8) / (chunkSecs * 1e6);
-        speedMbps = speedMbps === 0 ? instMbps : speedMbps * 0.7 + instMbps * 0.3;
-
-        totalUploaded += chunk.size;
-        const progress = Math.round(((i + 1) / totalChunks) * 100);
-        onProgress(progress, totalUploaded, speedMbps);
+    } finally {
+        clearInterval(ticker);
     }
+}
+
+// Satu chunk via XHR (biar ada upload.onprogress). Resolve kalau 2xx,
+// reject dengan {status, message} kalau HTTP error, Error kalau network/abort.
+function postChunkXHR(roomId, formData, signal, onBytes) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `/api/upload/${roomId}`);
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) onBytes(e.loaded);
+        };
+        xhr.onload = async () => {
+            if (xhr.status >= 200 && xhr.status < 300) { resolve(); return; }
+            let msg = 'Upload failed';
+            try {
+                const errData = JSON.parse(xhr.responseText);
+                if (errData.error) msg = errData.error;
+            } catch {}
+            reject({ status: xhr.status, message: msg });
+        };
+        xhr.onerror = () => reject(new Error('network'));
+        xhr.ontimeout = () => reject(new Error('timeout'));
+        xhr.onabort = () => reject(new Error('Upload cancelled'));
+        signal.addEventListener('abort', () => xhr.abort(), { once: true });
+        xhr.send(formData);
+    });
 }
 
 // Upload satu chunk dengan retry (tahan koneksi HP yang putus-nyambung).
 // Retry untuk: network error, 429 (rate limit), 5xx.
 // TIDAK retry untuk 4xx permanen (400/401/403/404/413) — langsung gagal.
-async function uploadChunkWithRetry(chunk, i, totalChunks, fileId, file, roomId, signal) {
+async function uploadChunkWithRetry(chunk, i, totalChunks, fileId, file, roomId, signal, onBytes) {
     const maxAttempts = 4;
     let lastError = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         if (signal.aborted) throw new Error('Upload cancelled');
+        onBytes(0);
 
         const formData = new FormData();
         formData.append('file', chunk);
@@ -201,29 +255,16 @@ async function uploadChunkWithRetry(chunk, i, totalChunks, fileId, file, roomId,
         formData.append('folderId', currentFolderId || '');
 
         try {
-            const response = await fetch(`/api/upload/${roomId}`, {
-                method: 'POST',
-                body: formData,
-                signal: signal
-            });
-
-            if (response.ok) return;
-
-            let msg = 'Upload failed';
-            try {
-                const errData = await response.json();
-                if (errData.error) msg = errData.error;
-            } catch {}
-            // 429 / 5xx -> retry; 4xx lain -> permanen, langsung lempar
-            if (response.status !== 429 && response.status < 500) {
-                throw { permanent: true, message: msg };
-            }
-            lastError = new Error(msg);
+            await postChunkXHR(roomId, formData, signal, onBytes);
+            return;
         } catch (err) {
-            if (err && err.permanent) throw new Error(err.message);
-            if (signal.aborted) throw new Error('Upload cancelled');
-            // Network error (fetch throw): TypeError "Failed to fetch" -> retry
-            lastError = err;
+            if (err && err.message === 'Upload cancelled') throw new Error('Upload cancelled');
+            const status = err && err.status;
+            // HTTP 4xx selain 429 = permanen, langsung lempar
+            if (status && status !== 429 && status < 500) {
+                throw new Error(err.message || 'Upload failed');
+            }
+            lastError = (err instanceof Error) ? err : new Error((err && err.message) || 'Upload failed');
         }
 
         if (attempt < maxAttempts) {
@@ -232,7 +273,7 @@ async function uploadChunkWithRetry(chunk, i, totalChunks, fileId, file, roomId,
         }
     }
 
-    throw lastError instanceof Error ? lastError : new Error('Upload failed');
+    throw lastError || new Error('Upload failed');
 }
 
 function cancelUpload() {
