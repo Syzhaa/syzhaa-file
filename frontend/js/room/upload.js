@@ -151,20 +151,45 @@ async function uploadFiles(files) {
 }
 
 async function uploadFileInChunks(file, fileId, roomId, onProgress) {
-    const chunkSize = 10 * 1024 * 1024; // 10MB (increased for faster upload)
+    // 5MB chunks: small enough to finish on slow mobile links and cheap to
+    // retry, big enough to keep request count sane (~160 reqs for 800MB).
+    const chunkSize = 5 * 1024 * 1024;
     const totalChunks = Math.ceil(file.size / chunkSize);
     let totalUploaded = 0;
     let speedMbps = 0;
-    
+
     for (let i = 0; i < totalChunks; i++) {
         if (uploadAbortController.signal.aborted) {
             throw new Error('Upload cancelled');
         }
-        
+
         const start = i * chunkSize;
         const end = Math.min(start + chunkSize, file.size);
         const chunk = file.slice(start, end);
-        
+
+        const chunkStart = performance.now();
+        await uploadChunkWithRetry(chunk, i, totalChunks, fileId, file, roomId, uploadAbortController.signal);
+        const chunkSecs = Math.max((performance.now() - chunkStart) / 1000, 0.01);
+        // Mbps = (bytes * 8) / (seconds * 1e6), smoothed
+        const instMbps = (chunk.size * 8) / (chunkSecs * 1e6);
+        speedMbps = speedMbps === 0 ? instMbps : speedMbps * 0.7 + instMbps * 0.3;
+
+        totalUploaded += chunk.size;
+        const progress = Math.round(((i + 1) / totalChunks) * 100);
+        onProgress(progress, totalUploaded, speedMbps);
+    }
+}
+
+// Upload satu chunk dengan retry (tahan koneksi HP yang putus-nyambung).
+// Retry untuk: network error, 429 (rate limit), 5xx.
+// TIDAK retry untuk 4xx permanen (400/401/403/404/413) — langsung gagal.
+async function uploadChunkWithRetry(chunk, i, totalChunks, fileId, file, roomId, signal) {
+    const maxAttempts = 4;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (signal.aborted) throw new Error('Upload cancelled');
+
         const formData = new FormData();
         formData.append('file', chunk);
         formData.append('chunkIndex', i);
@@ -174,31 +199,40 @@ async function uploadFileInChunks(file, fileId, roomId, onProgress) {
         formData.append('mimeType', file.type);
         formData.append('totalSize', file.size);
         formData.append('folderId', currentFolderId || '');
-        
-        const chunkStart = performance.now();
-        const response = await fetch(`/api/upload/${roomId}`, {
-            method: 'POST',
-            body: formData,
-            signal: uploadAbortController.signal
-        });
-        const chunkSecs = Math.max((performance.now() - chunkStart) / 1000, 0.01);
-        // Mbps = (bytes * 8) / (seconds * 1e6), smoothed
-        const instMbps = (chunk.size * 8) / (chunkSecs * 1e6);
-        speedMbps = speedMbps === 0 ? instMbps : speedMbps * 0.7 + instMbps * 0.3;
-        
-        if (!response.ok) {
+
+        try {
+            const response = await fetch(`/api/upload/${roomId}`, {
+                method: 'POST',
+                body: formData,
+                signal: signal
+            });
+
+            if (response.ok) return;
+
             let msg = 'Upload failed';
             try {
                 const errData = await response.json();
                 if (errData.error) msg = errData.error;
             } catch {}
-            throw new Error(msg);
+            // 429 / 5xx -> retry; 4xx lain -> permanen, langsung lempar
+            if (response.status !== 429 && response.status < 500) {
+                throw { permanent: true, message: msg };
+            }
+            lastError = new Error(msg);
+        } catch (err) {
+            if (err && err.permanent) throw new Error(err.message);
+            if (signal.aborted) throw new Error('Upload cancelled');
+            // Network error (fetch throw): TypeError "Failed to fetch" -> retry
+            lastError = err;
         }
-        
-        totalUploaded += chunk.size;
-        const progress = Math.round(((i + 1) / totalChunks) * 100);
-        onProgress(progress, totalUploaded, speedMbps);
+
+        if (attempt < maxAttempts) {
+            // Exponential backoff: 1s, 2s, 4s
+            await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt - 1)));
+        }
     }
+
+    throw lastError instanceof Error ? lastError : new Error('Upload failed');
 }
 
 function cancelUpload() {

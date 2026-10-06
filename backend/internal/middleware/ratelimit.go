@@ -87,7 +87,10 @@ var (
 func InitRateLimiters() {
 	GeneralLimiter = NewRateLimiter(100, 1*time.Minute)
 	PinLimiter = NewRateLimiter(5, 15*time.Minute)
-	UploadLimiter = NewRateLimiter(10, 1*time.Minute)
+	// Chunked uploads hit /api/upload/{roomId} once per chunk (5MB each),
+	// so a 800MB file = ~160 requests. 10/min broke every upload >50MB.
+	// 120/min still blocks floods while letting real uploads through.
+	UploadLimiter = NewRateLimiter(120, 1*time.Minute)
 	LoginLimiter = NewRateLimiter(5, 10*time.Minute)
 }
 
@@ -115,6 +118,12 @@ func ClientIP(r *http.Request) string {
 func RateLimitMiddleware(limiter *RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// /api/upload/* has its own dedicated UploadLimiter (per-chunk
+			// requests); don't double-limit it with the general limiter.
+			if limiter == GeneralLimiter && strings.HasPrefix(r.URL.Path, "/api/upload/") {
+				next.ServeHTTP(w, r)
+				return
+			}
 			ip := ClientIP(r)
 
 			if !limiter.Allow(ip) {
