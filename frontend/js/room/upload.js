@@ -6,30 +6,57 @@
 // dilewati -> upload MELANJUTKAN, tidak mengulang dari 0.
 const UPLOAD_SESSION_TTL = 7 * 24 * 3600 * 1000; // 7 hari
 
-function uploadSessionKey(file, roomId) {
-    return `af_up_${roomId}_${file.size}_${file.lastModified}_${file.name}`;
+// Identitas stabil untuk "file yang sama": hash nama+size+64KB awal+64KB akhir.
+// Disengaja TIDAK pakai lastModified — di HP, file yang dipilih ulang (terutama
+// dari cloud/recent) sering dapat lastModified baru padahal isinya sama.
+async function fileIdentity(file) {
+    async function part(blob) {
+        try { return new Uint8Array(await blob.arrayBuffer()); }
+        catch { return new Uint8Array(0); }
+    }
+    const head = await part(file.slice(0, 65536));
+    const tail = await part(file.slice(Math.max(0, file.size - 65536)));
+    const nameBytes = new TextEncoder().encode(file.name + '|' + file.size);
+    let h1 = 0x811c9dc5, h2 = 0x01000193;
+    function mix(bytes) {
+        for (let i = 0; i < bytes.length; i++) {
+            h1 = Math.imul(h1 ^ bytes[i], 16777619) >>> 0;
+            h2 = Math.imul(h2 + bytes[i], 31) >>> 0;
+        }
+    }
+    mix(nameBytes); mix(head); mix(tail);
+    return file.size.toString(36) + '_' + h1.toString(36) + h2.toString(36);
 }
-function getUploadSession(file, roomId) {
+async function uploadSessionKey(file, roomId) {
+    return `af_up_${roomId}_` + await fileIdentity(file);
+}
+async function getUploadSession(file, roomId) {
     try {
-        const raw = localStorage.getItem(uploadSessionKey(file, roomId));
+        const key = await uploadSessionKey(file, roomId);
+        const raw = localStorage.getItem(key);
         if (!raw) return null;
         const s = JSON.parse(raw);
         if (Date.now() - s.createdAt > UPLOAD_SESSION_TTL) {
-            localStorage.removeItem(uploadSessionKey(file, roomId));
+            localStorage.removeItem(key);
             return null;
         }
         return s;
     } catch { return null; }
 }
-function setUploadSession(file, roomId, fileId) {
+async function setUploadSession(file, roomId, fileId) {
     try {
-        localStorage.setItem(uploadSessionKey(file, roomId), JSON.stringify({
+        const key = await uploadSessionKey(file, roomId);
+        localStorage.setItem(key, JSON.stringify({
             fileId, fileName: file.name, fileSize: file.size, createdAt: Date.now(),
         }));
     } catch {}
 }
-function clearUploadSession(file, roomId) {
-    try { localStorage.removeItem(uploadSessionKey(file, roomId)); } catch {}
+async function clearUploadSession(file, roomId) {
+    try {
+        // Hapus SEMUA sesi yang cocok dengan identitas file ini
+        const key = await uploadSessionKey(file, roomId);
+        localStorage.removeItem(key);
+    } catch {}
 }
 // Daftar sesi upload yang belum selesai di room ini (untuk banner pengingat).
 function listUnfinishedUploadSessions(roomId) {
@@ -161,10 +188,10 @@ async function uploadFiles(files) {
         }
 
         // --- Resume: pakai sesi lama kalau ada, tanya server chunk mana yang sudah sampai ---
-        let session = getUploadSession(file, currentRoom.id);
+        let session = await getUploadSession(file, currentRoom.id);
         if (!session) {
             const newFileId = generateUUID();
-            setUploadSession(file, currentRoom.id, newFileId);
+            await setUploadSession(file, currentRoom.id, newFileId);
             session = { fileId: newFileId };
         }
         const fileId = session.fileId;
@@ -196,7 +223,7 @@ async function uploadFiles(files) {
                     speedEl.textContent = mbps >= 10 ? Math.round(mbps) + ' Mbps' : mbps.toFixed(1) + ' Mbps';
                 }
             }, skipChunks);
-            clearUploadSession(file, currentRoom.id);
+            await clearUploadSession(file, currentRoom.id);
             
             // Update to completed state
             completedFiles++;
