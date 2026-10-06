@@ -202,47 +202,20 @@ func handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 
 // Create admin session
 func createAdminSession(adminID string) (*AdminSession, error) {
-	sessionID := uuid.New().String()
-	token := generateRandomString(64)
-	tokenHash := hashPassword(token)
-	expiresAt := time.Now().Add(24 * time.Hour)
-
-	_, err := db.Exec(`
-		INSERT INTO admin_sessions (id, admin_id, token_hash, expires_at)
-		VALUES (?, ?, ?, ?)
-	`, sessionID, adminID, tokenHash, expiresAt.Format(time.RFC3339))
-
+	token, err := createSession(adminSessionCfg, adminID)
 	if err != nil {
 		return nil, err
 	}
-
 	return &AdminSession{
-		ID:        sessionID,
-		AdminID:   adminID,
-		Token:     token,
-		ExpiresAt: expiresAt,
+		ID:      uuid.New().String(),
+		AdminID: adminID,
+		Token:   token,
 	}, nil
 }
 
 // Handler: Admin logout
 func handleAdminLogout(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	// Clear cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "admin_session",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	})
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Logged out successfully",
-	})
+	logoutSession(adminSessionCfg, w, r)
 }
 
 // Generate random string helper
@@ -256,41 +229,11 @@ func generateRandomString(length int) string {
 }
 
 // Validate admin session from cookie or Authorization header
+// Validate admin session from cookie or Authorization header
 func validateAdminSession(r *http.Request) (*AdminUser, error) {
-	var token string
-
-	// Try cookie first
-	cookie, err := r.Cookie("admin_session")
-	if err == nil {
-		token = cookie.Value
-	} else {
-		// Try Authorization header
-		authHeader := r.Header.Get("Authorization")
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			token = strings.TrimPrefix(authHeader, "Bearer ")
-		}
-	}
-
-	if token == "" {
-		return nil, fmt.Errorf("no session token")
-	}
-
-	tokenHash := hashPassword(token)
-
-	// Find valid session
-	var sessionID, adminID string
-	var expiresAt time.Time
-	err = db.QueryRow(`
-		SELECT id, admin_id, expires_at
-		FROM admin_sessions
-		WHERE token_hash = ? AND expires_at > ?
-	`, tokenHash, time.Now().Format(time.RFC3339)).Scan(&sessionID, &adminID, &expiresAt)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("invalid or expired session")
-	}
+	adminID, err := getSessionOwnerID(adminSessionCfg, r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid or expired session")
 	}
 
 	// Get admin user
@@ -299,13 +242,11 @@ func validateAdminSession(r *http.Request) (*AdminUser, error) {
 		SELECT id, email, name, created_at, last_login, is_super_admin
 		FROM admin_users
 		WHERE id = ?
-	`, adminID).Scan(&admin.ID, &admin.Email, &admin.Name, 
+	`, adminID).Scan(&admin.ID, &admin.Email, &admin.Name,
 		&admin.CreatedAt, &admin.LastLogin, &admin.IsSuperAdmin)
-
 	if err != nil {
 		return nil, err
 	}
-
 	return &admin, nil
 }
 

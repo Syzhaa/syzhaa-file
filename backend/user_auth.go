@@ -68,29 +68,7 @@ func createUserSession(userID string) (*UserSession, error) {
 }
 
 func validateUserSession(r *http.Request) (*User, error) {
-	var token string
-
-	if cookie, err := r.Cookie("user_session"); err == nil {
-		token = cookie.Value
-	} else if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
-		// Only treat as session token if it is NOT an API key (sfa_ prefix)
-		t := strings.TrimPrefix(h, "Bearer ")
-		if !strings.HasPrefix(t, "sfa_") {
-			token = t
-		}
-	}
-
-	if token == "" {
-		return nil, sql.ErrNoRows
-	}
-
-	tokenHash := hashPassword(token)
-
-	var userID string
-	err := db.QueryRow(`
-		SELECT user_id FROM user_sessions
-		WHERE token_hash = ? AND expires_at > ?
-	`, tokenHash, time.Now().Format(time.RFC3339)).Scan(&userID)
+	userID, err := getSessionOwnerID(userSessionCfg, r)
 	if err != nil {
 		return nil, err
 	}
@@ -175,14 +153,7 @@ func handleUserLogin(w http.ResponseWriter, r *http.Request) {
 
 // POST /auth/user/logout
 func handleUserLogout(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if cookie, err := r.Cookie("user_session"); err == nil {
-		db.Exec(`DELETE FROM user_sessions WHERE token_hash = ?`, hashPassword(cookie.Value))
-	}
-	http.SetCookie(w, &http.Cookie{Name: "user_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+	logoutSession(userSessionCfg, w, r)
 }
 
 // ---------------------------------------------------------------------------
