@@ -3,7 +3,6 @@ package main
 import (
 	"archive/zip"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,7 +29,7 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ExpiryMinutes int `json:"expiry_minutes"`
 	}
-	json.NewDecoder(r.Body).Decode(&req)
+	readJSON(r, &req)
 
 	if req.ExpiryMinutes == 0 {
 		req.ExpiryMinutes = 60
@@ -68,8 +67,7 @@ func handleAPICreateRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success":        true,
 		"room_id":        roomID,
 		"pin":            pin,
@@ -107,8 +105,7 @@ func handleAPIGetRoomLink(w http.ResponseWriter, r *http.Request) {
 	roomLink := fmt.Sprintf("%s/?room=%s", baseURL, roomID)
 	pinLink := fmt.Sprintf("%s/?pin=%s", baseURL, pin)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success":    true,
 		"room_id":    roomID,
 		"pin":        pin,
@@ -246,8 +243,7 @@ func handleAPIGetRoomFiles(w http.ResponseWriter, r *http.Request) {
 		files = append(files, f)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success":    true,
 		"room_id":    roomID,
 		"expires_at": expiresAt.Format(time.RFC3339),
@@ -272,8 +268,7 @@ func handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	var apiKeyCount int64
 	db.QueryRow("SELECT COUNT(*) FROM api_keys WHERE admin_id = ? AND is_active = 1", admin.ID).Scan(&apiKeyCount)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"stats": map[string]interface{}{
 			"total_rooms":     totalRooms,
@@ -296,7 +291,7 @@ func handleAdminListRooms(w http.ResponseWriter, r *http.Request) {
 		ORDER BY r.created_at DESC LIMIT 100
 	`)
 	if err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "rooms": []interface{}{}})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": []interface{}{}})
 		return
 	}
 	defer rows.Close()
@@ -317,6 +312,5 @@ func handleAdminListRooms(w http.ResponseWriter, r *http.Request) {
 			"owner_email": ownerEmail.String,
 		})
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "rooms": rooms})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": rooms})
 }

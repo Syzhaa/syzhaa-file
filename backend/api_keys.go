@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -39,7 +38,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	admin := r.Context().Value("admin").(*AdminUser)
 
 	var req CreateAPIKeyRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := readJSON(r, &req); err != nil {
 		http.Error(w, `{"error":"Invalid request"}`, http.StatusBadRequest)
 		return
 	}
@@ -69,8 +68,7 @@ func handleCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"api_key": APIKey{
 			ID:        keyID,
@@ -116,8 +114,7 @@ func handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 		keys = append(keys, k)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"keys":    keys,
 	})
@@ -152,8 +149,7 @@ func handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
 
 // Handler: Toggle API Key
@@ -190,8 +186,7 @@ func handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success":   true,
 		"is_active": newStatus == 1,
 	})

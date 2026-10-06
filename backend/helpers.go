@@ -2,8 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 )
+
+const maxJSONBodySize = 1 << 20 // 1MB
 
 // writeJSON sends a JSON response with the given status code.
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
@@ -12,18 +16,18 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
-// okJSON sends a 200 JSON response.
-func okJSON(w http.ResponseWriter, data interface{}) {
-	writeJSON(w, http.StatusOK, data)
-}
-
-// errJSON sends a JSON error response.
-func errJSON(w http.ResponseWriter, status int, msg string) {
+// writeError sends a JSON error response: {"success":false,"error":msg}.
+func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]interface{}{"success": false, "error": msg})
 }
 
 // readJSON decodes the request body into v.
+// It limits the body to 1MB and rejects unknown fields.
 func readJSON(r *http.Request, v interface{}) error {
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(v)
+	dec := json.NewDecoder(io.LimitReader(r.Body, maxJSONBodySize))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(v); err != nil {
+		return fmt.Errorf("invalid JSON: %w", err)
+	}
+	return nil
 }

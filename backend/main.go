@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -55,8 +54,7 @@ func getPublicStatsHandler(w http.ResponseWriter, r *http.Request) {
 	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_files'`).Scan(&deletedFiles)
 	_ = db.QueryRow(`SELECT value FROM system_settings WHERE key = 'stats_deleted_bytes'`).Scan(&deletedBytes)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"total_rooms":        totalRooms,
 		"total_files":        totalFiles,
 		"total_users":        totalUsers,

@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -19,7 +18,7 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 	var exists bool
 	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
 	if err != nil || !exists {
-		errJSON(w, http.StatusNotFound, "Invalid room")
+		writeError(w, http.StatusNotFound, "Invalid room")
 		return
 	}
 	
@@ -28,14 +27,14 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 		Name     string `json:"name"`
 		ParentID string `json:"parent_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		errJSON(w, http.StatusBadRequest, "Invalid request")
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	
 	// Validate folder name
 	if req.Name == "" || len(req.Name) > 255 {
-		errJSON(w, http.StatusBadRequest, "Invalid folder name")
+		writeError(w, http.StatusBadRequest, "Invalid folder name")
 		return
 	}
 	
@@ -47,14 +46,13 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 		folderID, roomID, sql.NullString{String: req.ParentID, Valid: req.ParentID != ""}, req.Name)
 	if err != nil {
 		log.Printf("❌ Failed to create folder: %v", err)
-		errJSON(w, http.StatusInternalServerError, "Failed to create folder")
+		writeError(w, http.StatusInternalServerError, "Failed to create folder")
 		return
 	}
 	
 	log.Printf("📁 Folder created: %s in room %s", req.Name, roomID)
 	
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"folder": map[string]interface{}{
 			"id":        folderID,
@@ -88,7 +86,7 @@ func listFoldersHandler(w http.ResponseWriter, r *http.Request) {
 	
 	if err != nil {
 		log.Printf("❌ Failed to list folders: %v", err)
-		errJSON(w, http.StatusInternalServerError, "Failed to list folders")
+		writeError(w, http.StatusInternalServerError, "Failed to list folders")
 		return
 	}
 	defer rows.Close()
@@ -106,8 +104,7 @@ func listFoldersHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"folders": folders,
 	})
@@ -122,11 +119,11 @@ func deleteFolderHandler(w http.ResponseWriter, r *http.Request) {
 	var name string
 	err := db.QueryRow("SELECT name FROM folders WHERE id = ?", folderID).Scan(&name)
 	if err == sql.ErrNoRows {
-		errJSON(w, http.StatusNotFound, "Folder not found")
+		writeError(w, http.StatusNotFound, "Folder not found")
 		return
 	}
 	if err != nil {
-		errJSON(w, http.StatusInternalServerError, "Server error")
+		writeError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 	
@@ -134,14 +131,13 @@ func deleteFolderHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = db.Exec("DELETE FROM folders WHERE id = ?", folderID)
 	if err != nil {
 		log.Printf("❌ Failed to delete folder: %v", err)
-		errJSON(w, http.StatusInternalServerError, "Failed to delete folder")
+		writeError(w, http.StatusInternalServerError, "Failed to delete folder")
 		return
 	}
 	
 	log.Printf("🗑️  Folder deleted: %s (ID: %s)", name, folderID)
 	
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 	})
 }

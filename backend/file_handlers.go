@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -24,14 +23,14 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	var exists bool
 	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)", roomID).Scan(&exists)
 	if err != nil || !exists {
-		errJSON(w, http.StatusNotFound, "Invalid room")
+		writeError(w, http.StatusNotFound, "Invalid room")
 		return
 	}
 
 	r.ParseMultipartForm(MaxMemory)
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		errJSON(w, http.StatusBadRequest, "No chunk received")
+		writeError(w, http.StatusBadRequest, "No chunk received")
 		return
 	}
 	defer file.Close()
@@ -49,7 +48,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 	chunkPath := filepath.Join(fileChunkDir, chunkIndex)
 	out, err := os.Create(chunkPath)
 	if err != nil {
-		errJSON(w, http.StatusInternalServerError, "Failed to save chunk")
+		writeError(w, http.StatusInternalServerError, "Failed to save chunk")
 		return
 	}
 	defer out.Close()
@@ -65,8 +64,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 		if qErr := checkStorageQuota(roomID, totalBytes); qErr != "" {
 			os.RemoveAll(fileChunkDir)
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusRequestEntityTooLarge)
-			json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": qErr})
+			writeJSON(w, http.StatusRequestEntityTooLarge, map[string]interface{}{"success": false, "error": qErr})
 			return
 		}
 
@@ -76,7 +74,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 
 		finalFile, err := os.Create(finalFilePath)
 		if err != nil {
-			errJSON(w, http.StatusInternalServerError, "Failed to create final file")
+			writeError(w, http.StatusInternalServerError, "Failed to create final file")
 			return
 		}
 		defer finalFile.Close()
@@ -104,7 +102,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 			meta, err := EncryptFileInPlace(finalFileName, encryptPassphrase)
 			if err != nil {
 				log.Printf("❌ Encryption failed: %v", err)
-				errJSON(w, http.StatusInternalServerError, "Encryption failed")
+				writeError(w, http.StatusInternalServerError, "Encryption failed")
 				return
 			}
 			saltB64 = base64.StdEncoding.EncodeToString(meta.Salt)
@@ -119,12 +117,11 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 			fileID, roomID, sql.NullString{String: folderID, Valid: folderID != ""}, finalFileName, originalName, mimeType, size, saltB64, nonceB64, isEncrypted, originalSize)
 		if err != nil {
 			log.Printf("❌ DB insert error: %v", err)
-			errJSON(w, http.StatusInternalServerError, "Failed to save metadata")
+			writeError(w, http.StatusInternalServerError, "Failed to save metadata")
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"success":   true,
 			"id":        fileID,
 			"completed": true,
@@ -132,8 +129,7 @@ func uploadChunkHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success":   true,
 		"message":   fmt.Sprintf("Chunk %s received", chunkIndex),
 		"completed": false,
@@ -249,17 +245,17 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	var allowDelete int
 	err := db.QueryRow(`SELECT f.filename, COALESCE(r.allow_delete, 1) FROM files f JOIN rooms r ON f.room_id = r.id WHERE f.id = ?`, fileID).Scan(&filename, &allowDelete)
 	if err == sql.ErrNoRows {
-		errJSON(w, http.StatusNotFound, "File not found")
+		writeError(w, http.StatusNotFound, "File not found")
 		return
 	}
 	if err != nil {
-		errJSON(w, http.StatusInternalServerError, "Server error")
+		writeError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 
 	// Owner can disable delete
 	if allowDelete == 0 {
-		errJSON(w, http.StatusForbidden, "Hapus dinonaktifkan oleh pemilik room")
+		writeError(w, http.StatusForbidden, "Hapus dinonaktifkan oleh pemilik room")
 		return
 	}
 
@@ -279,11 +275,11 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Delete from database
 	if _, err := db.Exec("DELETE FROM files WHERE id = ?", fileID); err != nil {
 		log.Printf("❌ Failed to delete file from database: %v", err)
-		errJSON(w, http.StatusInternalServerError, "Failed to delete file from database")
+		writeError(w, http.StatusInternalServerError, "Failed to delete file from database")
 		return
 	}
 
 	log.Printf("✅ File deleted successfully: %s (ID: %s)", filename, fileID)
-	okJSON(w, map[string]interface{}{"success": true})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -138,8 +137,7 @@ func requireUserSession(next http.Handler) http.Handler {
 		user, err := validateUserSession(r)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			writeJSON(w, http.StatusUnauthorized, map[string]interface{}{
 				"success": false,
 				"error":   "Login diperlukan",
 			})
@@ -159,8 +157,7 @@ func requireUserSession(next http.Handler) http.Handler {
 // POST /auth/user/register — DISABLED: user signup is Google-only now
 func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusGone)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusGone, map[string]interface{}{
 		"success": false,
 		"error":   "Pendaftaran via email dinonaktifkan. Silakan daftar dengan Google.",
 	})
@@ -170,8 +167,7 @@ func handleUserRegister(w http.ResponseWriter, r *http.Request) {
 // POST /auth/user/login — DISABLED: user login is Google-only now
 func handleUserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusGone)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusGone, map[string]interface{}{
 		"success": false,
 		"error":   "Login via email dinonaktifkan. Silakan masuk dengan Google.",
 	})
@@ -186,7 +182,7 @@ func handleUserLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &http.Cookie{Name: "user_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
 
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
 
 // ---------------------------------------------------------------------------
@@ -198,8 +194,7 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
@@ -216,7 +211,7 @@ func handleUserMe(w http.ResponseWriter, r *http.Request) {
 	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0), api_requested_at FROM users WHERE id = ?`,
 		user.ID).Scan(&apiApproved, &apiRequestedAt)
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success":             true,
 		"user":                user,
 		"storage_used_bytes":  usedBytes,
@@ -248,8 +243,7 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
@@ -258,7 +252,7 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 		WHERE user_id = ? ORDER BY created_at DESC LIMIT 50
 	`, user.ID)
 	if err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "rooms": []roomOut{}})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": []roomOut{}})
 		return
 	}
 	defer rows.Close()
@@ -269,7 +263,7 @@ func handleUserRooms(w http.ResponseWriter, r *http.Request) {
 		rows.Scan(&rm.ID, &rm.PIN, &rm.CreatedAt, &rm.ExpiresAt)
 		rooms = append(rooms, rm)
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "rooms": rooms})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "rooms": rooms})
 }
 
 // ---------------------------------------------------------------------------
@@ -281,8 +275,7 @@ func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
@@ -291,7 +284,7 @@ func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
 		FROM api_keys WHERE user_id = ? ORDER BY created_at DESC
 	`, user.ID)
 	if err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "api_keys": []keyOut{}})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "api_keys": []keyOut{}})
 		return
 	}
 	defer rows.Close()
@@ -309,7 +302,7 @@ func handleUserListAPIKeys(w http.ResponseWriter, r *http.Request) {
 		k.IsActive = isActive == 1
 		keys = append(keys, k)
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "api_keys": keys})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "api_keys": keys})
 }
 
 // POST /user/api-keys
@@ -317,8 +310,7 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
@@ -326,15 +318,14 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	var apiApproved int
 	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&apiApproved)
 	if apiApproved != 1 {
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Pembuatan API key perlu persetujuan admin. Minta persetujuan dulu ya."})
+		writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "error": "Pembuatan API key perlu persetujuan admin. Minta persetujuan dulu ya."})
 		return
 	}
 
 	var req struct {
 		Name string `json:"name"`
 	}
-	json.NewDecoder(r.Body).Decode(&req)
+	readJSON(r, &req)
 	if strings.TrimSpace(req.Name) == "" {
 		req.Name = "API Key"
 	}
@@ -357,11 +348,11 @@ func handleUserCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		VALUES (?, ?, ?, ?, ?, ?, 1)
 	`, keyID, hashPassword(rawKey), ownerAdminID, user.ID, strings.TrimSpace(req.Name), time.Now().Format(time.RFC3339))
 	if err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal membuat API key"})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal membuat API key"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"api_key": map[string]string{"id": keyID, "key": rawKey, "name": strings.TrimSpace(req.Name)},
 		"warning": "Simpan key ini baik-baik, tidak akan ditampilkan lagi.",
@@ -373,26 +364,24 @@ func handleUserRequestAPIAccess(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
 	var already int
 	_ = db.QueryRow(`SELECT COALESCE(api_approved, 0) FROM users WHERE id = ?`, user.ID).Scan(&already)
 	if already == 1 {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "Sudah disetujui"})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Sudah disetujui"})
 		return
 	}
 
 	_, err := db.Exec(`UPDATE users SET api_requested_at = ? WHERE id = ?`,
 		time.Now().Format(time.RFC3339), user.ID)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal mengirim permintaan"})
+		writeJSON(w, http.StatusInternalServerError, map[string]interface{}{"success": false, "error": "Gagal mengirim permintaan"})
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "Permintaan terkirim"})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "message": "Permintaan terkirim"})
 }
 
 // DELETE /user/api-keys/{id}
@@ -400,21 +389,19 @@ func handleUserDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	user := userFromContext(r.Context())
 	if user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Login diperlukan"})
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "Login diperlukan"})
 		return
 	}
 
 	keyID := mux.Vars(r)["id"]
 	res, err := db.Exec(`DELETE FROM api_keys WHERE id = ? AND user_id = ?`, keyID, user.ID)
 	if err != nil {
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Gagal menghapus"})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "Gagal menghapus"})
 		return
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "API key tidak ditemukan"})
+		writeJSON(w, http.StatusNotFound, map[string]interface{}{"success": false, "error": "API key tidak ditemukan"})
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
 }
