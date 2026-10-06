@@ -1118,6 +1118,7 @@ func main() {
 	r.HandleFunc("/api/room/create", createRoomHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/pin", accessRoomByPinHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/room/{id}", getRoomInfoHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/room/{id}", handleDeleteRoom).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/room/{id}/settings", updateRoomSettingsHandler).Methods("PUT", "OPTIONS")
 	r.HandleFunc("/api/upload/{roomId}", uploadChunkHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/file/{id}", deleteFileHandler).Methods("DELETE", "OPTIONS")

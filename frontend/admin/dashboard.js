@@ -870,6 +870,7 @@ function renderAdminRooms() {
                 <div class="text-xs text-outline">${r.file_count} file &middot; ${r.owner_email || 'Anonim'} &middot; Kadaluarsa ${new Date(r.expires_at).toLocaleString('id-ID')}</div>
             </div>
             ${active ? `<a href="/room.html?id=${r.id}" class="text-sm font-semibold" style="color:#F6821F">Buka</a>` : ''}
+            <button onclick="deleteAdminRoom('${r.id}')" class="text-sm font-semibold px-3 py-1.5 rounded-lg" style="background:#fee2e2;color:#dc2626;border:0;cursor:pointer;">Hapus</button>
         </div>`;
     }).join('');
 }
@@ -877,6 +878,19 @@ function renderAdminRooms() {
 function filterAdminRooms(f) {
     _adminRoomFilter = f;
     renderAdminRooms();
+}
+
+async function deleteAdminRoom(roomId) {
+    if (!confirm('Hapus room ini? Semua file di dalamnya akan ikut terhapus dan tidak bisa dikembalikan.')) return;
+    try {
+        const res = await fetch('/api/room/' + roomId, { method: 'DELETE', credentials: 'include' });
+        if (!res.ok) throw new Error('gagal');
+        _adminRooms = _adminRooms.filter(r => r.id !== roomId);
+        renderAdminRooms();
+        alert('Room berhasil dihapus.');
+    } catch {
+        alert('Gagal menghapus room.');
+    }
 }
 
 // Load rooms when switching to rooms view

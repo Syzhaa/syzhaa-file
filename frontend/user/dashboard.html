@@ -354,12 +354,36 @@
                             <div class="meta">Kadaluarsa ${new Date(rm.expires_at).toLocaleString('id-ID')}</div>
                         </div>
                         ${isActive ? `<a href="/room.html?id=${esc(rm.id)}">Buka</a>` : ''}
+                        <button onclick="deleteRoom('${esc(rm.id)}')" title="Hapus" style="border:0;background:#fee2e2;color:#dc2626;border-radius:8px;padding:6px 8px;cursor:pointer;display:inline-flex;align-items:center;font-family:inherit;">
+                            <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+                        </button>
                     </div>`;
                 }).join('');
             }
         }
 
         function filterRooms(f) { renderRooms(f); }
+        
+        async function deleteRoom(roomId) {
+            if (!confirm('Hapus room ini? Semua file di dalamnya akan ikut terhapus dan tidak bisa dikembalikan.')) return;
+            try {
+                const res = await fetch('/api/room/' + roomId, { method: 'DELETE', credentials: 'include' });
+                if (!res.ok) throw new Error('gagal');
+                // Remove from local list and re-render
+                window._allRooms = (window._allRooms || []).filter(r => r.id !== roomId);
+                renderRooms(window._roomFilter || 'all');
+                // Refresh stats
+                const list = window._allRooms;
+                const now = new Date();
+                const active = list.filter(r => new Date(r.expires_at) > now).length;
+                setText('stat-rooms', list.length);
+                setText('stat-rooms-active', active);
+                setText('stat-rooms-expired', list.length - active);
+                alert('Room berhasil dihapus.');
+            } catch {
+                alert('Gagal menghapus room.');
+            }
+        }
         }
 
         async function requestApiAccess() {
