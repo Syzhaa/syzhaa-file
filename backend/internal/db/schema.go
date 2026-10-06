@@ -88,6 +88,9 @@ func initUserSchema() error {
 	// allow_delete: 1 (default) owner mengizinkan hapus, 0 = tombol hapus disembunyikan
 	DB.Exec("ALTER TABLE rooms ADD COLUMN allow_delete INTEGER DEFAULT 1")
 
+	// owner_token_hash: for anonymous rooms, proves ownership (K3 IDOR fix)
+	DB.Exec("ALTER TABLE rooms ADD COLUMN owner_token_hash TEXT")
+
 	// API key approval: users login immediately, but need admin approval for API keys
 	DB.Exec("ALTER TABLE users ADD COLUMN api_approved INTEGER DEFAULT 0")
 	DB.Exec("ALTER TABLE users ADD COLUMN api_requested_at DATETIME")

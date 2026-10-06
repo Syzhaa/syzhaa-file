@@ -5,6 +5,7 @@ import (
 	"github.com/syzhaa/file-server/internal/db"
 	"github.com/syzhaa/file-server/internal/httpx"
 	"crypto/rand"
+	"crypto/subtle"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -91,17 +92,21 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 		userID = u.ID
 	}
 
-	_, err = db.DB.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota) VALUES (?, ?, ?, ?, ?)",
-		roomID, pin, expiresAt.Format(time.RFC3339), userID, noQuota)
+	// Owner token for anonymous rooms (K3 IDOR fix)
+	ownerToken := auth.GenerateRandomString(64)
+
+	_, err = db.DB.Exec("INSERT INTO rooms (id, pin, expires_at, user_id, no_quota, owner_token_hash) VALUES (?, ?, ?, ?, ?, ?)",
+		roomID, pin, expiresAt.Format(time.RFC3339), userID, noQuota, auth.HashString(ownerToken))
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "Failed to create room")
 		return
 	}
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"room_id": roomID,
-		"pin":     pin,
+		"success":     true,
+		"room_id":     roomID,
+		"pin":         pin,
+		"owner_token": ownerToken,
 	})
 }
 
@@ -230,6 +235,12 @@ func UpdateRoomSettingsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// K3: Verify ownership
+	if !CheckRoomOwnership(r, roomID) {
+		httpx.WriteError(w, http.StatusForbidden, "Hanya pemilik room yang bisa ubah pengaturan")
+		return
+	}
+
 	if req.Permission != "" {
 		db.DB.Exec(`UPDATE rooms SET permission = ? WHERE id = ?`, req.Permission, roomID)
 	}
@@ -252,25 +263,17 @@ func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	roomID := vars["id"]
 
-	var userID sql.NullString
-	var noQuota int
-	err := db.DB.QueryRow(`SELECT user_id, COALESCE(no_quota, 0) FROM rooms WHERE id = ?`, roomID).Scan(&userID, &noQuota)
-	if err != nil {
+	var exists bool
+	_ = db.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM rooms WHERE id = ?)`, roomID).Scan(&exists)
+	if !exists {
 		httpx.WriteError(w, http.StatusNotFound, "Room tidak ditemukan")
 		return
 	}
 
-	// Authorization: admin can delete anything; user can delete their own rooms
-	isAdmin := false
-	if _, err := auth.ValidateAdminSession(r); err == nil {
-		isAdmin = true
-	}
-	if !isAdmin {
-		u, err := auth.ValidateUserSession(r)
-		if err != nil || u == nil || !userID.Valid || userID.String != u.ID {
-			httpx.WriteError(w, http.StatusForbidden, "Tidak diizinkan")
-			return
-		}
+	// Authorization: use CheckRoomOwnership (K3) - handles both user and anonymous rooms
+	if !CheckRoomOwnership(r, roomID) {
+		httpx.WriteError(w, http.StatusForbidden, "Tidak diizinkan")
+		return
 	}
 
 	// Delete physical files
@@ -293,4 +296,39 @@ func HandleDeleteRoom(w http.ResponseWriter, r *http.Request) {
 	db.DB.Exec(`UPDATE system_settings SET value = CAST(value AS INTEGER) + 1 WHERE key = 'stats_deleted_rooms'`)
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+}
+
+// CheckRoomOwnership verifies the caller owns the room.
+// Returns true if: (1) room has user_id matching session user, OR
+// (2) room is anonymous and X-Room-Token header matches stored hash (constant-time).
+func CheckRoomOwnership(r *http.Request, roomID string) bool {
+	var userID, tokenHash sql.NullString
+	err := db.DB.QueryRow(`SELECT user_id, owner_token_hash FROM rooms WHERE id = ?`, roomID).Scan(&userID, &tokenHash)
+	if err != nil {
+		return false
+	}
+
+	// Case 1: room owned by logged-in user
+	if userID.Valid && userID.String != "" {
+		if u, err := auth.ValidateUserSession(r); err == nil && u != nil && u.ID == userID.String {
+			return true
+		}
+		// Also allow admin who created it
+		if a, err := auth.ValidateAdminSession(r); err == nil && a != nil {
+			return true
+		}
+		return false
+	}
+
+	// Case 2: anonymous room - check owner token (constant-time compare)
+	if tokenHash.Valid && tokenHash.String != "" {
+		provided := r.Header.Get("X-Room-Token")
+		if provided == "" {
+			return false
+		}
+		providedHash := auth.HashString(provided)
+		return subtle.ConstantTimeCompare([]byte(providedHash), []byte(tokenHash.String)) == 1
+	}
+
+	return false
 }
