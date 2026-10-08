@@ -171,8 +171,9 @@ async function uploadFiles(files) {
     
     totalText.textContent = `0/${totalFiles}`;
 
-    // Upload paralel: 3 file jalan barengan (worker pool)
-    const PARALLEL = 3;
+    // Upload paralel: jumlah dari dropdown (default 3)
+    const parallelSel = document.getElementById('upload-parallel-select');
+    const PARALLEL = parallelSel ? Math.max(1, Math.min(6, parseInt(parallelSel.value) || 3)) : 3;
     let nextIndex = 0;
 
     async function uploadSingleFile(i) {

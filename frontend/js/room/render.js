@@ -99,6 +99,17 @@ function renderRoom() {
                         <span class="font-semibold text-ink text-sm truncate">Mengupload <span id="upload-total-text">0/0</span>...</span>
                     </div>
                     <div class="flex items-center gap-3 shrink-0">
+                        <label class="flex items-center gap-1 text-xs text-muted">
+                            Paralel
+                            <select id="upload-parallel-select" class="border border-line rounded-lg text-xs px-1.5 py-1 bg-white" title="Jumlah file yang diupload bersamaan">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3" selected>3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                            </select>
+                        </label>
                         <button onclick="toggleSelectAllUpload()" class="text-brand-600 hover:text-brand-700 font-semibold text-sm">
                             Pilih semua
                         </button>
