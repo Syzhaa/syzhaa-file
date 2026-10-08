@@ -49,6 +49,17 @@ function renderRoom() {
             <p class="text-muted text-sm mb-4">atau <span class="font-semibold text-ink underline underline-offset-2">klik untuk memilih</span></p>
             <input type="file" id="file-input" multiple class="hidden" onchange="handleFileSelect(event)">
             <p class="text-xs text-muted mt-4" id="quota-label">${currentRoom.quota_unlimited ? 'Tanpa batas kuota' : 'Maksimal ' + (currentRoom.quota_label || '1 GB') + ' total per ruangan'}</p>
+            <div class="mt-3 flex items-center justify-center gap-2 text-xs text-muted">
+                <span>Upload bersamaan:</span>
+                <select id="upload-parallel-select" class="border border-line rounded-lg text-xs px-2 py-1.5 bg-white font-semibold text-ink" title="Jumlah file yang diupload bersamaan">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </div>
         </div>
 
         <!-- File List -->
@@ -99,17 +110,6 @@ function renderRoom() {
                         <span class="font-semibold text-ink text-sm truncate">Mengupload <span id="upload-total-text">0/0</span>...</span>
                     </div>
                     <div class="flex items-center gap-3 shrink-0">
-                        <label class="flex items-center gap-1 text-xs text-muted">
-                            Paralel
-                            <select id="upload-parallel-select" class="border border-line rounded-lg text-xs px-1.5 py-1 bg-white" title="Jumlah file yang diupload bersamaan">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3" selected>3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                            </select>
-                        </label>
                         <button onclick="toggleSelectAllUpload()" class="text-brand-600 hover:text-brand-700 font-semibold text-sm">
                             Pilih semua
                         </button>
