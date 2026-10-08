@@ -49,17 +49,19 @@ function renderRoom() {
             <p class="text-muted text-sm mb-4">atau <span class="font-semibold text-ink underline underline-offset-2">klik untuk memilih</span></p>
             <input type="file" id="file-input" multiple class="hidden" onchange="handleFileSelect(event)">
             <p class="text-xs text-muted mt-4" id="quota-label">${currentRoom.quota_unlimited ? 'Tanpa batas kuota' : 'Maksimal ' + (currentRoom.quota_label || '1 GB') + ' total per ruangan'}</p>
-            <div class="mt-3 flex items-center justify-center gap-2 text-xs text-muted">
-                <span>Upload bersamaan:</span>
-                <select id="upload-parallel-select" class="border border-line rounded-lg text-xs px-2 py-1.5 bg-white font-semibold text-ink" title="Jumlah file yang diupload bersamaan">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3" selected>3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                </select>
-            </div>
+        </div>
+
+        <!-- Setting paralel: di luar card upload biar bisa diklik -->
+        <div class="flex items-center justify-end gap-2 text-xs text-muted mb-4 -mt-2">
+            <span>Upload bersamaan:</span>
+            <select id="upload-parallel-select" class="border border-line rounded-lg text-xs px-2 py-1.5 bg-white font-semibold text-ink" title="Jumlah file yang diupload bersamaan">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+            </select>
         </div>
 
         <!-- File List -->
