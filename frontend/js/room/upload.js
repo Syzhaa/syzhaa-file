@@ -224,18 +224,22 @@ async function uploadFiles(files) {
                 }
             }, skipChunks);
             await clearUploadSession(file, currentRoom.id);
-            
-            // Update to completed state
+
+            // File selesai: hapus dari panel upload, langsung muncul di daftar file
             completedFiles++;
-            document.getElementById(`${itemId}-icon`).textContent = 'check_circle';
-            document.getElementById(`${itemId}-icon`).className = 'material-symbols-outlined text-green-600 text-xl';
-            document.getElementById(`${itemId}-status`).textContent = 'Completed';
-            document.getElementById(`${itemId}-status`).className = 'text-xs font-semibold text-green-600';
-            document.getElementById(`${itemId}-speed`).textContent = '';
-            document.getElementById(`${itemId}-bar`).style.width = '100%';
-            document.getElementById(`${itemId}-bar`).className = 'bg-green-500 h-1.5 rounded-full transition-all';
-            
             totalText.textContent = `${completedFiles}/${totalFiles}`;
+            const itemEl = document.getElementById(itemId);
+            if (itemEl) {
+                itemEl.style.transition = 'opacity 0.4s';
+                itemEl.style.opacity = '0';
+                setTimeout(() => itemEl.remove(), 400);
+            }
+            // Refresh daftar file biar file yang selesai langsung kelihatan
+            try {
+                await loadTotalFileCount();
+                await loadRoomContent();
+                updateTotalFileDisplay();
+            } catch (_) {}
             
         } catch (error) {
             if (error.message === 'Upload cancelled') {
@@ -256,13 +260,6 @@ async function uploadFiles(files) {
             console.error('Upload error:', error);
             showInfoModal(error.message === 'Upload failed' ? `Gagal upload ${file.name}` : error.message);
         }
-    }
-    
-    // Reload content once after all uploads
-    if (completedFiles > 0) {
-        await loadTotalFileCount();
-        await loadRoomContent();
-        updateTotalFileDisplay();
     }
     
     // Auto-hide after 2 seconds if all completed
