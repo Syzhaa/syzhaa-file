@@ -170,12 +170,15 @@ async function uploadFiles(files) {
     }
     
     totalText.textContent = `0/${totalFiles}`;
-    
-    // Upload files sequentially
-    for (let i = 0; i < files.length; i++) {
+
+    // Upload paralel: 3 file jalan barengan (worker pool)
+    const PARALLEL = 3;
+    let nextIndex = 0;
+
+    async function uploadSingleFile(i) {
         const file = files[i];
         const itemId = `upload-item-${i}`;
-        
+
         // Check if file is selected
         const checkbox = document.getElementById(`${itemId}-checkbox`);
         if (!checkbox.checked) {
@@ -184,7 +187,7 @@ async function uploadFiles(files) {
             document.getElementById(`${itemId}-icon`).className = 'material-symbols-outlined text-gray-400 text-xl';
             document.getElementById(`${itemId}-status`).textContent = 'Skipped';
             document.getElementById(`${itemId}-status`).className = 'text-xs font-semibold text-gray-500';
-            continue;
+            return;
         }
 
         // --- Resume: pakai sesi lama kalau ada, tanya server chunk mana yang sudah sampai ---
@@ -248,7 +251,7 @@ async function uploadFiles(files) {
                 document.getElementById(`${itemId}-status`).textContent = 'Cancelled';
                 document.getElementById(`${itemId}-status`).className = 'text-xs font-semibold text-orange-600';
                 console.log('Upload cancelled by user');
-                break;
+                return;
             }
             
             // Update to error state
@@ -260,8 +263,23 @@ async function uploadFiles(files) {
             console.error('Upload error:', error);
             showInfoModal(error.message === 'Upload failed' ? `Gagal upload ${file.name}` : error.message);
         }
+    } // end uploadSingleFile
+
+    // Worker pool: tiap worker ambil file berikutnya sampai habis
+    async function worker() {
+        while (true) {
+            if (uploadAbortController.signal.aborted) return;
+            const i = nextIndex++;
+            if (i >= files.length) return;
+            await uploadSingleFile(i);
+        }
     }
-    
+    const workers = [];
+    for (let w = 0; w < Math.min(PARALLEL, files.length); w++) {
+        workers.push(worker());
+    }
+    await Promise.all(workers);
+
     // Auto-hide after 2 seconds if all completed
     if (completedFiles === totalFiles) {
         setTimeout(() => {
